@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include "nagato.h"
+#include "nagato.hpp"
 
 template<typename T>
 class TD;
