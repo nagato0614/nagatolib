@@ -12,6 +12,11 @@ if (NAGATO_MATH)
     add_definitions(-DNAGATO_MATH)
 endif ()
 
+# compile options
+set(CMAKE_CXX_FLAGS_DEBUG
+        "-O0 -Wall ${CMAKE_CXX_FLAGS_DEBUG}")
+set(CMAKE_CXX_FLAGS_RELEASE
+        "-O3 -Wall ${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Build Nagato Lib
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -25,7 +30,10 @@ add_library(nagato ${NAGATO_HEADER} ${NAGATO_SOURCE})
 
 # Build Example
 if (NAGATO_BUILD_EXAMPLE)
-    add_executable(vector example/vector_example.cpp)
+    add_executable(vector
+            example/vector_example.cpp)
+    target_link_libraries(vector
+            nagato)
 endif ()
 
 # Build Tests
@@ -37,4 +45,7 @@ if (NAGATO_TEST)
             ${CMAKE_SOURCE_DIR}/test/*.cpp)
     add_executable(nagato_test
             ${NAGATO_TEST_SOURCE})
+    target_link_libraries(nagato_test
+            nagato
+            gtest)
 endif ()
