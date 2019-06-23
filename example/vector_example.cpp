@@ -19,8 +19,12 @@ void showVec(const vector3f &v) {
 
 int main() {
   constexpr vector3f a{1, 2, 3};
+  if constexpr (a.HasNan()) {
+    ;
+  }
   vector3f b = {4, 5, 6};
   vector3f c = {7, 8, 9};
+
 
   vector3f d = a + b + c + 1;
 
@@ -34,6 +38,8 @@ int main() {
   vector3f sqrtvec = Sqrt(a);
   showVec(sqrtvec);
 
-  std::cout << Norm(a) << std::endl;
+  float norm_a = Norm(b);
+
+  std::cout << norm_a << std::endl;
 
 }

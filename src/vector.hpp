@@ -9,11 +9,13 @@
 #include <cassert>
 #include <initializer_list>
 #include <array>
+#include <limits>
+#include <cmath>
 
 #include "math.hpp"
 
 namespace nagato {
-
+	using namespace math;
 // -----------------------------------------------------------------------------
 // forward declaration
 template<typename Primitive, std::size_t size>
@@ -27,6 +29,8 @@ class Multi;
 class InnerProduct;
 class SquareRoot;
 class NormExpression;
+class EuclideanDistance;
+class AbsoluteValue;
 
 // -----------------------------------------------------------------------------
 template<typename Type>
@@ -51,8 +55,8 @@ class Vector {
 
   constexpr
   Vector(Primitive p = 0.0) {
-	for (Size i = 0; i < size; i++)
-	  array_[i] = p;
+	for (auto &i : array_)
+	  i = p;
   }
 
   constexpr Vector(const Vector<Primitive, size> &v)
@@ -106,9 +110,14 @@ class Vector {
 	return size;
   }
 
+  constexpr bool HasNan() const {
+	for (const auto &i : array_)
+	  if (is_nan(i))
+		return false;
+	return true;
+  }
+
  private:
-
-
   Array array_ = {0};
 };
 
@@ -126,7 +135,28 @@ constexpr inline auto Sqrt(const Type &t) {
 
 template<class Type>
 constexpr inline auto Norm(const Type &t) {
-  return Expression<Type, NormExpression, Type>(t, t).Eval();
+  remove_const_reference<decltype(t[0])> sum = 0.0;
+  for (int i = 0; i < t.GetArraySize(); i++)
+	sum += t[i] * t[i];
+  return sum;
+}
+
+template<class Type>
+constexpr inline auto Sum(const Type &t) {
+  remove_const_reference<decltype(t[0])> sum = 0.0;
+  for (int i = 0; i < t.GetArraySize(); i++)
+	sum += t[i];
+  return sum;
+}
+
+template<class Type>
+constexpr inline auto Abs(const Type &t) {
+  return Expression<Type, AbsoluteValue, Type>(t, t);
+}
+
+template<class Lhv, class Rhv>
+constexpr inline auto Distance(const Lhv &l, const Rhv &r) {
+  return sqrt(Norm(l - r));
 }
 
 template<class Lhv, class Rhv>
@@ -150,7 +180,6 @@ constexpr inline Expression<Lhv, Multi, Rhv> operator*(const Lhv &l,
 template<class Lhv, class Rhv>
 constexpr inline Expression<Lhv, Division, Rhv> operator/(const Lhv &l,
 														  const Rhv &r) {
-  static_assert(!std::is_arithmetic<Lhv>(), "Left Value is arithmetic");
   static_assert(!std::is_arithmetic<Rhv>(), "Right Value is arithmetic");
   return Expression<Lhv, Division, Rhv>(l, r);
 }
@@ -182,6 +211,31 @@ class Expression {
  private:
   const Lhv &lhv_;
   const Rhv &rhv_;
+};
+
+// -----------------------------------------------------------------------------
+
+class AbsoluteValue {
+ public:
+  template<class Lhv, class Rhv>
+  constexpr static inline auto Apply(const Lhv &l,
+									 const Rhv &r,
+									 std::size_t index) {
+	return static_cast<remove_const_reference<
+		decltype(l[index])>>(abs(l[index]));
+  }
+};
+
+// -----------------------------------------------------------------------------
+
+class EuclideanDistance {
+ public:
+  template<class Lhv, class Rhv>
+  constexpr static inline auto Apply(const Lhv &l,
+									 const Rhv &r,
+									 std::size_t index) {
+	return l[index] * l[index];
+  }
 };
 
 // -----------------------------------------------------------------------------

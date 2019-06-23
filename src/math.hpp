@@ -6,29 +6,58 @@
 #define NAGATOLIB_SRC_MATH_H_
 
 #include <math.h>
+#include <cassert>
+
+#include "assert.hpp"
 
 namespace nagato {
-
+namespace math {
 // -----------------------------------------------------------------------------
 // reference : https://cpplover.blogspot.com/2010/11/blog-post_20.html
 template<typename Type>
-Type sqrt(Type s) {
-
-  #ifdef NAGATO_MATH
+constexpr Type sqrt(Type s) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Type);
   Type x = s / 2.0; // Is there any better way to determine initial value?
   Type last_x = 0.0; // the value one before the last step
-
   while (x != last_x) // until the difference is not significant
   { // apply Babylonian method step
 	last_x = x;
 	x = (x + s / x) / 2.0;
   }
-
   return x;
-  #else
-  return std::sqrt(s);
-  #endif
 }
+// -----------------------------------------------------------------------------
+
+template<typename Type>
+constexpr Type abs(Type s) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Type);
+  return s < 0 ? -s : s;
+}
+
+template<typename Return, typename L, typename R>
+constexpr Return max(L l, R r) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Return);
+  STATIC_ASSERT_IS_ARITHMETRIC(L);
+  STATIC_ASSERT_IS_ARITHMETRIC(R);
+  return l > r ? l : r;
+}
+
+template<typename Return, typename L, typename R>
+constexpr Return min(L l, R r) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Return);
+  STATIC_ASSERT_IS_ARITHMETRIC(L);
+  STATIC_ASSERT_IS_ARITHMETRIC(R);
+
+  return l < r ? l : r;
+}
+
+template<typename Type>
+constexpr bool is_nan(Type t) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Type);
+  return !(t == t);
+}
+}
+
 // -----------------------------------------------------------------------------
 
 }
