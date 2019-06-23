@@ -15,7 +15,7 @@
 #include "math.hpp"
 
 namespace nagato {
-	using namespace math;
+using namespace math;
 // -----------------------------------------------------------------------------
 // forward declaration
 template<typename Primitive, std::size_t size>
@@ -52,6 +52,7 @@ class Vector {
  public:
   using Array = std::array<Primitive, size>;
   using Size = std::size_t;
+  using Own_Type = Vector<Primitive, size>;
 
   constexpr
   Vector(Primitive p = 0.0) {
@@ -77,6 +78,30 @@ class Vector {
   constexpr Vector(const E &expression) {
 	for (std::size_t i = 0; i < size; i++)
 	  array_[i] = expression[i];
+  }
+
+  template<class E>
+  constexpr Vector &operator+=(const E &expression) {
+	for (int i = 0; i < size; i++)
+	  array_[i] += expression[i];
+  }
+
+  template<class E>
+  constexpr Vector &operator-=(const E &expression) {
+	for (int i = 0; i < size; i++)
+	  array_[i] -= expression[i];
+  }
+
+  template<class E>
+  constexpr Vector &operator*=(const E &expression) {
+	for (int i = 0; i < size; i++)
+	  array_[i] *= expression[i];
+  }
+
+  template<class E>
+  constexpr Vector &operator/=(const E &expression) {
+	for (int i = 0; i < size; i++)
+	  array_[i] /= expression[i];
   }
 
   template<class E>
@@ -117,6 +142,39 @@ class Vector {
 	return true;
   }
 
+  constexpr Primitive Max() const {
+	Primitive max = 0;
+	for (const auto &i : array_)
+	  max = max(max, i);
+	return max;
+  }
+
+  constexpr Primitive Min() const {
+	Primitive min = 0;
+	for (const auto &i : array_)
+	  min = min(min, i);
+	return min;
+  }
+
+  template<typename Type>
+  constexpr void Fill(Type t) {
+	STATIC_ASSERT_IS_ARITHMETRIC(Type);
+	for (auto &i : array_)
+	  i = static_cast<Primitive>(t);
+  }
+
+  template<typename L, typename R>
+  constexpr void Clmap(L l, R r) {
+	for (auto &i : array_)
+	  i = Clamp(i, l, r);
+  }
+
+  constexpr Primitive Sum() const {
+    Primitive sum = 0.0;
+    for (const auto &i : array_)
+      sum += i;
+	return sum;
+  }
  private:
   Array array_ = {0};
 };

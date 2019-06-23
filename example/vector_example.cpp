@@ -38,7 +38,7 @@ int main() {
   vector3f sqrtvec = Sqrt(a);
   showVec(sqrtvec);
 
-  float norm_a = Norm(b);
+  float norm_a = b.Sum();
 
   std::cout << norm_a << std::endl;
 

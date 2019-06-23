@@ -10,8 +10,7 @@
 
 #include "assert.hpp"
 
-namespace nagato {
-namespace math {
+namespace nagato::math {
 // -----------------------------------------------------------------------------
 // reference : https://cpplover.blogspot.com/2010/11/blog-post_20.html
 template<typename Type>
@@ -56,6 +55,18 @@ constexpr bool is_nan(Type t) {
   STATIC_ASSERT_IS_ARITHMETRIC(Type);
   return !(t == t);
 }
+
+template<typename Return, typename L, typename R>
+constexpr Return clamp(Return val, L low, R high) {
+  STATIC_ASSERT_IS_ARITHMETRIC(Return);
+  STATIC_ASSERT_IS_ARITHMETRIC(L);
+  STATIC_ASSERT_IS_ARITHMETRIC(R);
+  if (val < low)
+	return low;
+  else if (val > high)
+	return high;
+  else
+	return val;
 }
 
 // -----------------------------------------------------------------------------
