@@ -9,4 +9,8 @@
       static_assert(std::is_arithmetic<TYPE>(), \
           "Type is not arithmetic")
 
+#define STATIC_ASSERT_IS_FLOATING_POINT(TYPE) \
+      static_assert(std::is_floating_point<TYPE>(), \
+          "Type is not arithmetic")
+
 #endif //NAGATOLIB_SRC_ASSERT_HPP_
