@@ -15,7 +15,7 @@ namespace nagato::math {
 // -----------------------------------------------------------------------------
 // function definition
 template<typename Type>
-constexpr Type sqrt(Type s);
+constexpr Type sqrt(Type s) noexcept;
 
 template<typename Type>
 constexpr Type abs(Type s) noexcept;
@@ -45,7 +45,7 @@ constexpr Type Pi = calc_Pi<Type>(10);
 // reference : https://cpplover.blogspot.com/2010/11/blog-post_20.html
 
 template<typename Type>
-constexpr Type sqrt(Type s) {
+constexpr Type sqrt(Type s) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Type);
   Type x = s / 2.0; // Is there any better way to determine initial value?
   Type last_x = 0.0; // the value one before the last step
