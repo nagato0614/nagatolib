@@ -12,11 +12,11 @@ namespace nagato {
 template<typename Engine = std::mt19937>
 class Random {
  public:
-  Random(std::size_t seed = 0) : engine_(seed) {}
+  Random(std::size_t seed = 0) noexcept : engine_(seed) {}
   ~Random() = default;
 
   template<class Return, class From, class To>
-  Return uniform_int_distribution(From from, To to) {
+  Return uniform_int_distribution(From from, To to) noexcept {
 	static_assert(std::is_arithmetic<Return>(),
 				  "Return is not arithmetric");
 	std::uniform_int_distribution<Return> distribution(from, to);
@@ -24,7 +24,7 @@ class Random {
   }
 
   template<class Return, class From, class To>
-  Return uniform_real_distribution(From from, To to) {
+  Return uniform_real_distribution(From from, To to) noexcept {
 	static_assert(std::is_arithmetic<Return>(),
 				  "Return is not arithmetric");
 	std::uniform_real_distribution<Return> distribution(from, to);

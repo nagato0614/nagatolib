@@ -28,13 +28,13 @@ constexpr Type sqrt(Type s) {
 // -----------------------------------------------------------------------------
 
 template<typename Type>
-constexpr Type abs(Type s) {
+constexpr Type abs(Type s) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Type);
   return s < 0 ? -s : s;
 }
 
 template<typename Return, typename L, typename R>
-constexpr Return max(L l, R r) {
+constexpr Return max(L l, R r) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Return);
   STATIC_ASSERT_IS_ARITHMETRIC(L);
   STATIC_ASSERT_IS_ARITHMETRIC(R);
@@ -42,7 +42,7 @@ constexpr Return max(L l, R r) {
 }
 
 template<typename Return, typename L, typename R>
-constexpr Return min(L l, R r) {
+constexpr Return min(L l, R r) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Return);
   STATIC_ASSERT_IS_ARITHMETRIC(L);
   STATIC_ASSERT_IS_ARITHMETRIC(R);
@@ -51,13 +51,13 @@ constexpr Return min(L l, R r) {
 }
 
 template<typename Type>
-constexpr bool is_nan(Type t) {
+constexpr bool is_nan(Type t) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Type);
   return !(t == t);
 }
 
 template<typename Return, typename L, typename R>
-constexpr Return clamp(Return val, L low, R high) {
+constexpr Return clamp(Return val, L low, R high) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(Return);
   STATIC_ASSERT_IS_ARITHMETRIC(L);
   STATIC_ASSERT_IS_ARITHMETRIC(R);
