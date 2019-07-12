@@ -34,6 +34,12 @@ if (NAGATO_BUILD_EXAMPLE)
             example/vector_example.cpp)
     target_link_libraries(vector
             nagato)
+
+    add_executable(random
+            example/random_example.cpp)
+    target_link_libraries(random
+            nagato)
+
 endif ()
 
 # Build Tests

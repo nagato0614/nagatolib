@@ -10,7 +10,7 @@ template<typename T>
 class TD;
 
 using namespace nagato;
-using vector3f = nagato::vector::Vector<float, 3>;
+using vector3f = Vector<float, 3>;
 
 void showVec(const vector3f &v) {
   std::cout << "---------------------" << std::endl;
