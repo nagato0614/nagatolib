@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 # Build Nagato Lib
 include_directories(${CMAKE_SOURCE_DIR}/src)
 file(GLOB NAGATO_HEADER
-        src/*.h)
+        src/*.hpp)
 
 file(GLOB NAGATO_SOURCE
         src/*.cpp)

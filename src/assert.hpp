@@ -7,10 +7,17 @@
 
 #define STATIC_ASSERT_IS_ARITHMETRIC(TYPE) \
       static_assert(std::is_arithmetic<TYPE>(), \
-          "Type is not arithmetic")
+          "TYPE is not arithmetic")
 
 #define STATIC_ASSERT_IS_FLOATING_POINT(TYPE) \
       static_assert(std::is_floating_point<TYPE>(), \
-          "Type is not arithmetic")
+          "TYPE is not arithmetic")
+
+#define STATIC_ASSERT_IS_POSITIVE_NUMBER(NUMBER) \
+      static_assert(NUMBER > 0.0, \
+          "NUMBER is not positive number")
+
+#define ASSERT_INNER(FROM, NUMBER, TO) \
+	assert(FROM <= NUMBER && NUMBER < TO)
 
 #endif //NAGATOLIB_SRC_ASSERT_HPP_

@@ -10,7 +10,7 @@
 
 #include "assert.hpp"
 
-namespace nagato::math {
+namespace nagato {
 
 // -----------------------------------------------------------------------------
 // function definition

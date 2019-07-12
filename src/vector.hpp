@@ -15,7 +15,6 @@
 #include "math.hpp"
 
 namespace nagato {
-using namespace math;
 // -----------------------------------------------------------------------------
 // forward declaration
 template<typename Primitive, std::size_t size>
@@ -59,12 +58,6 @@ class Vector {
 	for (auto &i : array_)
 	  i = p;
   }
-
-  constexpr Vector(const Vector<Primitive, size> &v)
-  noexcept : array_(v) {}
-
-  constexpr Vector(const Vector<Primitive, size> &&v)
-  noexcept : array_(v) {}
 
   constexpr Vector(const std::initializer_list<Primitive> &init) noexcept {
 	assert(init.size() <= size);
