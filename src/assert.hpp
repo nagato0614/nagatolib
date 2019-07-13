@@ -5,6 +5,8 @@
 #ifndef NAGATOLIB_SRC_ASSERT_HPP_
 #define NAGATOLIB_SRC_ASSERT_HPP_
 
+// -----------------------------------------------------------------------------
+
 #define STATIC_ASSERT_IS_ARITHMETRIC(TYPE) \
       static_assert(std::is_arithmetic<TYPE>(), \
           "#TYPE is not arithmetic")
@@ -23,5 +25,8 @@
 
 #define ASSERT_INNER(FROM, NUMBER, TO) \
     assert(#FROM <= #NUMBER && #NUMBER < #TO)
+
+// -----------------------------------------------------------------------------
+
 
 #endif //NAGATOLIB_SRC_ASSERT_HPP_

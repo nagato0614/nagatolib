@@ -19,17 +19,6 @@ namespace nagato {
 // forward declaration
 template<typename Primitive, std::size_t size>
 class Vector;
-template<class Lhv, class Operator, class Rhv>
-class Expression;
-class Plus;
-class Minus;
-class Division;
-class Multi;
-class InnerProduct;
-class SquareRoot;
-class NormExpression;
-class EuclideanDistance;
-class AbsoluteValue;
 
 // -----------------------------------------------------------------------------
 template<typename Type>
@@ -49,9 +38,12 @@ class Vector {
 				"Primitive Type is not Arithmetric!");
 
  public:
-  using Array = std::array<Primitive, size>;
+  using array_type = std::array<Primitive, size>;
   using Size = std::size_t;
-  using Own_Type = Vector<Primitive, size>;
+  using __self = Vector<Primitive, size>;
+  using reference = __self &;
+  using const_reference = const __self &;
+  using rvalue_reference = __self &&;
 
   constexpr
   explicit Vector(Primitive p = 0.0) noexcept {
@@ -65,43 +57,87 @@ class Vector {
 	  array_[i] = *(init.begin() + i);
   }
 
+  constexpr Vector(const std::vector<Primitive> &v) noexcept {
+    assert(init.size() <= size);
+    for (Size i = 0; i < v.size(); i++)
+      array_[i] = v[i];
+  }
+
+  /**
+   * copy constructor
+   * @param v
+   */
+  constexpr Vector(const_reference v) noexcept
+	  : array_(v.array_) {}
+
+  /**
+   * move constructor
+   * @param v
+   */
+  constexpr Vector(rvalue_reference v) noexcept
+	  : array_(v.array_) {}
+
   ~Vector() = default;
 
-  template<class E>
-  constexpr Vector(const E &expression) noexcept {
-	for (std::size_t i = 0; i < size; i++)
-	  array_[i] = expression[i];
+  constexpr __self &operator=(const_reference v) noexcept {
+	array_ = v.array_;
+	return *this;
   }
 
-  template<class E>
-  constexpr Vector &operator+=(const E &expression) noexcept {
+  constexpr __self &operator+=(const_reference v) noexcept {
 	for (int i = 0; i < size; i++)
-	  array_[i] += expression[i];
+	  array_[i] += v[i];
+	return *this;
   }
 
-  template<class E>
-  constexpr Vector &operator-=(const E &expression) noexcept {
+  template<typename T>
+  constexpr __self &operator+=(const T& value) noexcept {
+	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < size; i++)
-	  array_[i] -= expression[i];
+	  array_[i] += value;
+	return *this;
   }
 
-  template<class E>
-  constexpr Vector &operator*=(const E &expression) noexcept {
+  constexpr __self &operator-=(const_reference v) noexcept {
 	for (int i = 0; i < size; i++)
-	  array_[i] *= expression[i];
+	  array_[i] -= v[i];
+	return *this;
   }
 
-  template<class E>
-  constexpr Vector &operator/=(const E &expression) noexcept {
+  template<typename T>
+  constexpr __self &operator-=(const T &value) noexcept {
+	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < size; i++)
-	  array_[i] /= expression[i];
+	  array_[i] -= value;
+	return *this;
   }
 
-  template<class E>
-  constexpr Vector<Primitive, size> &operator=(const E &expression)
-  & noexcept {
-	for (Size i = 0; i < size; i++)
-	  (*this)[i] = expression[i];
+  constexpr __self &operator*=(const_reference v) noexcept {
+	for (int i = 0; i < size; i++)
+	  array_[i] *= v[i];
+	return *this;
+  }
+
+  template<typename T>
+  constexpr __self &operator*=(const T& value) noexcept {
+	STATIC_ASSERT_IS_ARITHMETRIC(T);
+	for (int i = 0; i < size; i++)
+	  array_[i] *= value;
+	return *this;
+  }
+
+  constexpr __self &operator/=(const_reference v) noexcept {
+	assert(!v.HasZero());
+	for (int i = 0; i < size; i++)
+	  array_[i] /= v[i];
+	return *this;
+  }
+
+  template<typename T>
+  constexpr __self &operator/=(const T &value) noexcept {
+	STATIC_ASSERT_IS_ARITHMETRIC(T);
+	for (int i = 0; i < size; i++)
+	  array_[i] /= value;
 	return *this;
   }
 
@@ -137,8 +173,16 @@ class Vector {
   const noexcept {
 	for (const auto &i : array_)
 	  if (is_nan(i))
-		return false;
-	return true;
+		return true;
+	return false;
+  }
+
+  constexpr bool HasZero()
+  const noexcept {
+	for (const auto &i : array_)
+	  if (i == static_cast<Primitive>(array_[i]))
+		return true;
+	return false;
   }
 
   constexpr Primitive Max()
@@ -170,6 +214,15 @@ class Vector {
 	  i = Clamp(i, l, r);
   }
 
+  template<typename F>
+  constexpr __self itor(
+  	const __self &value,
+  	F&& f
+  	) const noexcept {
+	for (auto &i : array_)
+	  i = f(i);
+  }
+
   constexpr Primitive Sum()
   const noexcept {
 	Primitive sum = 0.0;
@@ -177,273 +230,150 @@ class Vector {
 	  sum += i;
 	return sum;
   }
- private:
-  Array array_ = {0};
-};
 
-// ベクトル演算関連の関数群
-// -----------------------------------------------------------------------------
-template<class Lhv, class Rhv>
-constexpr inline auto Dot(const Lhv &l, const Rhv &r) noexcept {
-  return Expression<Lhv, InnerProduct, Rhv>(l, r).Eval();
-}
-
-template<class Type>
-constexpr inline auto Sqrt(const Type &t) noexcept {
-  return Expression<Type, SquareRoot, Type>(t, t);
-}
-
-template<class Type>
-constexpr inline auto Norm(const Type &t) noexcept {
-  remove_const_reference<decltype(t[0])> sum = 0.0;
-  for (int i = 0; i < t.GetArraySize(); i++)
-	sum += t[i] * t[i];
-  return sum;
-}
-
-template<class Type>
-constexpr inline auto Sum(const Type &t) noexcept {
-  remove_const_reference<decltype(t[0])> sum = 0.0;
-  for (int i = 0; i < t.GetArraySize(); i++)
-	sum += t[i];
-  return sum;
-}
-
-template<class Type>
-constexpr inline auto Abs(const Type &t) noexcept {
-  return Expression<Type, AbsoluteValue, Type>(t, t);
-}
-
-template<class Lhv, class Rhv>
-constexpr inline auto Distance(const Lhv &l, const Rhv &r) noexcept {
-  return sqrt(Norm(l - r));
-}
-
-template<class Lhv, class Rhv>
-constexpr inline Expression<Lhv, Plus, Rhv> operator+(const Lhv &l,
-													  const Rhv &r) noexcept {
-  return Expression<Lhv, Plus, Rhv>(l, r);
-}
-
-template<class Lhv, class Rhv>
-constexpr inline Expression<Lhv, Minus, Rhv> operator-(const Lhv &l,
-													   const Rhv &r) noexcept {
-  return Expression<Lhv, Minus, Rhv>(l, r);
-}
-
-template<class Lhv, class Rhv>
-constexpr inline Expression<Lhv, Multi, Rhv> operator*(const Lhv &l,
-													   const Rhv &r) noexcept {
-  return Expression<Lhv, Multi, Rhv>(l, r);
-}
-
-template<class Lhv, class Rhv>
-constexpr inline Expression<Lhv, Division, Rhv> operator/(const Lhv &l,
-														  const Rhv &r) noexcept {
-  static_assert(!std::is_arithmetic<Rhv>(), "Right Value is arithmetic");
-  return Expression<Lhv, Division, Rhv>(l, r);
-}
-
-
-// -----------------------------------------------------------------------------
-
-template<class Lhv, class Operator, class Rhv>
-class Expression {
- public:
-  constexpr Expression(const Lhv &l, const Rhv &r)
-  noexcept : lhv_(l), rhv_(r) {}
-
-  constexpr auto operator[](std::size_t index)
-  const noexcept {
-	return Operator::Apply(lhv_, rhv_, index);
+  constexpr auto begin() const noexcept {
+    return array_.begin();
   }
 
-  constexpr auto Eval()
-  const noexcept {
-	return Operator::Apply(lhv_, rhv_, 0);
-  }
-
-  constexpr std::size_t GetArraySize()
-  const noexcept {
-	if constexpr (!std::is_arithmetic<Lhv>()) {
-	  return lhv_.GetArraySize();
-	} else {
-	  return rhv_.GetArraySize();
-	}
+  constexpr auto end() const noexcept {
+	return array_.end();
   }
  private:
-  const Lhv &lhv_;
-  const Rhv &rhv_;
+  array_type array_ = {0};
 };
 
 // -----------------------------------------------------------------------------
 
-class AbsoluteValue {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	return static_cast<remove_const_reference<
-		decltype(l[index])>>(abs(l[index]));
-  }
-};
+template<typename Primitive, std::size_t size>
+constexpr Vector<Primitive, size> operator+(
+	const Vector<Primitive, size> &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  return Vector(lhv) += rhv;
+}
 
-// -----------------------------------------------------------------------------
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator+(
+	const Vector<Primitive, size> &lhv,
+	const T &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(lhv) += rhv;
+}
 
-class EuclideanDistance {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	return l[index] * l[index];
-  }
-};
-
-// -----------------------------------------------------------------------------
-
-class SquareRoot {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	return static_cast<remove_const_reference<
-		decltype(l[index])>>(sqrt(l[index]));
-  }
-};
-
-// -----------------------------------------------------------------------------
-
-class NormExpression {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	return l[index] * l[index];
-  }
-};
-
-// -----------------------------------------------------------------------------
-
-class InnerProduct {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	std::size_t size = 0;
-	if constexpr (!std::is_arithmetic<Lhv>()) {
-	  size = l.GetArraySize();
-	} else {
-	  size = r.GetArraySize();
-	}
-
-	remove_const_reference<decltype(l[0])> sum = 0;
-	for (std::size_t i = 0; i < size; i++)
-	  sum += (l[i] * r[i]);
-	return sum;
-  }
-};
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator+(
+	const T &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(rhv) += lhv;
+}
 
 // -----------------------------------------------------------------------------
 
 
-class Plus {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	if constexpr (std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l + r;
-	} else if constexpr (std::is_arithmetic<Lhv>() &&
-		!std::is_arithmetic<Rhv>()) {
-	  return l + r[index];
-	} else if constexpr(!std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l[index] + r;
-	} else {
-	  return l[index] + r[index];
-	}
-  }
-};
+template<typename Primitive, std::size_t size>
+constexpr Vector<Primitive, size> operator-(
+	const Vector<Primitive, size> &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  return Vector(lhv) -= rhv;
+}
 
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator-(
+	const Vector<Primitive, size> &lhv,
+	const T &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(lhv) -= rhv;
+}
+
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator-(
+	const T &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(rhv) -= lhv;
+}
 // -----------------------------------------------------------------------------
 
 
-class Multi {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	if constexpr (std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l * r;
-	} else if constexpr (std::is_arithmetic<Lhv>() &&
-		!std::is_arithmetic<Rhv>()) {
-	  return l * r[index];
-	} else if constexpr(!std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l[index] * r;
-	} else {
-	  return l[index] * r[index];
-	}
-  }
-};
+template<typename Primitive, std::size_t size>
+constexpr Vector<Primitive, size> operator*(
+	const Vector<Primitive, size> &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  return Vector(lhv) *= rhv;
+}
+
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator*(
+	const Vector<Primitive, size> &lhv,
+	const T &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(lhv) *= rhv;
+}
+
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator*(
+	const T &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(rhv) *= lhv;
+}
 
 // -----------------------------------------------------------------------------
 
+template<typename Primitive, std::size_t size>
+constexpr Vector<Primitive, size> operator/(
+	const Vector<Primitive, size> &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  return Vector(lhv) /= rhv;
+}
 
-class Division {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	if constexpr (std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l / r;
-	} else if constexpr (std::is_arithmetic<Lhv>() &&
-		!std::is_arithmetic<Rhv>()) {
-	  return l / r[index];
-	} else if constexpr(!std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l[index] / r;
-	} else {
-	  return l[index] / r[index];
-	}
-  }
-};
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator/(
+	const Vector<Primitive, size> &lhv,
+	const T &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(lhv) /= rhv;
+}
 
-// -----------------------------------------------------------------------------
-
-class Minus {
- public:
-  template<class Lhv, class Rhv>
-  constexpr static inline auto Apply(const Lhv &l,
-									 const Rhv &r,
-									 std::size_t index) noexcept {
-	if constexpr (std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l - r;
-	} else if constexpr (std::is_arithmetic<Lhv>() &&
-		!std::is_arithmetic<Rhv>()) {
-	  return l - r[index];
-	} else if constexpr(!std::is_arithmetic<Lhv>() &&
-		std::is_arithmetic<Rhv>()) {
-	  return l[index] - r;
-	} else {
-	  return l[index] - r[index];
-	}
-  }
-};
+template<typename Primitive, std::size_t size, typename T>
+constexpr Vector<Primitive, size> operator/(
+	const T &lhv,
+	const Vector<Primitive, size> &rhv
+) noexcept {
+  STATIC_ASSERT_IS_ARITHMETRIC(T);
+  return Vector(rhv) /= lhv;
+}
 
 // -----------------------------------------------------------------------------
+
+template<typename Primitive, std::size_t size>
+constexpr Primitive Dot(
+	const Vector<Primitive, size> &lhv,
+	const Vector<Primitive, size> &rhv
+	) noexcept {
+	return (lhv * rhv).Sum();
+}
+
+template<typename Primitive, std::size_t size>
+constexpr Vector<Primitive, size> Sqrt(
+	const Vector<Primitive, size> &value
+	) noexcept {
+  Vector<Primitive, size> v(value);
+  for (auto &i : v)
+    v = Sqrt(v);
+  return v;
+}
 
 }
 #endif //NAGATOLIB_SRC_VECTOR_H_
