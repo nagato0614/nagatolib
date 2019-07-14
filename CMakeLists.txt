@@ -28,18 +28,18 @@ file(GLOB NAGATO_SOURCE
 
 add_library(nagato ${NAGATO_HEADER} ${NAGATO_SOURCE})
 
+function(add_example target_name)
+    add_executable(${target_name}
+            example/${target_name}.cpp)
+    target_link_libraries(${target_name}
+            nagato)
+endfunction()
+
 # Build Example
 if (NAGATO_BUILD_EXAMPLE)
-    add_executable(vector
-            example/vector_example.cpp)
-    target_link_libraries(vector
-            nagato)
-
-    add_executable(random
-            example/random_example.cpp)
-    target_link_libraries(random
-            nagato)
-
+    add_example(vector_example)
+    add_example(random_example)
+    add_example(thread_example)
 endif ()
 
 # Build Tests

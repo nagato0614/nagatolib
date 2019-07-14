@@ -19,6 +19,10 @@
         static_assert(std::is_integral<TYPE>(), \
          "#TYPE is not arithmetic")
 
+#define STATIC_ASSERT_IS_UNSIGNED(TYPE) \
+        static_assert(std::is_unsigned<TYPE>(), \
+         "#TYPE is not unsigned value!")
+
 #define STATIC_ASSERT_IS_POSITIVE_NUMBER(NUMBER) \
       static_assert(NUMBER > 0.0, \
           "#NUMBER is not positive number")
