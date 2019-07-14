@@ -153,7 +153,7 @@ class Vector {
 	return array_[index];
   }
 
-  constexpr const Primitive operator[](_size index)
+  constexpr Primitive operator[](_size index)
   const && noexcept {
 	assert(0 <= index && index < size);
 	return array_[index];
@@ -187,10 +187,10 @@ class Vector {
 
   constexpr Primitive Max()
   const noexcept {
-	Primitive max = 0;
+	Primitive m = 0;
 	for (const auto &i : array_)
-	  max = max(max, i);
-	return max;
+	  m = max(m, i);
+	return m;
   }
 
   constexpr Primitive Min()

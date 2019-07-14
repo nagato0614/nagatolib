@@ -67,9 +67,8 @@ constexpr Type abs(Type s) noexcept {
 
 // -----------------------------------------------------------------------------
 
-template<typename Return, typename L, typename R>
-constexpr Return max(L l, R r) noexcept {
-  STATIC_ASSERT_IS_ARITHMETRIC(Return);
+template<typename L, typename R>
+constexpr auto max(L l, R r) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(L);
   STATIC_ASSERT_IS_ARITHMETRIC(R);
   return l > r ? l : r;
@@ -77,9 +76,8 @@ constexpr Return max(L l, R r) noexcept {
 
 // -----------------------------------------------------------------------------
 
-template<typename Return, typename L, typename R>
-constexpr Return min(L l, R r) noexcept {
-  STATIC_ASSERT_IS_ARITHMETRIC(Return);
+template<typename L, typename R>
+constexpr auto min(L l, R r) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(L);
   STATIC_ASSERT_IS_ARITHMETRIC(R);
 

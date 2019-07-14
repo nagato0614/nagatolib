@@ -40,6 +40,8 @@ if (NAGATO_BUILD_EXAMPLE)
     add_example(vector_example)
     add_example(random_example)
     add_example(thread_example)
+    add_example(matrix_example)
+
 endif ()
 
 # Build Tests
