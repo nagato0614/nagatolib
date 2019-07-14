@@ -38,12 +38,12 @@ class Vector {
 				"Primitive Type is not Arithmetric!");
 
  public:
-  using array_type = std::array<Primitive, size>;
-  using Size = std::size_t;
   using __self = Vector<Primitive, size>;
-  using reference = __self &;
-  using const_reference = const __self &;
-  using rvalue_reference = __self &&;
+  using _array_type = std::array<Primitive, size>;
+  using _size = std::size_t;
+  using _reference = __self &;
+  using _const_reference = const __self &;
+  using _rvalue_reference = __self &&;
 
   constexpr
   explicit Vector(Primitive p = 0.0) noexcept {
@@ -51,17 +51,15 @@ class Vector {
 	  i = p;
   }
 
-  template<typename T>
-  constexpr Vector(const std::initializer_list<T> &init) noexcept {
-	STATIC_ASSERT_IS_ARITHMETRIC(T);
+  constexpr Vector(const std::initializer_list<Primitive> &init) noexcept {
 	assert(init.size() <= size);
-	for (Size i = 0; i < init.size(); i++)
+	for (_size i = 0; i < init.size(); i++)
 	  array_[i] = static_cast<Primitive>(*(init.begin() + i));
   }
 
   constexpr Vector(const std::vector<Primitive> &v) noexcept {
 	assert(v.size() <= size);
-	for (Size i = 0; i < v.size(); i++)
+	for (_size i = 0; i < v.size(); i++)
 	  array_[i] = v[i];
   }
 
@@ -69,24 +67,24 @@ class Vector {
    * copy constructor
    * @param v
    */
-  constexpr Vector(const_reference v) noexcept
+  constexpr Vector(_const_reference v) noexcept
 	  : array_(v.array_) {}
 
   /**
    * move constructor
    * @param v
    */
-  constexpr Vector(rvalue_reference v) noexcept
+  constexpr Vector(_rvalue_reference v) noexcept
 	  : array_(v.array_) {}
 
   ~Vector() = default;
 
-  constexpr __self &operator=(const_reference v) noexcept {
+  constexpr __self &operator=(_const_reference v) noexcept {
 	array_ = v.array_;
 	return *this;
   }
 
-  constexpr __self &operator+=(const_reference v) noexcept {
+  constexpr __self &operator+=(_const_reference v) noexcept {
 	for (int i = 0; i < size; i++)
 	  array_[i] += v[i];
 	return *this;
@@ -100,7 +98,7 @@ class Vector {
 	return *this;
   }
 
-  constexpr __self &operator-=(const_reference v) noexcept {
+  constexpr __self &operator-=(_const_reference v) noexcept {
 	for (int i = 0; i < size; i++)
 	  array_[i] -= v[i];
 	return *this;
@@ -114,7 +112,7 @@ class Vector {
 	return *this;
   }
 
-  constexpr __self &operator*=(const_reference v) noexcept {
+  constexpr __self &operator*=(_const_reference v) noexcept {
 	for (int i = 0; i < size; i++)
 	  array_[i] *= v[i];
 	return *this;
@@ -128,7 +126,7 @@ class Vector {
 	return *this;
   }
 
-  constexpr __self &operator/=(const_reference v) noexcept {
+  constexpr __self &operator/=(_const_reference v) noexcept {
 	assert(!v.HasZero());
 	for (int i = 0; i < size; i++)
 	  array_[i] /= v[i];
@@ -143,30 +141,30 @@ class Vector {
 	return *this;
   }
 
-  constexpr Primitive &operator[](Size index)
+  constexpr Primitive &operator[](_size index)
   & noexcept {
 	assert(0 <= index && index < size);
 	return array_[index];
   }
 
-  constexpr const Primitive &operator[](Size index)
+  constexpr const Primitive &operator[](_size index)
   const & noexcept {
 	assert(0 <= index && index < size);
 	return array_[index];
   }
 
-  constexpr const Primitive operator[](Size index)
+  constexpr const Primitive operator[](_size index)
   const && noexcept {
 	assert(0 <= index && index < size);
 	return array_[index];
   }
 
   constexpr void Sqrt() noexcept {
-	for (Size i = 0; i < size; i++)
+	for (_size i = 0; i < size; i++)
 	  array_[i] = sqrt(array_[i]);
   }
 
-  constexpr Size GetArraySize()
+  constexpr _size GetArraySize()
   const noexcept {
 	return size;
   }
@@ -241,7 +239,7 @@ class Vector {
 	return array_.end();
   }
  private:
-  array_type array_ = {0};
+  _array_type array_ = {0};
 };
 
 // -----------------------------------------------------------------------------

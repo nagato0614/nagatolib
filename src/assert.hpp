@@ -5,6 +5,8 @@
 #ifndef NAGATOLIB_SRC_ASSERT_HPP_
 #define NAGATOLIB_SRC_ASSERT_HPP_
 
+#include <type_traits>
+
 // -----------------------------------------------------------------------------
 
 #define STATIC_ASSERT_IS_ARITHMETRIC(TYPE) \

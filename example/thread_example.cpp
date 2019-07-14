@@ -23,7 +23,7 @@ const int WORK = 10'000'000;
 
 using namespace nagato;
 int main() {
-  using vector3d = Vector<double, 3>;
+  using vector3d = Vector<int, 3>;
   const int N = 100;
   ThreadPool pool;
 
