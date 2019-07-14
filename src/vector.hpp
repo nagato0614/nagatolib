@@ -195,10 +195,10 @@ class Vector {
 
   constexpr Primitive Min()
   const noexcept {
-	Primitive min = 0;
+	Primitive m = 0;
 	for (const auto &i : array_)
-	  min = min(min, i);
-	return min;
+	  m = min(m, i);
+	return m;
   }
 
   template<typename Type>
