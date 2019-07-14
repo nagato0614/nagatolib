@@ -9,9 +9,9 @@
 #include <thread>
 #include <future>
 #include <condition_variable>
+#include <queue>
 
 #include "assert.hpp"
-#include "blocked_queue.hpp"
 
 namespace nagato {
 /**
@@ -37,10 +37,10 @@ class ThreadPool {
 
   /**
    * 受け取ったworkをqueueに追加する
-   * @tparam F 
-   * @tparam Args 
-   * @param f 
-   * @param args 
+   * @tparam F
+   * @tparam Args
+   * @param f
+   * @param args
    */
   template<typename F, typename... Args>
   void EnqueuWork(F &&f, Args &&... args) noexcept {
@@ -52,11 +52,11 @@ class ThreadPool {
   /**
    * 受け取ったタスクをqueueに追加する
    * futureを返す
-   * @tparam F 
-   * @tparam Args 
-   * @param f 
-   * @param args 
-   * @return 
+   * @tparam F
+   * @tparam Args
+   * @param f
+   * @param args
+   * @return
    */
   template<typename F, typename... Args>
   auto EnqueuTask(F &&f, Args &&...args)
@@ -80,13 +80,13 @@ class ThreadPool {
 
   /**
    * 指定した回数fを実行する
-   * @param f 
-   * @param size 
+   * @param f
+   * @param size
    */
   void Loop(std::function<void(_size)> &&f, _size size) noexcept;
 
   void Finish() noexcept;
-  
+
  private:
   _thread_pool threads_;
   _queue queue_;
