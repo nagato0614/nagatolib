@@ -51,16 +51,18 @@ class Vector {
 	  i = p;
   }
 
-  constexpr Vector(const std::initializer_list<Primitive> &init) noexcept {
+  template<typename T>
+  constexpr Vector(const std::initializer_list<T> &init) noexcept {
+	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	assert(init.size() <= size);
 	for (Size i = 0; i < init.size(); i++)
-	  array_[i] = *(init.begin() + i);
+	  array_[i] = static_cast<Primitive>(*(init.begin() + i));
   }
 
   constexpr Vector(const std::vector<Primitive> &v) noexcept {
-    assert(init.size() <= size);
-    for (Size i = 0; i < v.size(); i++)
-      array_[i] = v[i];
+	assert(v.size() <= size);
+	for (Size i = 0; i < v.size(); i++)
+	  array_[i] = v[i];
   }
 
   /**
@@ -91,7 +93,7 @@ class Vector {
   }
 
   template<typename T>
-  constexpr __self &operator+=(const T& value) noexcept {
+  constexpr __self &operator+=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < size; i++)
 	  array_[i] += value;
@@ -119,7 +121,7 @@ class Vector {
   }
 
   template<typename T>
-  constexpr __self &operator*=(const T& value) noexcept {
+  constexpr __self &operator*=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < size; i++)
 	  array_[i] *= value;
@@ -216,9 +218,9 @@ class Vector {
 
   template<typename F>
   constexpr __self itor(
-  	const __self &value,
-  	F&& f
-  	) const noexcept {
+	  const __self &value,
+	  F &&f
+  ) const noexcept {
 	for (auto &i : array_)
 	  i = f(i);
   }
@@ -232,7 +234,7 @@ class Vector {
   }
 
   constexpr auto begin() const noexcept {
-    return array_.begin();
+	return array_.begin();
   }
 
   constexpr auto end() const noexcept {
@@ -361,18 +363,34 @@ template<typename Primitive, std::size_t size>
 constexpr Primitive Dot(
 	const Vector<Primitive, size> &lhv,
 	const Vector<Primitive, size> &rhv
-	) noexcept {
-	return (lhv * rhv).Sum();
+) noexcept {
+  return (lhv * rhv).Sum();
 }
 
 template<typename Primitive, std::size_t size>
 constexpr Vector<Primitive, size> Sqrt(
 	const Vector<Primitive, size> &value
-	) noexcept {
+) noexcept {
   Vector<Primitive, size> v(value);
   for (auto &i : v)
-    v = Sqrt(v);
+	v = Sqrt(v);
   return v;
+}
+
+// -----------------------------------------------------------------------------
+
+template<class Char, class Traits, class Primitive, std::size_t size>
+std::basic_ostream<Char, Traits> &operator<<(
+	std::basic_ostream<Char, Traits> &os,
+	const Vector<Primitive, size> &dt) {
+  os << "[";
+
+  for (int i = 0; i < size - 1; i++)
+	os << dt[i] << ", ";
+  os << dt[size - 1];
+
+  os << "]\n";
+  return os;
 }
 
 }
