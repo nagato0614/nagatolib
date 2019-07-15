@@ -19,7 +19,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
         "-O3 -Wall ${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Build Nagato Lib
-include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 file(GLOB NAGATO_HEADER
         src/*.hpp)
 
@@ -46,11 +46,11 @@ endif ()
 
 # Build Tests
 if (NAGATO_TEST)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest)
-    include_directories(${CMAKE_SOURCE_DIR}/test/gtest/googletest/include)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/gtest)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/test/gtest/googletest/include)
     file(GLOB
             NAGATO_TEST_SOURCE
-            ${CMAKE_SOURCE_DIR}/test/*.cpp)
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp)
     add_executable(nagato_test
             ${NAGATO_TEST_SOURCE})
     target_link_libraries(nagato_test
