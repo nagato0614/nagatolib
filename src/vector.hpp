@@ -387,7 +387,7 @@ std::basic_ostream<Char, Traits> &operator<<(
 	os << dt[i] << ", ";
   os << dt[size - 1];
 
-  os << "]\n";
+  os << "]";
   return os;
 }
 
