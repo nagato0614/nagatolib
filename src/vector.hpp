@@ -352,7 +352,10 @@ constexpr Vector<Primitive, size> operator/(
 	const Vector<Primitive, size> &rhv
 ) noexcept {
   STATIC_ASSERT_IS_ARITHMETRIC(T);
-  return Vector(rhv) /= lhv;
+  Vector<Primitive, size> result;
+  for (std::size_t i = 0; i < size; i++)
+    result[i] = lhv / rhv[i];
+  return result;
 }
 
 // -----------------------------------------------------------------------------
@@ -370,8 +373,8 @@ constexpr Vector<Primitive, size> Sqrt(
 	const Vector<Primitive, size> &value
 ) noexcept {
   Vector<Primitive, size> v(value);
-  for (auto &i : v)
-	v = Sqrt(v);
+  for (std::size_t i = 0; i < size; i++)
+    v[i] = sqrt(value[i]);
   return v;
 }
 
