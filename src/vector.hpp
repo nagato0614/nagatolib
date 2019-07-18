@@ -209,7 +209,7 @@ class Vector {
 	}
 
 	template<typename L, typename R>
-	constexpr void Clmap(L l, R r) noexcept {
+	constexpr void Clamp(L l, R r) noexcept {
 		for (auto &i : array_)
 			i = Clamp(i, l, r);
 	}
