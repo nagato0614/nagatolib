@@ -5,14 +5,14 @@
 #include "thread.hpp"
 
 namespace nagato {
-ThreadPool::ThreadPool(_size nthreads) noexcept
+ThreadPool::ThreadPool(size nthreads) noexcept
 		: nthreads(nthreads) {
 	assert(nthreads > 0);
 
 	for (int i = 0; i < nthreads; i++) {
 		threads_.emplace_back(std::thread([this]() {
 			while (true) {
-				_unique_lock lock(mutex_);
+				unique_lock lock(mutex_);
 				condition_variable_.wait(lock, [this]() {
 					return (is_work_ && !queue_.empty()) || !is_work_;
 				});
@@ -20,7 +20,7 @@ ThreadPool::ThreadPool(_size nthreads) noexcept
 				if (!is_work_ && queue_.empty())
 					return;
 
-				_process work = std::move(queue_.front());
+				process work = std::move(queue_.front());
 				queue_.pop();
 				lock.unlock();
 
@@ -34,8 +34,8 @@ ThreadPool::~ThreadPool() noexcept {
 	Finish();
 }
 
-void ThreadPool::Loop(std::function<void(_size)> &&f,
-											ThreadPool::_size size) noexcept {
+void ThreadPool::Loop(std::function<void(size)> &&f,
+											ThreadPool::size size) noexcept {
 	std::vector<std::future<void>> vector;
 
 	for (int i = 0; i < size; i++) {

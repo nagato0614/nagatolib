@@ -30,20 +30,20 @@ using remove_const_reference
 /**
  * 固定長のvector演算クラス
  * @tparam Primitive vectorで扱う型
- * @tparam size vectorに保存するデータ数
+ * @tparam Size vectorに保存するデータ数
  */
-template<typename Primitive, std::size_t size>
+template<typename Primitive, std::size_t Size>
 class Vector {
 	static_assert(std::is_arithmetic<Primitive>(),
 								"Primitive Type is not Arithmetric!");
 
  public:
-	using __self = Vector<Primitive, size>;
-	using _array_type = std::array<Primitive, size>;
-	using _size = std::size_t;
-	using _reference = __self &;
-	using _const_reference = const __self &;
-	using _rvalue_reference = __self &&;
+	using self = Vector<Primitive, Size>;
+	using array_type = std::array<Primitive, Size>;
+	using size = std::size_t;
+	using reference = self &;
+	using const_reference = const self &;
+	using rvalue_reference = self &&;
 
 	constexpr
 	explicit Vector(Primitive p = 0.0) noexcept {
@@ -52,14 +52,14 @@ class Vector {
 	}
 
 	constexpr Vector(const std::initializer_list<Primitive> &init) noexcept {
-		assert(init.size() <= size);
-		for (_size i = 0; i < init.size(); i++)
+		assert(init.size() <= Size);
+		for (size i = 0; i < init.size(); i++)
 			array_[i] = static_cast<Primitive>(*(init.begin() + i));
 	}
 
 	constexpr Vector(const std::vector<Primitive> &v) noexcept {
-		assert(v.size() <= size);
-		for (_size i = 0; i < v.size(); i++)
+		assert(v.size() <= Size);
+		for (size i = 0; i < v.size(); i++)
 			array_[i] = v[i];
 	}
 
@@ -67,106 +67,120 @@ class Vector {
 	 * copy constructor
 	 * @param v
 	 */
-	constexpr Vector(_const_reference v) noexcept
+	constexpr Vector(const_reference v) noexcept
 			: array_(v.array_) {}
 
 	/**
 	 * move constructor
 	 * @param v
 	 */
-	constexpr Vector(_rvalue_reference v) noexcept
+	constexpr Vector(rvalue_reference v) noexcept
 			: array_(v.array_) {}
 
 	~Vector() = default;
 
-	constexpr __self &operator=(_const_reference v) noexcept {
+	constexpr self &operator=(const_reference v) noexcept {
 		array_ = v.array_;
 		return *this;
 	}
 
-	constexpr __self &operator+=(_const_reference v) noexcept {
-		for (int i = 0; i < size; i++)
+	constexpr self &operator+=(const_reference v) noexcept {
+		for (int i = 0; i < Size; i++)
 			array_[i] += v[i];
 		return *this;
 	}
 
 	template<typename T>
-	constexpr __self &operator+=(const T &value) noexcept {
+	constexpr self &operator+=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < Size; i++)
 			array_[i] += value;
 		return *this;
 	}
 
-	constexpr __self &operator-=(_const_reference v) noexcept {
-		for (int i = 0; i < size; i++)
+	constexpr self &operator-=(const_reference v) noexcept {
+		for (int i = 0; i < Size; i++)
 			array_[i] -= v[i];
 		return *this;
 	}
 
 	template<typename T>
-	constexpr __self &operator-=(const T &value) noexcept {
+	constexpr self &operator-=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < Size; i++)
 			array_[i] -= value;
 		return *this;
 	}
 
-	constexpr __self &operator*=(_const_reference v) noexcept {
-		for (int i = 0; i < size; i++)
+	constexpr self &operator*=(const_reference v) noexcept {
+		for (int i = 0; i < Size; i++)
 			array_[i] *= v[i];
 		return *this;
 	}
 
 	template<typename T>
-	constexpr __self &operator*=(const T &value) noexcept {
+	constexpr self &operator*=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < Size; i++)
 			array_[i] *= value;
 		return *this;
 	}
 
-	constexpr __self &operator/=(_const_reference v) noexcept {
+	constexpr self &operator/=(const_reference v) noexcept {
 		assert(!v.HasZero());
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < Size; i++)
 			array_[i] /= v[i];
 		return *this;
 	}
 
 	template<typename T>
-	constexpr __self &operator/=(const T &value) noexcept {
+	constexpr self &operator/=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < Size; i++)
 			array_[i] /= value;
 		return *this;
 	}
 
-	constexpr Primitive &operator[](_size index)
+	constexpr Primitive &operator[](size index)
 	& noexcept {
-		assert(0 <= index && index < size);
+		assert(0 <= index && index < Size);
 		return array_[index];
 	}
 
-	constexpr const Primitive &operator[](_size index)
+	constexpr const Primitive &operator[](size index)
 	const & noexcept {
-		assert(0 <= index && index < size);
+		assert(0 <= index && index < Size);
 		return array_[index];
 	}
 
-	constexpr Primitive operator[](_size index)
+	constexpr Primitive operator[](size index)
 	const && noexcept {
-		assert(0 <= index && index < size);
+		assert(0 <= index && index < Size);
 		return array_[index];
 	}
 
-	constexpr void Sqrt() noexcept {
-		for (_size i = 0; i < size; i++)
+	constexpr self Sqrt() const & noexcept {
+		self result;
+		for (size i = 0; i < Size; i++)
+			result[i] = sqrt(array_[i]);
+		return result;
+	}
+
+	constexpr void Sqrt() & noexcept {
+		for (size i = 0; i < Size; i++)
 			array_[i] = sqrt(array_[i]);
 	}
 
-	constexpr _size GetArraySize()
+	constexpr self Sqrt() && noexcept {
+		self result;
+		for (size i = 0; i < Size; i++)
+			result[i] = sqrt(array_[i]);
+		return result;
+	}
+
+	constexpr size GetArraySize()
 	const noexcept {
-		return size;
+		return Size;
 	}
 
 	constexpr bool HasNan()
@@ -209,18 +223,55 @@ class Vector {
 	}
 
 	template<typename L, typename R>
+	constexpr self Clamp(L l, R r) const & noexcept {
+		STATIC_ASSERT_IS_ARITHMETRIC(L);
+		STATIC_ASSERT_IS_ARITHMETRIC(R);
+		self result;
+		for (size i = 0; i < Size; i++) {
+			result[i] = Clamp(array_[i], l, r);
+		}
+		return result;
+	}
+
+	template<typename L, typename R>
+	constexpr self Clamp(L l, R r)  && noexcept {
+		STATIC_ASSERT_IS_ARITHMETRIC(L);
+		STATIC_ASSERT_IS_ARITHMETRIC(R);
+		self result;
+		for (size i = 0; i < Size; i++) {
+			result[i] = Clamp(array_[i], l, r);
+		}
+		return result;
+	}
+
+	template<typename L, typename R>
 	constexpr void Clamp(L l, R r) noexcept {
+		STATIC_ASSERT_IS_ARITHMETRIC(L);
+		STATIC_ASSERT_IS_ARITHMETRIC(R);
 		for (auto &i : array_)
 			i = Clamp(i, l, r);
 	}
 
 	template<typename F>
-	constexpr __self itor(
-			const __self &value,
-			F &&f
-	) const noexcept {
-		for (auto &i : array_)
-			i = f(i);
+	constexpr self itor(F &&f) const & noexcept {
+		self result;
+		for (size i = 0; i < Size; i++)
+			result[i] = f(i);
+		return result;
+	}
+
+	template<typename F>
+	constexpr self itor(F &&f) && noexcept {
+		self result;
+		for (size i = 0; i < Size; i++)
+			result[i] = f(i);
+		return result;
+	}
+
+	template<typename F>
+	constexpr void itor(F &&f) & noexcept {
+		for (size i = 0; i < Size; i++)
+			array_[i] = f(i);
 	}
 
 	constexpr Primitive Sum()
@@ -239,7 +290,7 @@ class Vector {
 		return array_.end();
 	}
  private:
-	_array_type array_ = {0};
+	array_type array_ = {0};
 };
 
 // -----------------------------------------------------------------------------

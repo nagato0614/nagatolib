@@ -25,13 +25,13 @@ class Matrix {
   STATIC_ASSERT_IS_ARITHMETRIC(Primitive);
 
  public:
-  using __self = Matrix<Primitive, Row, Column>;
-  using _row_array = Vector<Primitive, Row>;
-  using _matrix = std::array<_row_array, Column>;
-  using _size = std::size_t;
-  using _reference = __self &;
-  using _const_reference = const __self &;
-  using _rvalue_reference = __self &;
+  using self = Matrix<Primitive, Row, Column>;
+  using row_array = Vector<Primitive, Row>;
+  using matrix = std::array<row_array, Column>;
+  using size = std::size_t;
+  using reference = self &;
+  using const_reference = const self &;
+  using rvalue_reference = self &;
 
   constexpr explicit
   Matrix(Primitive p = 0.0)
@@ -44,7 +44,7 @@ class Matrix {
   Matrix(const std::initializer_list<std::initializer_list<Primitive>> &init)
   noexcept {
 	assert(init.size() <= Row);
-	for (_size i = 0; i < init.size(); i++) {
+	for (size i = 0; i < init.size(); i++) {
 	  const auto &r = *(init.begin() + i);
 	  assert(r.size() <= Column);
 	  matrix_[i] = r;
@@ -52,86 +52,86 @@ class Matrix {
   }
 
   constexpr
-  Matrix(_const_reference m) noexcept
+  Matrix(const_reference m) noexcept
 	  : matrix_(m.matrix_) {}
 
   constexpr
-  Matrix(_rvalue_reference m) noexcept
+  Matrix(rvalue_reference m) noexcept
 	  : matrix_(m.matrix_) {}
 
   ~Matrix() = default;
 
   constexpr static
-  __self Zero() noexcept {
+  self Zero() noexcept {
 	return Matrix<Primitive, Row, Column>(0.0);
   }
 
   constexpr static
-  __self Identity() noexcept {
+  self Identity() noexcept {
 	Matrix<Primitive, Row, Column> m(0);
 	m.FillDiagonal(1);
 	return m;
   }
 
-  constexpr _reference operator=(_const_reference v) noexcept {
+  constexpr reference operator=(const_reference v) noexcept {
 	matrix_ = v.matrix_;
 	return *this;
   }
 
-  constexpr _row_array &operator[](_size index)
+  constexpr row_array &operator[](size index)
   & noexcept {
 	assert(0 <= index && index < Row);
 	return matrix_[index];
   }
 
-  constexpr const _row_array &operator[](_size index)
+  constexpr const row_array &operator[](size index)
   const & noexcept {
 	assert(0 <= index && index < Row);
 	return matrix_[index];
   }
 
-  constexpr _row_array operator[](_size index)
+  constexpr row_array operator[](size index)
   const && noexcept {
 	assert(0 <= index && index < Row);
 	return matrix_[index];
   }
 
-  constexpr _reference operator+=(_const_reference v) noexcept {
+  constexpr reference operator+=(const_reference v) noexcept {
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] += v[i];
 	return *this;
   }
 
   template<typename T>
-  constexpr __self &operator+=(const T &value) noexcept {
+  constexpr self &operator+=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] += value;
 	return *this;
   }
 
-  constexpr _reference operator-=(_const_reference v) noexcept {
+  constexpr reference operator-=(const_reference v) noexcept {
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] -= v[i];
 	return *this;
   }
 
   template<typename T>
-  constexpr __self &operator-=(const T &value) noexcept {
+  constexpr self &operator-=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] -= value;
 	return *this;
   }
 
-  constexpr _reference operator*=(_const_reference v) noexcept {
-	_matrix result;
+  constexpr reference operator*=(const_reference v) noexcept {
+	matrix result;
 
-	for (_size row = 0; row < Row; row++) {
-	  for (_size column = 0; column < Column; column++) {
+	for (size row = 0; row < Row; row++) {
+	  for (size column = 0; column < Column; column++) {
 		Primitive sum = 0.0;
 
-		for (_size i = 0; i < Row; i++)
+		for (size i = 0; i < Row; i++)
 		  sum += matrix_[row][i] * v.matrix_[i][column];
 
 		result[row][column] = sum;
@@ -143,7 +143,7 @@ class Matrix {
   }
 
   template<typename T>
-  constexpr __self &operator*=(const T &value) noexcept {
+  constexpr self &operator*=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] *= value;
@@ -151,7 +151,7 @@ class Matrix {
   }
 
   template<typename T>
-  constexpr __self &operator/=(const T &value) noexcept {
+  constexpr self &operator/=(const T &value) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
 	for (int i = 0; i < Row; i++)
 	  matrix_[i] /= value;
@@ -159,19 +159,19 @@ class Matrix {
   }
 
   constexpr void Sqrt() noexcept {
-	for (_size i = 0; i < Row; i++)
+	for (size i = 0; i < Row; i++)
 	  matrix_[i].Sqrt();
   }
 
   constexpr bool HasNaN() const noexcept {
-	for (_size i = 0; i < Row; i++)
+	for (size i = 0; i < Row; i++)
 	  if (matrix_[i].HasNan())
 		return true;
 	return false;
   }
 
   constexpr bool HasZero() const noexcept {
-	for (_size i = 0; i < Row; i++)
+	for (size i = 0; i < Row; i++)
 	  if (matrix_[i].HasZero())
 		return true;
 	return false;
@@ -201,8 +201,8 @@ class Matrix {
   template<typename T>
   constexpr void FillDiagonal(const T &t) noexcept {
 	STATIC_ASSERT_IS_ARITHMETRIC(T);
-	_size diag = Row < Column ? Row : Column;
-	for (_size i = 0; i < diag; i++)
+	size diag = Row < Column ? Row : Column;
+	for (size i = 0; i < diag; i++)
 	  matrix_[i][i] = t;
   }
 
@@ -222,7 +222,7 @@ class Matrix {
 
  private:
 
-  _matrix matrix_;
+  matrix matrix_;
 };
 // -----------------------------------------------------------------------------
 

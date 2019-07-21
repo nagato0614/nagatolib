@@ -20,17 +20,17 @@ namespace nagato {
  * タスクを受け取って実行結果を受け取るfutureを返す
  */
 class ThreadPool {
-	using _thread_pool = std::vector<std::thread>;
-	using _size = std::size_t;
-	using _process = std::function<void(void)>;
-	using _queue = std::queue<_process>;
-	using _unique_lock = std::unique_lock<std::mutex>;
+	using thread_pool = std::vector<std::thread>;
+	using size = std::size_t;
+	using process = std::function<void(void)>;
+	using queue = std::queue<process>;
+	using unique_lock = std::unique_lock<std::mutex>;
 
  public:
 
 	explicit
 	ThreadPool(
-			_size nthreads = std::thread::hardware_concurrency()
+			size nthreads = std::thread::hardware_concurrency()
 	) noexcept;
 
 	~ThreadPool() noexcept;
@@ -44,7 +44,7 @@ class ThreadPool {
 	 */
 	template<typename F, typename... Args>
 	void EnqueuWork(F &&f, Args &&... args) noexcept {
-		_unique_lock lock(mutex_);
+		unique_lock lock(mutex_);
 		queue_.push([=]() { f(args...); });
 		condition_variable_.notify_all();
 	}
@@ -71,7 +71,7 @@ class ThreadPool {
 		std::future<return_type> res
 				= task->get_future();
 		{
-			_unique_lock lock(mutex_);
+			unique_lock lock(mutex_);
 			queue_.push([task]() { (*task)(); });
 		}
 		condition_variable_.notify_all();
@@ -83,15 +83,15 @@ class ThreadPool {
 	 * @param f
 	 * @param size
 	 */
-	void Loop(std::function<void(_size)> &&f, _size size) noexcept;
+	void Loop(std::function<void(size)> &&f, size size) noexcept;
 
 	void Finish() noexcept;
 
  private:
-	_thread_pool threads_;
-	_queue queue_;
+	thread_pool threads_;
+	queue queue_;
 	bool is_work_ = true;
-	_size nthreads;
+	size nthreads;
 	std::mutex mutex_;
 	std::condition_variable condition_variable_;
 };
