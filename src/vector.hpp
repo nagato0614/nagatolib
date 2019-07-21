@@ -159,23 +159,9 @@ class Vector {
 		return array_[index];
 	}
 
-	constexpr self Sqrt() const & noexcept {
-		self result;
-		for (size i = 0; i < Size; i++)
-			result[i] = sqrt(array_[i]);
-		return result;
-	}
-
-	constexpr void Sqrt() & noexcept {
+	constexpr void Sqrt() noexcept {
 		for (size i = 0; i < Size; i++)
 			array_[i] = sqrt(array_[i]);
-	}
-
-	constexpr self Sqrt() && noexcept {
-		self result;
-		for (size i = 0; i < Size; i++)
-			result[i] = sqrt(array_[i]);
-		return result;
 	}
 
 	constexpr size GetArraySize()
@@ -223,7 +209,7 @@ class Vector {
 	}
 
 	template<typename L, typename R>
-	constexpr self Clamp(L l, R r) const & noexcept {
+	constexpr self Clamp(L l, R r) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(L);
 		STATIC_ASSERT_IS_ARITHMETRIC(R);
 		self result;
@@ -233,45 +219,12 @@ class Vector {
 		return result;
 	}
 
-	template<typename L, typename R>
-	constexpr self Clamp(L l, R r)  && noexcept {
-		STATIC_ASSERT_IS_ARITHMETRIC(L);
-		STATIC_ASSERT_IS_ARITHMETRIC(R);
-		self result;
-		for (size i = 0; i < Size; i++) {
-			result[i] = Clamp(array_[i], l, r);
-		}
-		return result;
-	}
-
-	template<typename L, typename R>
-	constexpr void Clamp(L l, R r) noexcept {
-		STATIC_ASSERT_IS_ARITHMETRIC(L);
-		STATIC_ASSERT_IS_ARITHMETRIC(R);
-		for (auto &i : array_)
-			i = Clamp(i, l, r);
-	}
-
 	template<typename F>
-	constexpr self itor(F &&f) const & noexcept {
+	constexpr self itor(F &&f) & noexcept {
 		self result;
 		for (size i = 0; i < Size; i++)
 			result[i] = f(i);
 		return result;
-	}
-
-	template<typename F>
-	constexpr self itor(F &&f) && noexcept {
-		self result;
-		for (size i = 0; i < Size; i++)
-			result[i] = f(i);
-		return result;
-	}
-
-	template<typename F>
-	constexpr void itor(F &&f) & noexcept {
-		for (size i = 0; i < Size; i++)
-			array_[i] = f(i);
 	}
 
 	constexpr Primitive Sum()
