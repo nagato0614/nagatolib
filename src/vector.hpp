@@ -75,7 +75,7 @@ class Vector {
 	 * @param v
 	 */
 	constexpr Vector(rvalue_reference v) noexcept
-			: array_(v.array_) {}
+			: array_(std::move(v.array_)) {}
 
 	~Vector() = default;
 
