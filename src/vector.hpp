@@ -220,7 +220,7 @@ class Vector {
 		STATIC_ASSERT_IS_ARITHMETRIC(R);
 		self result;
 		for (size i = 0; i < Size; i++) {
-			result[i] = Clamp(array_[i], l, r);
+			result[i] = clamp(array_[i], l, r);
 		}
 		return result;
 	}
