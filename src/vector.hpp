@@ -20,11 +20,6 @@ namespace nagato {
 template<typename Primitive, std::size_t size>
 class Vector;
 
-template<typename Primitive, std::size_t size>
-constexpr Vector<Primitive, size> Sqrt(
-    const Vector<Primitive, size> &value
-) noexcept;
-
 // -----------------------------------------------------------------------------
 template<typename Type>
 using remove_const_reference
@@ -254,7 +249,7 @@ class Vector {
     }
 
 	constexpr Primitive LengthSqrt() const {
-	    return Sqrt(Length());
+	    return sqrt(Length());
 	}
 	constexpr auto begin() const noexcept {
 		return array_.begin();
