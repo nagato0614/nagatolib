@@ -412,7 +412,7 @@ template<typename Primitive, std::size_t size>
 constexpr Vector<Primitive, size> Normalize(
     const Vector<Primitive, size> &value
 ) noexcept {
-    return value / value.Length();
+    return value / value.LengthSqrt();
 }
 
 // -----------------------------------------------------------------------------
