@@ -248,8 +248,8 @@ class Vector {
 	    return sum;
     }
 
-	constexpr Primitive LengthSqrt() const {
-	    return sqrt(Length());
+    Primitive LengthSqrt() const {
+	    return std::sqrt(Length());
 	}
 	constexpr auto begin() const noexcept {
 		return array_.begin();
