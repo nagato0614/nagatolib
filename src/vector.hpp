@@ -241,11 +241,15 @@ class Vector {
 		return sum;
 	}
 
-	constexpr Primitive Length() const {
+    constexpr Primitive Length() const {
 	    Primitive sum = 0.0;
 	    for (const auto &i : array_)
 	        sum += i * i;
-	    return Sqrt(sum);
+	    return sum;
+    }
+
+	constexpr Primitive LengthSqrt() const {
+	    return Sqrt(Length());
 	}
 	constexpr auto begin() const noexcept {
 		return array_.begin();
