@@ -87,7 +87,6 @@ constexpr Type calc_Pi(int iteration) noexcept {
 	Type t = 1.0 / 4.0;
 	Type p = 1.0;
 	Type tmp = 0.0;
-	Type ret;
 	for (std::size_t i = 0; i < iteration; i++) {
 		tmp = a;
 		a = (tmp + b) / 2.0;
