@@ -32,6 +32,13 @@
 #define ASSERT_INNER(FROM, NUMBER, TO) \
     assert(#FROM <= #NUMBER && #NUMBER < #TO)
 
+#define STATIC_ASSERT_INNER(FROM, NUMBER, TO) \
+    static_assert(#FROM <= #NUMBER && #NUMBER < #TO)
+
+#define STATIC_ASSERT_EQUAL(A, B) \
+			static_assert(A == B, \
+					"NOT EQUEAL!")
+
 // -----------------------------------------------------------------------------
 
 

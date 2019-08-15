@@ -57,7 +57,7 @@ class Vector {
 			array_[i] = static_cast<Primitive>(*(init.begin() + i));
 	}
 
-	constexpr Vector(const std::vector<Primitive> &v) noexcept {
+	constexpr explicit Vector(const std::vector<Primitive> &v) noexcept {
 		assert(v.size() <= Size);
 		for (size i = 0; i < v.size(); i++)
 			array_[i] = v[i];
@@ -76,6 +76,18 @@ class Vector {
 	 */
 	constexpr Vector(rvalue_reference v) noexcept
 			: array_(std::move(v.array_)) {}
+
+	template<typename... Args>
+	constexpr explicit Vector(Args&&... args) noexcept {
+		SetData(std::forward<Args>(args)...);
+	}
+
+	template<typename... Args>
+	constexpr void SetData(Args&&... args) noexcept {
+		constexpr std::size_t param_size = sizeof...(Args);
+		static_assert(param_size <= Size);
+		array_ = {static_cast<Primitive>(args)...};
+	}
 
 	~Vector() = default;
 
@@ -142,9 +154,9 @@ class Vector {
 	}
 
 	constexpr self &operator-() noexcept {
-	    for (auto &i : array_)
-	        i *= -1;
-        return *this;
+		for (auto &i : array_)
+			i *= -1;
+		return *this;
 	}
 
 	constexpr Primitive &operator[](size index)
@@ -241,15 +253,15 @@ class Vector {
 		return sum;
 	}
 
-    constexpr Primitive Length() const {
-	    Primitive sum = 0.0;
-	    for (const auto &i : array_)
-	        sum += i * i;
-	    return sum;
-    }
+	constexpr Primitive Length() const {
+		Primitive sum = 0.0;
+		for (const auto &i : array_)
+			sum += i * i;
+		return sum;
+	}
 
-    Primitive LengthSqrt() const {
-	    return std::sqrt(Length());
+	Primitive LengthSqrt() const {
+		return std::sqrt(Length());
 	}
 	constexpr auto begin() const noexcept {
 		return array_.begin();
@@ -310,14 +322,6 @@ constexpr Vector<Primitive, size> operator-(
 	return Vector(lhv) -= rhv;
 }
 
-template<typename Primitive, std::size_t size, typename T>
-constexpr Vector<Primitive, size> operator-(
-		const T &lhv,
-		const Vector<Primitive, size> &rhv
-) noexcept {
-	STATIC_ASSERT_IS_ARITHMETRIC(T);
-	return Vector(rhv) -= lhv;
-}
 // -----------------------------------------------------------------------------
 
 
@@ -390,12 +394,12 @@ constexpr Primitive Dot(
 
 template<typename Primitive>
 constexpr Vector<Primitive, 3> Cross(
-    const Vector<Primitive, 3> &lhv,
-    const Vector<Primitive, 3> &rhv
+		const Vector<Primitive, 3> &lhv,
+		const Vector<Primitive, 3> &rhv
 ) noexcept {
-    return Vector<Primitive, 3>({lhv[1] * rhv[2] - lhv[2] * rhv[1],
-                                 lhv[2] * rhv[0] - lhv[0] * rhv[2],
-                                 lhv[0] * rhv[1] - lhv[1] * rhv[0]});
+	return Vector<Primitive, 3>({lhv[1] * rhv[2] - lhv[2] * rhv[1],
+															 lhv[2] * rhv[0] - lhv[0] * rhv[2],
+															 lhv[0] * rhv[1] - lhv[1] * rhv[0]});
 }
 
 template<typename Primitive, std::size_t size>
@@ -410,9 +414,9 @@ constexpr Vector<Primitive, size> Sqrt(
 
 template<typename Primitive, std::size_t size>
 constexpr Vector<Primitive, size> Normalize(
-    const Vector<Primitive, size> &value
+		const Vector<Primitive, size> &value
 ) noexcept {
-    return value / value.LengthSqrt();
+	return value / value.LengthSqrt();
 }
 
 // -----------------------------------------------------------------------------

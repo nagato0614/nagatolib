@@ -41,5 +41,8 @@ int main() {
   float norm_a = b.Sum();
 
   std::cout << norm_a << std::endl;
+	std::cout << Normalize(a) << std::endl;
+	std::cout << a << std::endl;
 
+	std::cout << Vector3f(1, 2, 3) << std::endl;
 }
