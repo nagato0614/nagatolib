@@ -45,4 +45,5 @@ int main() {
 	std::cout << a << std::endl;
 
 	std::cout << Vector3f(1, 2, 3) << std::endl;
+	std::cout << Vector3f(1.0, 2.0f, 3) << std::endl;
 }

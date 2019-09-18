@@ -36,12 +36,7 @@ struct is_all_arithmetic {
 
 template <typename T, typename Head, typename... Rest>
 struct is_all_arithmetic<T, Head, Rest...> {
-	static constexpr bool value = false;
-};
-
-template <typename T, typename... Rest>
-struct is_all_arithmetic<T, T, Rest...> {
-	static constexpr bool value = are_all_same<T, Rest...>::value;
+	static constexpr bool value = is_all_arithmetic<Head, Rest...>::value;
 };
 
 // -----------------------------------------------------------------------------
