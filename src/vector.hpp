@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include "math.hpp"
+#include "type_traits.hpp"
 
 namespace nagato {
 // -----------------------------------------------------------------------------
@@ -57,10 +58,11 @@ class Vector {
 			array_[i] = static_cast<Primitive>(*(init.begin() + i));
 	}
 
-	constexpr explicit Vector(const std::vector<Primitive> &v) noexcept {
+	template<typename T>
+	constexpr explicit Vector(const std::vector<T> &v) noexcept {
 		assert(v.size() <= Size);
 		for (size i = 0; i < v.size(); i++)
-			array_[i] = v[i];
+			array_[i] = static_cast<Primitive>(v[i]);
 	}
 
 	/**
@@ -77,7 +79,9 @@ class Vector {
 	constexpr Vector(rvalue_reference v) noexcept
 			: array_(std::move(v.array_)) {}
 
-	template<typename... Args>
+	template<typename... Args,
+			typename std::enable_if<is_all_arithmetic<Args...>::value>::type*
+			= nullptr>
 	constexpr explicit Vector(Args&&... args) noexcept {
 		SetData(std::forward<Args>(args)...);
 	}
