@@ -10,6 +10,7 @@
 #include <future>
 #include <condition_variable>
 #include <queue>
+#include <cassert>
 
 #include "assert.hpp"
 
