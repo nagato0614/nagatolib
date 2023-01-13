@@ -2,3 +2,7 @@
 build/
 debug/
 .DS_Store
+expand/*.test.cpp
+cmake-build-debug
+expand/.verify-helper/timestamps.local.json
+expand/.verify-helper/cache

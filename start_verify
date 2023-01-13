@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+# コードを展開
+base_dir="./verify/*.test.cpp";
+for filepath in $base_dir; do
+  echo "file path : $filepath";
+  file_name=${filepath#./verify/}
+  echo "file name : $file_name"
+  oj-bundle "$filepath" -I ./src > ./expand/"$file_name"
+done
+
+# shellcheck disable=SC2164
+cd expand;
+
+# 検証実行
+oj-verify run;
