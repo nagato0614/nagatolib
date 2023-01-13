@@ -10,3 +10,7 @@
 
 ## 実装したいもの
 - メモリアロケータ
+
+## テスト環境
+- gtest
+- [online-judge-tool](https://github.com/online-judge-tools/verification-helper)
