@@ -2,7 +2,8 @@
 // Created by nagato0614 on 2019-06-24.
 //
 
-#ifndef NAGATOLIB_SRC_ASSERT_HPP_
+#ifndef NAGATOLI#pragma once
+B_SRC_ASSERT_HPP_
 #define NAGATOLIB_SRC_ASSERT_HPP_
 
 #include <type_traits>

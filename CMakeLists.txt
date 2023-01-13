@@ -8,6 +8,10 @@ option(NAGATO_BUILD_EXAMPLE "Build example" ON)
 option(NAGATO_MATH "Use nagato math function" ON)
 option(NAGATO_TEST "Build Test" ON)
 
+# find packages
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 if (NAGATO_MATH)
     add_definitions(-DNAGATO_MATH)
 endif ()
@@ -19,7 +23,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
         "-O3 -Wall ${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Build Nagato Lib
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 file(GLOB NAGATO_HEADER
         src/*.hpp)
 
@@ -31,8 +35,11 @@ add_library(nagato ${NAGATO_HEADER} ${NAGATO_SOURCE})
 function(add_example target_name)
     add_executable(${target_name}
             example/${target_name}.cpp)
-    target_link_libraries(${target_name}
-            nagato)
+    target_link_libraries(${target_name} PUBLIC
+            nagato
+            "-pthread")
+    target_include_directories(${target_name} PUBLIC
+            ${CMAKE_SOURCE_DIR}/src)
 endfunction()
 
 # Build Example
@@ -53,7 +60,22 @@ if (NAGATO_TEST)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp)
     add_executable(nagato_test
             ${NAGATO_TEST_SOURCE})
-    target_link_libraries(nagato_test
+    target_link_libraries(nagato_test PUBLIC
             nagato
-            gtest)
+            gtest
+            "-pthread")
+    target_include_directories(nagato_test PUBLIC
+            ${CMAKE_SOURCE_DIR}/src)
 endif ()
+
+function(add_verify target_name)
+    add_executable(${target_name} ${target_name}.test.cpp)
+    target_link_libraries(${target_name} PUBLIC
+            nagato
+            "-pthread")
+    target_include_directories(${target_name} PUBLIC
+            ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(${target_name} PUBLIC "-pthread")
+endfunction()
+
+add_subdirectory(verify)

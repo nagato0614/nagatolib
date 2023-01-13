@@ -2,6 +2,7 @@
 // Created by nagato0614 on 2019-06-22.
 //
 
+#pragma once
 #ifndef NAGATOLIB_SRC_VECTOR_H_
 #define NAGATOLIB_SRC_VECTOR_H_
 
@@ -11,6 +12,7 @@
 #include <array>
 #include <limits>
 #include <cmath>
+#include <vector>
 
 #include "math.hpp"
 #include "type_traits.hpp"
@@ -101,7 +103,7 @@ class Vector {
 	}
 
 	constexpr self &operator+=(const_reference v) noexcept {
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] += v[i];
 		return *this;
 	}
@@ -109,13 +111,13 @@ class Vector {
 	template<typename T>
 	constexpr self &operator+=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] += value;
 		return *this;
 	}
 
 	constexpr self &operator-=(const_reference v) noexcept {
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] -= v[i];
 		return *this;
 	}
@@ -123,13 +125,13 @@ class Vector {
 	template<typename T>
 	constexpr self &operator-=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] -= value;
 		return *this;
 	}
 
 	constexpr self &operator*=(const_reference v) noexcept {
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] *= v[i];
 		return *this;
 	}
@@ -137,14 +139,14 @@ class Vector {
 	template<typename T>
 	constexpr self &operator*=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] *= value;
 		return *this;
 	}
 
 	constexpr self &operator/=(const_reference v) noexcept {
 		assert(!v.HasZero());
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] /= v[i];
 		return *this;
 	}
@@ -152,7 +154,7 @@ class Vector {
 	template<typename T>
 	constexpr self &operator/=(const T &value) noexcept {
 		STATIC_ASSERT_IS_ARITHMETRIC(T);
-		for (int i = 0; i < Size; i++)
+		for (std::size_t i = 0; i < Size; i++)
 			array_[i] /= value;
 		return *this;
 	}

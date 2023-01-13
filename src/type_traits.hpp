@@ -2,6 +2,7 @@
 // Created by nagato0614 on 2019/09/19.
 //
 
+#pragma once
 #ifndef NAGATOLIB_SRC_TYPE_TRAITS_HPP_
 #define NAGATOLIB_SRC_TYPE_TRAITS_HPP_
 

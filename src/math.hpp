@@ -2,6 +2,7 @@
 // Created by nagato0614 on 2019-06-23.
 //
 
+#pragma once
 #ifndef NAGATOLIB_SRC_MATH_H_
 #define NAGATOLIB_SRC_MATH_H_
 

@@ -2,6 +2,7 @@
 // Created by nagato0614 on 2019-07-14.
 //
 
+#pragma once
 #ifndef NAGATOLIB_SRC_MATRIX_HPP_
 #define NAGATOLIB_SRC_MATRIX_HPP_
 
