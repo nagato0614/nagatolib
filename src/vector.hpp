@@ -331,7 +331,7 @@ class Vector
     return v;
   }
  private:
-  array_type array_ = {0};
+  array_type array_;
 };
 
 // -----------------------------------------------------------------------------
