@@ -306,6 +306,19 @@ class Matrix
     std::cout << "(" << Column << ", " << Row << ")" << std::endl;
   }
 
+  /**
+   * 関数を適用した結果を返す
+   *
+   */
+  template<typename F>
+  constexpr auto itor(F &&f) const noexcept
+  {
+    using result_type = decltype(f(Primitive()));
+    Matrix<result_type, Column, Row> result;
+    for (size i = 0; i < Column; i++)
+      result[i] = matrix_[i].itor(f);
+    return result;
+  }
  private:
 
   matrix matrix_;

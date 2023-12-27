@@ -17,6 +17,8 @@ using Vector3f = Vector<float, 3>;
 using Vector2f = Vector<float, 2>;
 
 // Matrix Vector
+template<typename T, std::size_t size>
+using MatrixVector = Matrix<T, 1, size>;
 template<std::size_t size>
 using Vectorf = Matrix<float, 1, size>;
 
