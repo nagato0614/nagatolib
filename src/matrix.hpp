@@ -154,12 +154,23 @@ class Matrix
     {
       for (size column = 0; column < Column; column++)
       {
-        Primitive sum = 0.0;
+        result[row][column] = matrix_[row][column] * v.matrix_[row][column];
+      }
+    }
 
-        for (size i = 0; i < Row; i++)
-          sum += matrix_[row][i] * v.matrix_[i][column];
+    matrix_ = result;
+    return *this;
+  }
 
-        result[row][column] = sum;
+  constexpr reference operator/=(const_reference v) noexcept
+  {
+    matrix result;
+
+    for (size row = 0; row < Row; row++)
+    {
+      for (size column = 0; column < Column; column++)
+      {
+        result[row][column] = matrix_[row][column] / v.matrix_[row][column];
       }
     }
 
@@ -209,6 +220,16 @@ class Matrix
         return true;
       }
     return false;
+  }
+
+  constexpr auto begin() const noexcept
+  {
+    return matrix_.begin();
+  }
+
+  constexpr auto end() const noexcept
+  {
+    return matrix_.end();
   }
 
   constexpr Primitive Max() const noexcept
@@ -329,7 +350,7 @@ constexpr Matrix<Primitive, Row, Column> operator*(
 
 template<typename Primitive, std::size_t Row, std::size_t Column,
   std::size_t Size>
-constexpr Vector<Primitive, Size> operator*(
+constexpr Vector<Primitive, Size> Dot(
   const Matrix<Primitive, Row, Column> &lhv,
   const Vector<Primitive, Size> &rhv
 ) noexcept
@@ -341,7 +362,9 @@ constexpr Vector<Primitive, Size> operator*(
   {
     Primitive sum = 0;
     for (std::size_t j = 0; j < Size; j++)
+    {
       sum += lhv[i][j] * rhv[j];
+    }
     result[i] = sum;
   }
   return result;
@@ -349,7 +372,7 @@ constexpr Vector<Primitive, Size> operator*(
 
 template<typename Primitive, std::size_t Row, std::size_t Column,
   std::size_t Size>
-constexpr Vector<Primitive, Size> operator*(
+constexpr Vector<Primitive, Size> Dot(
   const Vector<Primitive, Size> &lhv,
   const Matrix<Primitive, Row, Column> &rhv
 ) noexcept
@@ -370,7 +393,7 @@ constexpr Vector<Primitive, Size> operator*(
 template<typename Primitive,
   std::size_t m1_Row, std::size_t m1_Column,
   std::size_t m2_Row, std::size_t m2_Column>
-constexpr Matrix<Primitive, m1_Column, m2_Row> operator*(
+constexpr Matrix<Primitive, m1_Column, m2_Row> Dot(
   const Matrix<Primitive, m1_Column, m1_Row> &lhv,
   const Matrix<Primitive, m2_Column, m2_Row> &rhv
 ) noexcept
@@ -385,7 +408,7 @@ constexpr Matrix<Primitive, m1_Column, m2_Row> operator*(
       Primitive sum = 0;
       for (std::size_t k = 0; k < m1_Row; k++)
         sum += lhv[i][k] * rhv[k][j];
-      result[j][i] = sum;
+      result[i][j] = sum;
     }
   }
   return result;
@@ -393,6 +416,19 @@ constexpr Matrix<Primitive, m1_Column, m2_Row> operator*(
 
 // -----------------------------------------------------------------------------
 
+template<typename Primitive, std::size_t Row, std::size_t Column>
+constexpr bool operator==(
+  const Matrix<Primitive, Row, Column> &lhv,
+  const Matrix<Primitive, Row, Column> &rhv
+) noexcept
+{
+  bool result = true;
+  for (std::size_t i = 0; i < Row; i++)
+  {
+    result &= lhv[i] == rhv[i];
+  }
+  return result;
+}
 
 }
 

@@ -230,7 +230,7 @@ class Vector
   const noexcept
   {
     for (const auto &i : array_)
-      if (i == static_cast<Primitive>(array_[i]))
+      if (i == 0)
       {
         return true;
       }
