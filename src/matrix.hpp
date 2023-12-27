@@ -6,6 +6,7 @@
 #define NAGATOLIB_SRC_MATRIX_HPP_
 
 #include <cstdlib>
+#include <iostream>
 
 #include "assert.hpp"
 #include "vector.hpp"
@@ -58,6 +59,19 @@ class Matrix
       const auto &r = *(init.begin() + i);
       assert(r.size() <= Row);
       matrix_[i] = r;
+    }
+  }
+
+  constexpr
+  Matrix(const std::initializer_list<Primitive> &init)
+  noexcept
+  {
+    assert(init.size() <= Column * Row);
+    size i = 0;
+    for (const auto &r : init)
+    {
+      matrix_[i / Row][i % Row] = r;
+      i++;
     }
   }
 
@@ -281,6 +295,17 @@ class Matrix
     return sum;
   }
 
+  constexpr std::pair<Primitive, Primitive> Shape()
+  const noexcept
+  {
+    return std::make_pair(Column, Row);
+  }
+
+  constexpr void ShowPair() const noexcept
+  {
+    std::cout << "(" << Column << ", " << Row << ")" << std::endl;
+  }
+
  private:
 
   matrix matrix_;
@@ -296,6 +321,10 @@ std::basic_ostream<Char, Traits> &operator<<(
   os << "[";
   for (std::size_t row = 0; row < Row; row++)
   {
+    if (row != 0)
+    {
+      os << " ";
+    }
     os << "[";
     for (std::size_t column = 0; column < Column; column++)
     {
@@ -413,6 +442,27 @@ constexpr Matrix<Primitive, m1_Column, m2_Row> Dot(
   }
   return result;
 }
+
+/**
+ * サイズが 1 x n の行列と 1 x n の場合は内積を計算する
+ * @tparam Primitive
+ * @tparam Column
+ * @param lhv
+ * @param rhv
+ * @return
+ */
+template<typename Primitive, std::size_t Column>
+constexpr Primitive Dot(
+  const Matrix<Primitive, 1, Column> &lhv,
+  const Matrix<Primitive, 1, Column> &rhv
+) noexcept
+{
+  Primitive result = 0;
+  for (std::size_t i = 0; i < Column; i++)
+    result += lhv[0][i] * rhv[0][i];
+  return result;
+}
+
 
 // -----------------------------------------------------------------------------
 
