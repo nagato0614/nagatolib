@@ -5,6 +5,8 @@
 #ifndef NAGATOLIB_SRC_MATRIX_N_HPP_
 #define NAGATOLIB_SRC_MATRIX_N_HPP_
 #include "assert.hpp"
+#include "type_traits.hpp"
+#include <iostream>
 #include <vector>
 
 namespace nagato
@@ -29,8 +31,8 @@ class MatrixN
    * @param Column 列数
    * @param Row 行数
    */
-  MatrixN(std::size_t Column, std::size_t Row)
-    : column_(Column), row_(Row), matrix_(Column, row_array(Row))
+  MatrixN(std::size_t Row, std::size_t Column)
+    : column_(Column), row_(Row), matrix_(Row, row_array(Column))
   {
   }
 
@@ -39,18 +41,16 @@ class MatrixN
    * @param list
    */
   MatrixN(const std::initializer_list<std::initializer_list<Primitive>> &list)
-    : column_(list.size()), row_(list.begin()->size()), matrix_(column_, row_array(row_))
+    : column_(list.begin()->size()), row_(list.size()), matrix_(row_, row_array(column_))
   {
-    std::size_t i = 0;
-    for (const auto &row : list)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      std::size_t j = 0;
-      for (const auto &element : row)
+      const auto &row_list = *(list.begin() + i);
+      for (std::size_t j = 0; j < column_; j++)
       {
+        const auto &element = *(row_list.begin() + j);
         matrix_[i][j] = element;
-        j++;
       }
-      i++;
     }
   }
 
@@ -60,12 +60,12 @@ class MatrixN
    * @param list
    */
   MatrixN(const std::initializer_list<Primitive> &list)
-    : column_(1), row_(list.size()), matrix_(column_, row_array(row_))
+    : column_(list.size()), row_(1), matrix_(row_, row_array(column_))
   {
     std::size_t i = 0;
     for (const auto &element : list)
     {
-      matrix_[i][0] = element;
+      matrix_[0][i] = element;
       i++;
     }
   }
@@ -133,12 +133,12 @@ class MatrixN
 
   /**
    * @brief 行列の要素を取得する
-   * @param column
+   * @param row
    * @return
    */
-  const row_array &operator[](std::size_t column) const
+  const row_array &operator[](std::size_t row) const
   {
-    return matrix_[column];
+    return matrix_[row];
   }
 
   /**
@@ -192,9 +192,9 @@ class MatrixN
   reference operator+=(const self &other)
   {
     this->assert_same_size(other);
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix_[i][j] += other[i][j];
       }
@@ -344,11 +344,216 @@ class MatrixN
     return matrix;
   }
 
+  std::size_t Column() const
+  {
+    return column_;
+  }
+
+  std::size_t Row() const
+  {
+    return row_;
+  }
+
+  /**
+   * @brief 行列の列数を取得する
+   * @return
+   */
+  void ShowShape() const
+  {
+    std::cout << "Column: " << column_ << ", Row: " << row_ << std::endl;
+  }
+
+  void Sqrt()
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        matrix_[i][j] = std::sqrt(matrix_[i][j]);
+      }
+    }
+  }
+
+  bool HasNaN() const
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        if (std::isnan(matrix_[i][j]))
+        {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool HasZero() const
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        if (matrix_[i][j] == 0)
+        {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  auto begin() const
+  {
+    return matrix_.begin();
+  }
+
+  auto end() const
+  {
+    return matrix_.end();
+  }
+
+  Primitive Sum() const
+  {
+    Primitive sum = 0;
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        sum += matrix_[i][j];
+      }
+    }
+    return sum;
+  }
+
+  Primitive Max() const
+  {
+    Primitive max = matrix_[0][0];
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        if (max < matrix_[i][j])
+        {
+          max = matrix_[i][j];
+        }
+      }
+    }
+    return max;
+  }
+
+  Primitive Min() const
+  {
+    Primitive min = matrix_[0][0];
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        if (min > matrix_[i][j])
+        {
+          min = matrix_[i][j];
+        }
+      }
+    }
+    return min;
+  }
+
+  template<typename T>
+  void Fill(T t)
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        matrix_[i][j] = static_cast<Primitive>(t);
+      }
+    }
+  }
+
+  template<typename F>
+  void itor(F &&f)
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        matrix_[i][j] = f(matrix_[i][j]);
+      }
+    }
+  }
+
  private:
   std::size_t column_;
   std::size_t row_;
   matrix_array matrix_;
 };
+
+template<class Char, class Traits, typename Primitive>
+std::basic_ostream<Char, Traits> &operator<<(std::basic_ostream<Char, Traits> &os,
+                                             const MatrixN<Primitive> &matrix)
+{
+  os << "[";
+  for (std::size_t i = 0; i < matrix.column_; i++)
+  {
+    if (i != 0)
+    {
+      os << " ";
+    }
+    os << "[";
+    for (std::size_t j = 0; j < matrix.row_; j++)
+    {
+      os << matrix[i][j] << ", ";
+    }
+    os << "]";
+    if (i != matrix.column_ - 1)
+    {
+      os << std::endl;
+    }
+    os << std::endl;
+  }
+  os << "]";
+  return os;
 }
+
+template<typename Primitive>
+MatrixN<Primitive> Dot(const MatrixN<Primitive> &a, const MatrixN<Primitive> &b)
+{
+  bool is_matrix = (a.Column() == b.Row());
+  bool is_vector = ((a.Row() == 1) && (b.Row() == 1) && (a.Column() == b.Column()))
+    || ((a.Column() == 1) && (b.Column() == 1) && (a.Row() == b.Row()));
+  // 行列の積を計算する
+  if (is_matrix)
+  {
+    MatrixN<Primitive> matrix(a.Row(), b.Column());
+    for (std::size_t i = 0; i < a.Row(); i++)
+    {
+      for (std::size_t j = 0; j < b.Column(); j++)
+      {
+        for (std::size_t k = 0; k < a.Column(); k++)
+        {
+          matrix[i][j] += a[i][k] * b[k][j];
+        }
+      }
+    }
+    return matrix;
+  }
+    // ベクトルの内積を計算する
+  else if (is_vector)
+  {
+    MatrixN<Primitive> matrix(1, 1);
+    for (std::size_t i = 0; i < a.Column(); i++)
+    {
+      matrix[0][0] += a[0][i] * b[0][i];
+    }
+    return matrix;
+  }
+  else
+  {
+    throw std::invalid_argument("The size of the matrix is invalid.");
+  }
+}
+
+} // namespace nagato
 
 #endif //NAGATOLIB_SRC_MATRIX_N_HPP_
