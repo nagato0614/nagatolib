@@ -130,7 +130,7 @@ class Matrix
 
   constexpr reference operator+=(const_reference v) noexcept
   {
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] += v[i];
     return *this;
   }
@@ -139,14 +139,14 @@ class Matrix
   constexpr self &operator+=(const T &value) noexcept
   {
     STATIC_ASSERT_IS_ARITHMETRIC(T);
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] += value;
     return *this;
   }
 
   constexpr reference operator-=(const_reference v) noexcept
   {
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] -= v[i];
     return *this;
   }
@@ -155,7 +155,7 @@ class Matrix
   constexpr self &operator-=(const T &value) noexcept
   {
     STATIC_ASSERT_IS_ARITHMETRIC(T);
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] -= value;
     return *this;
   }
@@ -196,7 +196,7 @@ class Matrix
   constexpr self &operator*=(const T &value) noexcept
   {
     STATIC_ASSERT_IS_ARITHMETRIC(T);
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] *= value;
     return *this;
   }
@@ -205,20 +205,20 @@ class Matrix
   constexpr self &operator/=(const T &value) noexcept
   {
     STATIC_ASSERT_IS_ARITHMETRIC(T);
-    for (int i = 0; i < Row; i++)
+    for (int i = 0; i < Column; i++)
       matrix_[i] /= value;
     return *this;
   }
 
   constexpr void Sqrt() noexcept
   {
-    for (size i = 0; i < Row; i++)
+    for (size i = 0; i < Column; i++)
       matrix_[i].Sqrt();
   }
 
   constexpr bool HasNaN() const noexcept
   {
-    for (size i = 0; i < Row; i++)
+    for (size i = 0; i < Column; i++)
       if (matrix_[i].HasNan())
       {
         return true;
@@ -228,7 +228,7 @@ class Matrix
 
   constexpr bool HasZero() const noexcept
   {
-    for (size i = 0; i < Row; i++)
+    for (size i = 0; i < Column; i++)
       if (matrix_[i].HasZero())
       {
         return true;

@@ -2,8 +2,7 @@
 // Created by toru on 2023/12/26.
 //
 #include <gtest/gtest.h>
-
-#include "matrix.hpp"
+#include "nagatolib.hpp"
 using namespace nagato;
 
 TEST(MatrixTest, MatrixAddition)
@@ -396,4 +395,26 @@ TEST(MatrixTest, MatrixMultiplication_12_12)
     for (int j = 0; j < 1; j++)
     { EXPECT_EQ(ans[i][j], c[i][j]); }
   }
+}
+
+TEST(MatrixTest, DeeplearningZero)
+{
+  using namespace nagato;
+  const auto X = Vectorf<2>({1.0, 0.5});
+  const auto W1 = Matrixf<2, 3>({
+                                  {0.1, 0.3, 0.5},
+                                  {0.2, 0.4, 0.6}
+                                });
+  const auto B1 = Vectorf<3>({0.1, 0.2, 0.3});
+  auto A1 = Dot(X, W1);
+  A1 += B1;
+
+  const auto ans = Vectorf<3>({0.3, 0.7, 1.1});
+
+  for (int i = 0; i < 3; i++)
+  {
+    EXPECT_EQ(A1[0][i], ans[0][i]);
+  }
+
+  const auto Z1 = Sigmoid(A1);
 }
