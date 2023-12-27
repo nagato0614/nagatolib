@@ -27,8 +27,6 @@ int main()
   std::cout << m_1 << std::endl;
   std::cout << m_1 + m_1 << std::endl;
   std::cout << m_1 * mat3d::Identity() << std::endl;
-  std::cout << m_1 * v_1 << std::endl;
-  std::cout << v_1 * m_1 << std::endl;
 
   constexpr mat2d x = {
     {1, 2},
@@ -60,11 +58,11 @@ int main()
 
   std::cout << "---" << std::endl;
 
-  const mat3d m32m23 = m32 * m23;
+  const mat3d m32m23 = Dot(m32, m23);
   std::cout << "m32 * m23" << std::endl;
   std::cout << m32m23 << std::endl;
 
-  const mat2d m23m32 = m23 * m32;
+  const mat2d m23m32 = Dot(m23, m32);
   std::cout << "m23 * m32" << std::endl;
   std::cout << m23m32 << std::endl;
 

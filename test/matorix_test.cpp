@@ -416,5 +416,4 @@ TEST(MatrixTest, DeeplearningZero)
     EXPECT_EQ(A1[0][i], ans[0][i]);
   }
 
-  const auto Z1 = Sigmoid(A1);
 }
