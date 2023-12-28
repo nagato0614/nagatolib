@@ -71,6 +71,62 @@ class MatrixN
   }
 
   /**
+   * @brief コンストラクタ
+   * @param list
+   */
+  MatrixN(const std::vector<std::vector<Primitive>> &list)
+    : column_(list.begin()->size()), row_(list.size())
+  {
+    matrix_.resize(row_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      matrix_[i].resize(column_);
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix_[i][j] = list[i][j];
+      }
+    }
+  }
+
+  /**
+   * @brief コンストラクタ
+   * ベクトルとして取り扱う
+   * @param list
+   */
+  MatrixN(const std::vector<Primitive> &list)
+    : column_(list.size()), row_(1)
+  {
+    matrix_.resize(row_);
+    matrix_[0].resize(column_);
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      matrix_[0][i] = list[i];
+    }
+  }
+
+  /**
+   * @brief 1次元のベクトルを2次元の行列に変換する
+   * @param list
+   * @param row
+   * @param column
+   * @return
+   */
+  MatrixN(const std::vector<Primitive> &list, std::size_t row, std::size_t column)
+    : column_(column), row_(row)
+  {
+    assert(list.size() == row * column);
+    matrix_.resize(row);
+    for (std::size_t i = 0; i < row; i++)
+    {
+      matrix_[i].resize(column);
+      for (std::size_t j = 0; j < column; j++)
+      {
+        matrix_[i][j] = list[i * column + j];
+      }
+    }
+  }
+
+  /**
    * @brief コピーコンストラクタ
    * @param other
    */
@@ -570,7 +626,7 @@ class MatrixN
   Primitive Sum() const
   {
     Primitive sum = 0;
-    for (std::size_t i = 0; i < row_  ; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
       for (std::size_t j = 0; j < column_; j++)
       {
@@ -648,6 +704,112 @@ class MatrixN
       }
     }
     return matrix;
+  }
+
+  /**
+   * @brief 0.0 ~ 1.0 の間で正規化を行う
+   */
+  void Normalize()
+  {
+    const Primitive max = Max();
+    const Primitive min = Min();
+    const Primitive diff = max - min;
+    const auto one = static_cast<Primitive>(1);
+    const auto zero = static_cast<Primitive>(0);
+
+    // 全ての要素が同じ値の場合は0で埋める
+    if (diff == zero)
+    {
+      Fill(zero);
+    }
+      // それ以外の場合は正規化を行う
+    else
+    {
+      Itor([diff, min, one](Primitive x) -> Primitive
+           { return (x - min) / diff; });
+    }
+  }
+
+  /**
+   * @brief 0.0 ~ 1.0 の間で正規化を行う
+   */
+  self Normalized() const
+  {
+    const Primitive max = Max();
+    const Primitive min = Min();
+    const Primitive diff = max - min;
+    const auto one = static_cast<Primitive>(1);
+    const auto zero = static_cast<Primitive>(0);
+
+    // 全ての要素が同じ値の場合は0で埋める
+    if (diff == zero)
+    {
+      return Zero(column_, row_);
+    }
+      // それ以外の場合は正規化を行う
+    else
+    {
+      return Itor([diff, min, one](Primitive x) -> Primitive
+                  { return (x - min) / diff; });
+    }
+  }
+
+  /**
+   * @brief 2次元の行列を1次元のベクトル形式にする
+   */
+  void ToVector()
+  {
+    row_array vector(column_ * row_);
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        vector[i * row_ + j] = matrix_[i][j];
+      }
+    }
+    matrix_.resize(1);
+    matrix_[0] = vector;
+    column_ = column_ * row_;
+    row_ = 1;
+  }
+
+  /**
+   * @brief 2次元の行列を1次元のベクトル形式にする
+   */
+  self ToVector() const
+  {
+    row_array vector(column_ * row_);
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        vector[i * row_ + j] = matrix_[i][j];
+      }
+    }
+    return self(vector, 1, column_ * row_);
+  }
+
+  /**
+   * @brief 最大値を持つ要素のインデックスを取得する
+   */
+  std::pair<std::size_t, std::size_t> ArgMax() const
+  {
+    Primitive max = matrix_[0][0];
+    std::size_t max_i = 0;
+    std::size_t max_j = 0;
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        if (max < matrix_[i][j])
+        {
+          max = matrix_[i][j];
+          max_i = i;
+          max_j = j;
+        }
+      }
+    }
+    return std::make_pair(max_i, max_j);
   }
 
  private:
