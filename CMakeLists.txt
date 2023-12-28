@@ -16,7 +16,7 @@ endif ()
 set(CMAKE_CXX_FLAGS_DEBUG
         "-O0 -Wall ${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS_RELEASE
-        "-O3 -Wall ${CMAKE_CXX_FLAGS_RELEASE}")
+        "-O2 -Wall ${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Build Nagato Lib
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)

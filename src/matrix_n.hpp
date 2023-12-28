@@ -760,11 +760,11 @@ class MatrixN
   void ToVector()
   {
     row_array vector(column_ * row_);
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
-        vector[i * row_ + j] = matrix_[i][j];
+        vector[i * column_ + j] = matrix_[i][j];
       }
     }
     matrix_.resize(1);
@@ -779,14 +779,14 @@ class MatrixN
   self ToVector() const
   {
     row_array vector(column_ * row_);
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
-        vector[i * row_ + j] = matrix_[i][j];
+        vector[i * column_ + j] = matrix_[i][j];
       }
     }
-    return self(vector, 1, column_ * row_);
+    return self(vector, 1, row_ * column_);
   }
 
   /**
@@ -884,6 +884,166 @@ MatrixN<Primitive> Dot(const MatrixN<Primitive> &a, const MatrixN<Primitive> &b)
   {
     throw std::invalid_argument("The size of the matrix is invalid.");
   }
+}
+
+/**
+ * @brief batch 処理に対応した行列の積を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> Dot(
+  const std::vector<MatrixN<Primitive>> &lhv,
+  const MatrixN<Primitive> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (std::size_t i = 0; i < lhv.size(); i++)
+  {
+    matrix[i] = Dot(lhv[i], rhv);
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の積を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> Dot(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (std::size_t i = 0; i < rhv.size(); i++)
+  {
+    matrix[i] = Dot(lhv, rhv[i]);
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの加算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator+(
+  const std::vector<MatrixN<Primitive>> &lhv,
+  const MatrixN<Primitive> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (std::size_t i = 0; i < lhv.size(); i++)
+  {
+    matrix[i] = lhv[i] + rhv;
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの加算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator+(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (std::size_t i = 0; i < rhv.size(); i++)
+  {
+    matrix[i] = lhv + rhv[i];
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの減算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator-(
+  const std::vector<MatrixN<Primitive>> &lhv,
+  const MatrixN<Primitive> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (std::size_t i = 0; i < lhv.size(); i++)
+  {
+    matrix[i] = lhv[i] - rhv;
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの減算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator-(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (std::size_t i = 0; i < rhv.size(); i++)
+  {
+    matrix[i] = lhv - rhv[i];
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの乗算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator*(
+  const std::vector<MatrixN<Primitive>> &lhv,
+  const MatrixN<Primitive> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (std::size_t i = 0; i < lhv.size(); i++)
+  {
+    matrix[i] = lhv[i] * rhv;
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの乗算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator*(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (std::size_t i = 0; i < rhv.size(); i++)
+  {
+    matrix[i] = lhv * rhv[i];
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの除算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator/(
+  const std::vector<MatrixN<Primitive>> &lhv,
+  const MatrixN<Primitive> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (std::size_t i = 0; i < lhv.size(); i++)
+  {
+    matrix[i] = lhv[i] / rhv;
+  }
+  return matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの除算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator/(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>> &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (std::size_t i = 0; i < rhv.size(); i++)
+  {
+    matrix[i] = lhv / rhv[i];
+  }
+  return matrix;
 }
 
 } // namespace nagato
