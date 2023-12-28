@@ -172,10 +172,10 @@ class MatrixN
   self operator+(const self &other) const
   {
     this->assert_same_size(other);
-    self matrix(column_, row_);
-    for (std::size_t i = 0; i < column_; i++)
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix[i][j] = matrix_[i][j] + other[i][j];
       }
@@ -203,6 +203,41 @@ class MatrixN
   }
 
   /**
+   * スカラーとの加算
+   * @param other
+   * @return
+   */
+  self operator+(const Primitive &other) const
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = matrix_[i][j] + static_cast<Primitive>(other);
+      }
+    }
+    return matrix;
+  }
+
+  /**
+   * スカラーとの加算代入
+   * @param other
+   * @return
+   */
+  reference operator+=(const Primitive &other)
+  {
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix_[i][j] += static_cast<Primitive>(other);
+      }
+    }
+    return *this;
+  }
+
+  /**
    * @brief 要素ごとの減算
    * @param column
    * @param row
@@ -211,10 +246,10 @@ class MatrixN
   self operator-(const self &other) const
   {
     this->assert_same_size(other);
-    self matrix(column_, row_);
-    for (std::size_t i = 0; i < column_; i++)
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix[i][j] = matrix_[i][j] - other[i][j];
       }
@@ -231,11 +266,46 @@ class MatrixN
   reference operator-=(const self &other)
   {
     this->assert_same_size(other);
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix_[i][j] -= other[i][j];
+      }
+    }
+    return *this;
+  }
+
+  /**
+   * スカラーとの減算
+   * @param other
+   * @return
+   */
+  self operator-(const Primitive &other) const
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = matrix_[i][j] - static_cast<Primitive>(other);
+      }
+    }
+    return matrix;
+  }
+
+  /**
+   * スカラーとの減算代入
+   * @param other
+   * @return
+   */
+  reference operator-=(const Primitive &other)
+  {
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix_[i][j] -= static_cast<Primitive>(other);
       }
     }
     return *this;
@@ -250,10 +320,10 @@ class MatrixN
   self operator*(const self &other) const
   {
     this->assert_same_size(other);
-    self matrix(column_, row_);
-    for (std::size_t i = 0; i < column_; i++)
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix[i][j] = matrix_[i][j] * other[i][j];
       }
@@ -270,11 +340,46 @@ class MatrixN
   reference operator*=(const self &other)
   {
     this->assert_same_size(other);
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix_[i][j] *= other[i][j];
+      }
+    }
+    return *this;
+  }
+
+  /**
+   * @brief スカラーとの乗算
+   * @param other
+   * @return
+   */
+  self operator*(const Primitive &other) const
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = matrix_[i][j] * static_cast<Primitive>(other);
+      }
+    }
+    return matrix;
+  }
+
+  /**
+   * @brief スカラーとの乗算代入
+   * @param other
+   * @return
+   */
+  reference operator*=(const Primitive &other)
+  {
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix_[i][j] *= static_cast<Primitive>(other);
       }
     }
     return *this;
@@ -289,10 +394,10 @@ class MatrixN
   self operator/(const self &other) const
   {
     this->assert_same_size(other);
-    self matrix(column_, row_);
-    for (std::size_t i = 0; i < column_; i++)
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         matrix[i][j] = matrix_[i][j] / other[i][j];
       }
@@ -314,6 +419,41 @@ class MatrixN
       for (std::size_t j = 0; j < row_; j++)
       {
         matrix_[i][j] /= other[i][j];
+      }
+    }
+    return *this;
+  }
+
+  /**
+   * @brief スカラーとの除算
+   * @param other
+   * @return
+   */
+  self operator/(const Primitive &other) const
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = matrix_[i][j] / static_cast<Primitive>(other);
+      }
+    }
+    return matrix;
+  }
+
+  /**
+   * @brief スカラーとの除算代入
+   * @param other
+   * @return
+   */
+  reference operator/=(const Primitive &other)
+  {
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        matrix_[i][j] /= static_cast<Primitive>(other);
       }
     }
     return *this;
@@ -344,6 +484,19 @@ class MatrixN
     return matrix;
   }
 
+  self Exp()
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = std::exp(matrix_[i][j]);
+      }
+    }
+    return matrix;
+  }
+
   std::size_t Column() const
   {
     return column_;
@@ -360,7 +513,7 @@ class MatrixN
    */
   void ShowShape() const
   {
-    std::cout << "Column: " << column_ << ", Row: " << row_ << std::endl;
+    std::cout << "Row: " << row_ << ", Column: " << column_ << std::endl;
   }
 
   void Sqrt()
@@ -417,9 +570,9 @@ class MatrixN
   Primitive Sum() const
   {
     Primitive sum = 0;
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_  ; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         sum += matrix_[i][j];
       }
@@ -430,9 +583,9 @@ class MatrixN
   Primitive Max() const
   {
     Primitive max = matrix_[0][0];
-    for (std::size_t i = 0; i < column_; i++)
+    for (std::size_t i = 0; i < row_; i++)
     {
-      for (std::size_t j = 0; j < row_; j++)
+      for (std::size_t j = 0; j < column_; j++)
       {
         if (max < matrix_[i][j])
         {
@@ -472,7 +625,7 @@ class MatrixN
   }
 
   template<typename F>
-  void itor(F &&f)
+  void Itor(F &&f)
   {
     for (std::size_t i = 0; i < column_; i++)
     {
@@ -481,6 +634,20 @@ class MatrixN
         matrix_[i][j] = f(matrix_[i][j]);
       }
     }
+  }
+
+  template<typename F>
+  auto Itor(F &&f) const
+  {
+    self matrix(row_, column_);
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      for (std::size_t j = 0; j < column_; j++)
+      {
+        matrix[i][j] = f(matrix_[i][j]);
+      }
+    }
+    return matrix;
   }
 
  private:
@@ -494,23 +661,26 @@ std::basic_ostream<Char, Traits> &operator<<(std::basic_ostream<Char, Traits> &o
                                              const MatrixN<Primitive> &matrix)
 {
   os << "[";
-  for (std::size_t i = 0; i < matrix.column_; i++)
+  for (std::size_t i = 0; i < matrix.Row(); i++)
   {
     if (i != 0)
     {
       os << " ";
     }
     os << "[";
-    for (std::size_t j = 0; j < matrix.row_; j++)
+    for (std::size_t j = 0; j < matrix.Column(); j++)
     {
-      os << matrix[i][j] << ", ";
+      os << matrix[i][j];
+      if (j != matrix.Column() - 1)
+      {
+        os << ", ";
+      }
     }
     os << "]";
-    if (i != matrix.column_ - 1)
+    if (i != matrix.Row() - 1)
     {
       os << std::endl;
     }
-    os << std::endl;
   }
   os << "]";
   return os;
