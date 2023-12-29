@@ -3,6 +3,7 @@ project(nagatolib)
 
 set(CMAKE_CXX_STANDARD 23)
 
+
 # Build Options
 option(NAGATO_BUILD_EXAMPLE "Build example" ON)
 option(NAGATO_MATH "Use nagato math function" ON)
@@ -32,7 +33,8 @@ function(add_example target_name)
     add_executable(${target_name}
             example/${target_name}.cpp)
     target_link_libraries(${target_name}
-            nagato)
+            nagato
+    )
 endfunction()
 
 # Build Example
@@ -41,7 +43,6 @@ if (NAGATO_BUILD_EXAMPLE)
     add_example(random_example)
     add_example(thread_example)
     add_example(matrix_example)
-
 endif ()
 
 # Build Tests

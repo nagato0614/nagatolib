@@ -6,6 +6,7 @@
 #define NAGATOLIB_SRC_MATRIX_N_HPP_
 #include "assert.hpp"
 #include "type_traits.hpp"
+#include "random.hpp"
 #include <iostream>
 #include <vector>
 
@@ -25,6 +26,11 @@ class MatrixN
   using reference = self &;
   using const_reference = const self &;
   using rvalue_reference = self &&;
+
+  /**
+   * @brief コンストラクタ
+   */
+  MatrixN() = default;
 
   /**
    * @brief コンストラクタ
@@ -774,6 +780,38 @@ class MatrixN
   }
 
   /**
+   * @brief ベクトルのサイズを変形する
+   */
+  void Reshape(std::size_t row, std::size_t column)
+  {
+    assert(row * column == row_ * column_);
+    row_ = row;
+    column_ = column;
+
+    for (std::size_t i = 0; i < row_; i++)
+    {
+      matrix_[i].resize(column_);
+    }
+  }
+
+
+  /**
+   * @brief 行列の転置を行う
+   */
+  self Transposed() const
+  {
+    self matrix(column_, row_);
+    for (std::size_t i = 0; i < column_; i++)
+    {
+      for (std::size_t j = 0; j < row_; j++)
+      {
+        matrix[i][j] = matrix_[j][i];
+      }
+    }
+    return matrix;
+  }
+
+  /**
    * @brief 2次元の行列を1次元のベクトル形式にする
    */
   self ToVector() const
@@ -810,6 +848,23 @@ class MatrixN
       }
     }
     return std::make_pair(max_i, max_j);
+  }
+
+  /**
+ * @brief 全てランダムに初期化した行列を生成する
+ */
+  static MatrixN<Primitive> Randn(std::size_t row, std::size_t column)
+  {
+    MatrixN<Primitive> matrix(row, column);
+    Random rand;
+    for (std::size_t i = 0; i < row; i++)
+    {
+      for (std::size_t j = 0; j < column; j++)
+      {
+        matrix[i][j] = rand.uniform_real_distribution<Primitive>(0.F, 1.F);
+      }
+    }
+    return matrix;
   }
 
  private:
@@ -951,17 +1006,21 @@ MatrixN<Primitive> operator+(
 }
 
 /**
- * @brief batch 処理に対応した行列の要素ごとの減算を計算する
+ * @brief スカラーとの加算
  */
 template<typename Primitive>
-MatrixN<Primitive> operator-(
-  const std::vector<MatrixN<Primitive>> &lhv,
-  const MatrixN<Primitive> &rhv)
+MatrixN<Primitive> operator+(
+  Primitive lhv,
+  const MatrixN<Primitive> &rhv
+)
 {
-  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
-  for (std::size_t i = 0; i < lhv.size(); i++)
+  MatrixN<Primitive> matrix(rhv.Row(), rhv.Column());
+  for (std::size_t i = 0; i < rhv.Row(); i++)
   {
-    matrix[i] = lhv[i] - rhv;
+    for (std::size_t j = 0; j < rhv.Column(); j++)
+    {
+      matrix[i][j] = lhv + rhv[i][j];
+    }
   }
   return matrix;
 }
@@ -971,29 +1030,60 @@ MatrixN<Primitive> operator-(
  */
 template<typename Primitive>
 MatrixN<Primitive> operator-(
+  const std::vector<MatrixN<Primitive>>
+  &lhv,
+  const MatrixN<Primitive> &rhv
+)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (
+    std::size_t i = 0;
+    i < lhv.
+      size();
+    i++)
+  {
+    matrix[i] = lhv[i] -
+      rhv;
+  }
+  return
+    matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの減算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator-(
   const MatrixN<Primitive> &lhv,
-  const std::vector<MatrixN<Primitive>> &rhv)
+  const std::vector<MatrixN<Primitive>>
+  &rhv)
 {
   MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
-  for (std::size_t i = 0; i < rhv.size(); i++)
+  for (
+    std::size_t i = 0;
+    i < rhv.
+      size();
+    i++)
   {
     matrix[i] = lhv - rhv[i];
   }
-  return matrix;
+  return
+    matrix;
 }
 
-/**
- * @brief batch 処理に対応した行列の要素ごとの乗算を計算する
- */
 template<typename Primitive>
-MatrixN<Primitive> operator*(
-  const std::vector<MatrixN<Primitive>> &lhv,
-  const MatrixN<Primitive> &rhv)
+MatrixN<Primitive> operator-(
+  Primitive lhv,
+  const MatrixN<Primitive> &rhv
+)
 {
-  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
-  for (std::size_t i = 0; i < lhv.size(); i++)
+  MatrixN<Primitive> matrix(rhv.Row(), rhv.Column());
+  for (std::size_t i = 0; i < rhv.Row(); i++)
   {
-    matrix[i] = lhv[i] * rhv;
+    for (std::size_t j = 0; j < rhv.Column(); j++)
+    {
+      matrix[i][j] = lhv - rhv[i][j];
+    }
   }
   return matrix;
 }
@@ -1003,29 +1093,61 @@ MatrixN<Primitive> operator*(
  */
 template<typename Primitive>
 MatrixN<Primitive> operator*(
-  const MatrixN<Primitive> &lhv,
-  const std::vector<MatrixN<Primitive>> &rhv)
-{
-  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
-  for (std::size_t i = 0; i < rhv.size(); i++)
-  {
-    matrix[i] = lhv * rhv[i];
-  }
-  return matrix;
-}
-
-/**
- * @brief batch 処理に対応した行列の要素ごとの除算を計算する
- */
-template<typename Primitive>
-MatrixN<Primitive> operator/(
-  const std::vector<MatrixN<Primitive>> &lhv,
-  const MatrixN<Primitive> &rhv)
+  const std::vector<MatrixN<Primitive>>
+  &lhv,
+  const MatrixN<Primitive> &rhv
+)
 {
   MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
-  for (std::size_t i = 0; i < lhv.size(); i++)
+  for (
+    std::size_t i = 0;
+    i < lhv.
+      size();
+    i++)
   {
-    matrix[i] = lhv[i] / rhv;
+    matrix[i] = lhv[i] *
+      rhv;
+  }
+  return
+    matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの乗算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator*(
+  const MatrixN<Primitive> &lhv,
+  const std::vector<MatrixN<Primitive>>
+  &rhv)
+{
+  MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
+  for (
+    std::size_t i = 0;
+    i < rhv.
+      size();
+    i++)
+  {
+    matrix[i] =
+      lhv * rhv[i];
+  }
+  return
+    matrix;
+}
+
+template<typename Primitive>
+MatrixN<Primitive> operator*(
+  Primitive lhv,
+  const MatrixN<Primitive> &rhv
+)
+{
+  MatrixN<Primitive> matrix(rhv.Row(), rhv.Column());
+  for (std::size_t i = 0; i < rhv.Row(); i++)
+  {
+    for (std::size_t j = 0; j < rhv.Column(); j++)
+    {
+      matrix[i][j] = lhv * rhv[i][j];
+    }
   }
   return matrix;
 }
@@ -1035,13 +1157,150 @@ MatrixN<Primitive> operator/(
  */
 template<typename Primitive>
 MatrixN<Primitive> operator/(
+  const std::vector<MatrixN<Primitive>>
+  &lhv,
+  const MatrixN<Primitive> &rhv
+)
+{
+  MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
+  for (
+    std::size_t i = 0;
+    i < lhv.
+      size();
+    i++)
+  {
+    matrix[i] = lhv[i] /
+      rhv;
+  }
+  return
+    matrix;
+}
+
+/**
+ * @brief batch 処理に対応した行列の要素ごとの除算を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive> operator/(
   const MatrixN<Primitive> &lhv,
-  const std::vector<MatrixN<Primitive>> &rhv)
+  const std::vector<MatrixN<Primitive>>
+  &rhv)
 {
   MatrixN<Primitive> matrix(lhv.Row(), rhv.size());
-  for (std::size_t i = 0; i < rhv.size(); i++)
+  for (
+    std::size_t i = 0;
+    i < rhv.
+      size();
+    i++)
   {
     matrix[i] = lhv / rhv[i];
+  }
+  return
+    matrix;
+}
+
+template<typename Primitive>
+MatrixN<Primitive> operator/(
+  Primitive lhv,
+  const MatrixN<Primitive> &rhv
+)
+{
+  MatrixN<Primitive> matrix(rhv.Row(), rhv.Column());
+  for (std::size_t i = 0; i < rhv.Row(); i++)
+  {
+    for (std::size_t j = 0; j < rhv.Column(); j++)
+    {
+      matrix[i][j] = lhv / rhv[i][j];
+    }
+  }
+  return matrix;
+}
+
+
+/**
+ * @brief 行列の要素ごとに自然対数を計算する
+ */
+template<typename Primitive>
+MatrixN<Primitive>
+Log(const MatrixN<Primitive> &matrix)
+{
+  MatrixN<Primitive> result(matrix.Row(), matrix.Column());
+  for (std::size_t i = 0; i < matrix.Row(); i++)
+  {
+    for (std::size_t j = 0; j < matrix.Column(); j++)
+    {
+      result[i][j] = std::log(matrix[i][j]);
+    }
+  }
+  return result;
+}
+
+/**
+ * @brief 行列の総和を計算する
+ */
+template<typename Primitive>
+Primitive Sum(const MatrixN<Primitive> &matrix)
+{
+  Primitive sum = 0;
+  for (std::size_t i = 0; i < matrix.Row(); i++)
+  {
+    for (std::size_t j = 0; j < matrix.Column(); j++)
+    {
+      sum += matrix[i][j];
+    }
+  }
+  return sum;
+}
+
+/**
+ * @brief 全てランダムに初期化した行列を生成する
+ */
+template<typename Primitive>
+MatrixN<Primitive> Randn(std::size_t row, std::size_t column)
+{
+  MatrixN<Primitive> matrix(row, column);
+  Random rand;
+  for (std::size_t i = 0; i < row; i++)
+  {
+    for (std::size_t j = 0; j < column; j++)
+    {
+      matrix[i][j] = rand.normal_distribution<Primitive>(0.F, 1.F);
+    }
+  }
+  return matrix;
+}
+
+template<typename Primitive>
+std::pair<std::size_t, std::size_t> ArgMax(const MatrixN<Primitive> &matrix)
+{
+  Primitive max = matrix[0][0];
+  std::size_t max_i = 0;
+  std::size_t max_j = 0;
+  for (std::size_t i = 0; i < matrix.Row(); i++)
+  {
+    for (std::size_t j = 0; j < matrix.Column(); j++)
+    {
+      if (max < matrix[i][j])
+      {
+        max = matrix[i][j];
+        max_i = i;
+        max_j = j;
+      }
+    }
+  }
+  return std::make_pair(max_i, max_j);
+}
+
+template<typename Primitive>
+MatrixN<int> Equal(const MatrixN<Primitive> &a,
+                   const MatrixN<Primitive> &b)
+{
+  MatrixN<int> matrix(a.Row(), a.Column());
+  for (std::size_t i = 0; i < a.Row(); i++)
+  {
+    for (std::size_t j = 0; j < a.Column(); j++)
+    {
+      matrix[i][j] = (a[i][j] == b[i][j]) ? 1 : 0;
+    }
   }
   return matrix;
 }
