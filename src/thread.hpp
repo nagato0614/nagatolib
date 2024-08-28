@@ -93,7 +93,7 @@ class ThreadPool {
 	thread_pool threads_;
 	queue queue_;
 	bool is_work_ = true;
-	size nthreads;
+	size n_threads;
 	std::mutex mutex_;
 	std::condition_variable condition_variable_;
 };

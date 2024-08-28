@@ -10,6 +10,7 @@
 #include "random.hpp"
 #include "matrix.hpp"
 #include "matrix_n.hpp"
+#include "thread.hpp"
 
 namespace nagato {
 // Vector

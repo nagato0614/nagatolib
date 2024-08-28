@@ -32,6 +32,7 @@ int main()
   // 結果を保存
   std::vector<vector3d> result(N);
 
+  std::cout << "work" << std::endl;
   // work
   for (int i = 0; i < N; i++)
   {
@@ -88,6 +89,7 @@ int main()
                         << std::endl;
                     }, i);
 
+  // ここで全てのワーカーが終了するまで待つ
   pool.Loop([](int i)
             {
               vector3d v1{i, i, i};

@@ -6,7 +6,7 @@
 
 namespace nagato {
 ThreadPool::ThreadPool(size nthreads) noexcept
-		: nthreads(nthreads) {
+		: n_threads(nthreads) {
 	assert(nthreads > 0);
 
 	for (int i = 0; i < nthreads; i++) {
@@ -63,6 +63,6 @@ void ThreadPool::Finish() noexcept {
 				thread.join();
 			else
 				joinable++;
-	} while (joinable != nthreads);
+	} while (joinable != n_threads);
 }
 }
