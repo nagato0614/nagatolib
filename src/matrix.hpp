@@ -316,7 +316,7 @@ class Matrix
     using result_type = decltype(f(Primitive()));
     Matrix<result_type, Column, Row> result;
     for (size i = 0; i < Column; i++)
-      result[i] = matrix_[i].itor(f);
+      result[i] = matrix_[i].Itor(f);
     return result;
   }
  private:

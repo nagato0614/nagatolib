@@ -9,6 +9,7 @@
 #include "vector.hpp"
 #include "random.hpp"
 #include "matrix.hpp"
+#include "matrix_n.hpp"
 
 namespace nagato {
 // Vector
@@ -27,6 +28,10 @@ template<std::size_t row, std::size_t col>
 using Matrixf = Matrix<float, row, col>;
 template<std::size_t row, std::size_t col>
 using Matrixd = Matrix<double, row, col>;
+
+// MatrixN
+using MatrixNf = MatrixN<float>;
+
 }
 
 #endif //NAGATOLIB_SRC_NAGATO_H_

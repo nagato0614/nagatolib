@@ -8,32 +8,46 @@
 #include <random>
 #include "assert.hpp"
 
-namespace nagato {
+namespace nagato
+{
 
 /**
  * stdのrandom engineをラップするクラス
  * @tparam Engine 使用したいエンジン
  */
 template<typename Engine = std::mt19937>
-class Random {
+class Random
+{
  public:
-  Random(std::size_t seed = 0) noexcept : engine_(seed) {}
+  Random(std::size_t seed = 0) noexcept: engine_(seed)
+  {}
   ~Random() = default;
 
   template<class Return, class From, class To>
-  Return uniform_int_distribution(From from, To to) noexcept {
-	static_assert(std::is_arithmetic<Return>(),
-				  "Return is not arithmetric");
-	std::uniform_int_distribution<Return> distribution(from, to);
-	return distribution(engine_);
+  Return uniform_int_distribution(From from, To to) noexcept
+  {
+    static_assert(std::is_arithmetic<Return>(),
+                  "Return is not arithmetric");
+    std::uniform_int_distribution<Return> distribution(from, to);
+    return distribution(engine_);
   }
 
   template<class Return, class From, class To>
-  Return uniform_real_distribution(From from, To to) noexcept {
-	static_assert(std::is_arithmetic<Return>(),
-				  "Return is not arithmetric");
-	std::uniform_real_distribution<Return> distribution(from, to);
-	return distribution(engine_);
+  Return uniform_real_distribution(From from, To to) noexcept
+  {
+    static_assert(std::is_arithmetic<Return>(),
+                  "Return is not arithmetric");
+    std::uniform_real_distribution<Return> distribution(from, to);
+    return distribution(engine_);
+  }
+
+  template<class Return, class Mu, class Sigma>
+  Return normal_distribution(Mu mu, Sigma sigma) noexcept
+  {
+    static_assert(std::is_arithmetic<Return>(),
+                  "Return is not arithmetric");
+    std::normal_distribution<Return> distribution(mu, sigma);
+    return distribution(engine_);
   }
 
  private:
@@ -41,37 +55,43 @@ class Random {
 };
 
 template<typename UINT = std::uint64_t>
-class LinearCongruential {
+class LinearCongruential
+{
   STATIC_ASSERT_IS_ARITHMETRIC(UINT);
   static_assert(std::is_unsigned<UINT>(),
-      "UINT is signed type!");
+                "UINT is signed type!");
 
   using ld = long double;
  public:
   constexpr LinearCongruential(UINT seed = 1) noexcept
-	  : seed_(seed), x_(seed) {
+    : seed_(seed), x_(seed)
+  {
   }
 
-  constexpr UINT seed() const noexcept {
-	return seed_;
+  constexpr UINT seed() const noexcept
+  {
+    return seed_;
   }
 
-  constexpr UINT next() noexcept {
-	return x_ = (coefficient_ * x_) % mod_;
+  constexpr UINT next() noexcept
+  {
+    return x_ = (coefficient_ * x_) % mod_;
   }
 
   template<typename Int, typename From, typename To>
-  constexpr Int uniform_int(From from, To to) noexcept {
-	STATIC_ASSERT_IS_INTEGER(Int);
-	ld diff = static_cast<From>(to) - from;
-	return from + diff * next() / mod_;
+  constexpr Int uniform_int(From from, To to) noexcept
+  {
+    STATIC_ASSERT_IS_INTEGER(Int);
+    ld diff = static_cast<From>(to) - from;
+    return from + diff * next() / mod_;
   }
 
   template<typename Real, typename From, typename To>
-  constexpr Real uniform_real(From from, To to) noexcept {
-	STATIC_ASSERT_IS_FLOATING_POINT(Real);
-	From diff = static_cast<From>(to) - from;
-	return from + diff * (next() / mod_);
+  constexpr Real uniform_real(From from, To to) noexcept
+  {
+    STATIC_ASSERT_IS_FLOATING_POINT(Real);
+    From diff = static_cast<From>(to) - from;
+    return from + diff * (next() / mod_);
   }
 
  private:
