@@ -5,7 +5,7 @@
 #ifndef NAGATOLIB_METAL_METAL_BASE_HPP_
 #define NAGATOLIB_METAL_METAL_BASE_HPP_
 
-#include <Metal.hpp>
+#include "Metal.hpp"
 #include "metal_buffer.hpp"
 #include "metal_function_base.hpp"
 

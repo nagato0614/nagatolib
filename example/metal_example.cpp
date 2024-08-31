@@ -12,13 +12,12 @@
 #include "metal_function_base.hpp"
 
 constexpr std::size_t array_length = 10;
-constexpr std::size_t buffer_size = array_length * sizeof(float);
 int main()
 {
   nagato::MetalBase metal_base;
 
   auto metal_function_base
-    = metal_base.CreateFunctionBase("metal_kernel/add.metal",
+    = metal_base.CreateFunctionBase("metal_kernel/linear_algebra.metal",
                                     "add_arrays",
                                     array_length);
 

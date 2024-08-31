@@ -124,4 +124,13 @@ void MetalFunctionBase::Reset()
   compute_command_encoder_->setComputePipelineState(function_pso_->retain());
 }
 
+MetalFunctionBase::~MetalFunctionBase()
+{
+  // エンコード済みの場合はエンコードを終了
+  if (compute_command_encoder_)
+  {
+    compute_command_encoder_->endEncoding();
+  }
+}
+
 } // namespace nagato

@@ -5,8 +5,13 @@
 #ifndef NAGATOLIB_SRC_METAL_BASE_HPP_
 #define NAGATOLIB_SRC_METAL_BASE_HPP_
 
+// c++ standard library
 #include <string>
+
+// metal
 #include "Metal.hpp"
+
+// nagato metal library
 #include "metal_buffer.hpp"
 
 namespace nagato
@@ -19,6 +24,8 @@ class MetalFunctionBase
                     std::size_t buffer_length,
                     MTL::Device *p_device,
                     MTL::CommandQueue *p_command_queue);
+
+  ~MetalFunctionBase();
 
   /**
    * buffer を　encoder にセットする

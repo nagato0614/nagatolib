@@ -35,7 +35,6 @@ if (APPLE)
         file(GLOB METAL_SOURCES
                 Metal/*.cpp)
 
-
         # example をビルド
         if (NAGATO_BUILD_EXAMPLE)
             add_executable(
