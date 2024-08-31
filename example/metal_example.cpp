@@ -24,9 +24,9 @@ int main()
                                         metal_base.GetCommandQueue());
 
   // buffer を取得
-  auto buffer_a = metal_base.CreateBuffer<float>(array_length);
-  auto buffer_b = metal_base.CreateBuffer<float>(array_length);
-  auto buffer_result = metal_base.CreateBuffer<float>(array_length);
+  auto buffer_a = metal_function_base.CreateBuffer<float>();
+  auto buffer_b = metal_function_base.CreateBuffer<float>();
+  auto buffer_result = metal_function_base.CreateBuffer<float>();
 
   // buffer にデータを書き込む
   for (std::size_t i = 0; i < array_length; i++)

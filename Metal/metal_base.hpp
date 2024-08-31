@@ -36,18 +36,7 @@ class MetalBase
     return command_queue_->retain();
   }
 
-  /**
-   * Buffer を作成する.
-   * @tparam T バッファの型
-   * @param buffer_length　バッファの長さ. デフォルトは1
-   * @return
-   */
-  template<typename T>
-  [[nodiscard]] MetalBuffer<T> CreateBuffer(std::size_t buffer_length = 1)
-  {
-    MetalBuffer<T> buffer(device_.get(), buffer_length);
-    return buffer;
-  }
+
 
   [[nodiscard]] MetalFunctionBase CreateFunctionBase(std::string kernel_file_name,
                                                      std::string kernel_function_name,

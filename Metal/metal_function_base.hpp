@@ -36,6 +36,19 @@ class MetalFunctionBase
   }
 
   /**
+ * Buffer を作成する.
+ * @tparam T バッファの型
+ * @param buffer_length　バッファの長さ. デフォルトは1
+ * @return
+ */
+  template<typename T>
+  [[nodiscard]] MetalBuffer<T> CreateBuffer(std::size_t buffer_length = 1)
+  {
+    MetalBuffer<T> buffer(device_.get(), buffer_length);
+    return buffer;
+  }
+
+  /**
    * リセットして再度カーネルを実行できる状態にする.
    */
   void Reset();
