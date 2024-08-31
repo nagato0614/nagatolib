@@ -49,9 +49,9 @@ class MetalFunctionBase
  * @return
  */
   template<typename T>
-  [[nodiscard]] MetalBuffer<T> CreateBuffer(std::size_t buffer_length = 1)
+  [[nodiscard]] MetalBuffer<T> CreateBuffer()
   {
-    MetalBuffer<T> buffer(device_.get(), buffer_length);
+    MetalBuffer<T> buffer(device_.get(), this->buffer_length_);
     return buffer;
   }
 

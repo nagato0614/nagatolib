@@ -7,8 +7,9 @@
 
 #include "Metal.hpp"
 
-namespace nagato{
+#include <iostream>
 
+namespace nagato{
 
 template<typename T>
 class MetalBuffer
@@ -54,6 +55,12 @@ class MetalBuffer
   const T &at(std::size_t index) const noexcept
   {
     return static_cast<T *>(buffer_->contents())[index];
+  }
+
+  void ShowBufferSize() const noexcept
+  {
+    std::cout << "buffer_length: " << buffer_length_ << std::endl;
+    std::cout << "buffer Size : " << buffer_->length() << std::endl;
   }
 
   /**
