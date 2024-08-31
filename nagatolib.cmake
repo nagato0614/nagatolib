@@ -1,3 +1,18 @@
+# --------------------------------------------------------------------------------------------
+# nagatolib.cmake の使い方
+# ライブラリをビルドするための cmake ファイル
+# このファイルはライブラリを呼び出すことができる
+# 呼び出し側で
+# include(../nagatolib/nagatolib.cmake)
+# を実行するでstatic library としてビルドされる
+# また、Metal を使用する場合は
+# option(NAGATO_METAL "Use Metal" ON) (デフォルトは ON)
+# を設定することで Metal を使用したライブラリをビルドすることができる
+# ヘッダーとして ${nagatolib_include_dir} を include することで
+# nagatolib のヘッダーを使用することができる
+# ライブラリとして ${nagatolib} をリンクすることで nagatolib を使用することができる
+# --------------------------------------------------------------------------------------------
+
 
 # 使用するファイルを探索
 file(GLOB_RECURSE nagatolib_source ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
@@ -6,7 +21,6 @@ file(GLOB_RECURSE nagatolib_source ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
 # include するディレクトリ
 set(nagatolib_include_dir
         ${CMAKE_CURRENT_LIST_DIR}/src
-        ${CMAKE_CURRENT_LIST_DIR}/Metal
         )
 
 message("## ${CMAKE_CURRENT_LIST_DIR}")
@@ -33,6 +47,11 @@ if (APPLE)
 
         # metal 関連のソース, ヘッダーを追加
         list(APPEND nagatolib_source ${METAL_SOURCES})
+
+        # metal 関連のヘッダーを追加
+        list(APPEND nagatolib_include_dir
+                ${CMAKE_CURRENT_LIST_DIR}/Metal
+                )
     endif (NAGATO_METAL)
 endif (APPLE)
 
