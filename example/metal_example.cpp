@@ -17,11 +17,10 @@ int main()
 {
   nagato::MetalBase metal_base;
 
-  nagato::MetalFunctionBase metal_function_base("metal_kernel/add.metal",
-                                        "add_arrays",
-                                        array_length,
-                                        metal_base.GetDevice(),
-                                        metal_base.GetCommandQueue());
+  auto metal_function_base
+    = metal_base.CreateFunctionBase("metal_kernel/add.metal",
+                                    "add_arrays",
+                                    array_length);
 
   // buffer を取得
   auto buffer_a = metal_function_base.CreateBuffer<float>();
