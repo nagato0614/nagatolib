@@ -10,6 +10,9 @@
 #include <iostream>
 #include <utility>
 
+namespace nagato
+{
+
 MetalFunctionBase::MetalFunctionBase(std::string kernel_file_name,
                                      std::string kernel_function_name,
                                      std::size_t buffer_length,
@@ -120,3 +123,5 @@ void MetalFunctionBase::Reset()
   compute_command_encoder_ = NS::RetainPtr(command_buffer_->computeCommandEncoder());
   compute_command_encoder_->setComputePipelineState(function_pso_->retain());
 }
+
+} // namespace nagato

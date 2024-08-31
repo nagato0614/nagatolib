@@ -3,3 +3,8 @@
 //
 
 #include "metal_buffer.hpp"
+
+namespace nagato
+{
+
+}

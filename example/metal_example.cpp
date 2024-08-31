@@ -15,9 +15,9 @@ constexpr std::size_t array_length = 10;
 constexpr std::size_t buffer_size = array_length * sizeof(float);
 int main()
 {
-  MetalBase metal_base;
+  nagato::MetalBase metal_base;
 
-  MetalFunctionBase metal_function_base("metal_kernel/add.metal",
+  nagato::MetalFunctionBase metal_function_base("metal_kernel/add.metal",
                                         "add_arrays",
                                         array_length,
                                         metal_base.GetDevice(),

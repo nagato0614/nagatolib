@@ -7,6 +7,9 @@
 
 #include "Metal.hpp"
 
+namespace nagato{
+
+
 template<typename T>
 class MetalBuffer
 {
@@ -65,5 +68,5 @@ class MetalBuffer
   std::size_t buffer_length_;
   NS::SharedPtr<MTL::Buffer> buffer_;
 };
-
+} // namespace nagato
 #endif //NAGATOLIB_METAL_METAL_BUFFER_HPP_

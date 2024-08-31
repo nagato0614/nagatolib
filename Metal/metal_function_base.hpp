@@ -9,6 +9,8 @@
 #include "Metal.hpp"
 #include "metal_buffer.hpp"
 
+namespace nagato
+{
 class MetalFunctionBase
 {
  public:
@@ -55,5 +57,5 @@ class MetalFunctionBase
   NS::SharedPtr<MTL::CommandBuffer> command_buffer_;
   NS::SharedPtr<MTL::ComputeCommandEncoder> compute_command_encoder_;
 };
-
+}
 #endif // NAGATOLIB_SRC_METAL_BASE_HPP_
