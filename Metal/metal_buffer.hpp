@@ -11,15 +11,26 @@ template<typename T>
 class MetalBuffer
 {
  public:
-  explicit MetalBuffer(MTL::Device *device, std::size_t buffer_length = 1)
+  explicit MetalBuffer(MTL::Device *device,
+                       std::size_t buffer_length = 1,
+                       MTL::ResourceOptions options = MTL::StorageModeShared)
   noexcept: buffer_length_(buffer_length)
   {
     buffer_ = NS::TransferPtr(
       device->newBuffer(
         buffer_length_ * sizeof(T),
-        MTL::ResourceStorageModeShared
+        options
       )
     );
+  }
+
+  /**
+   * コピーコンストラクタ
+   * @param other
+   */
+  MetalBuffer(const MetalBuffer &other) noexcept: buffer_length_(other.buffer_length_)
+  {
+    buffer_ = other.buffer_;
   }
 
   T &operator[](std::size_t index) noexcept
@@ -28,6 +39,16 @@ class MetalBuffer
   }
 
   const T &operator[](std::size_t index) const noexcept
+  {
+    return static_cast<T *>(buffer_->contents())[index];
+  }
+
+  T &at(std::size_t index) noexcept
+  {
+    return static_cast<T *>(buffer_->contents())[index];
+  }
+
+  const T &at(std::size_t index) const noexcept
   {
     return static_cast<T *>(buffer_->contents())[index];
   }

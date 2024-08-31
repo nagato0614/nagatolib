@@ -44,7 +44,6 @@ class MetalFunctionBase
    */
   void ExecuteKernel();
 
-  void Release();
  private:
   std::string kernel_file_name_;
   std::string kernel_function_name_;

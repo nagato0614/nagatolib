@@ -5,32 +5,28 @@
 #define CA_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
 #include <Metal.hpp>
+
 #include <iostream>
 
+#include "metal_base.hpp"
 #include "metal_function_base.hpp"
-#include "metal_buffer.hpp"
 
 constexpr std::size_t array_length = 10;
 constexpr std::size_t buffer_size = array_length * sizeof(float);
 int main()
 {
-  NS::AutoreleasePool *pool
-    = NS::AutoreleasePool::alloc()->init();
-  MTL::Device *device
-    = MTL::CreateSystemDefaultDevice();
-  MTL::CommandQueue *command_queue
-    = device->newCommandQueue();
+  MetalBase metal_base;
 
   MetalFunctionBase metal_function_base("metal_kernel/add.metal",
-                               "add_arrays",
-                               array_length,
-                               device,
-                               command_queue);
+                                        "add_arrays",
+                                        array_length,
+                                        metal_base.GetDevice(),
+                                        metal_base.GetCommandQueue());
 
   // buffer を取得
-  MetalBuffer<float> buffer_a(device, buffer_size);
-  MetalBuffer<float> buffer_b(device, buffer_size);
-  MetalBuffer<float> buffer_result(device, buffer_size);
+  auto buffer_a = metal_base.CreateBuffer<float>(array_length);
+  auto buffer_b = metal_base.CreateBuffer<float>(array_length);
+  auto buffer_result = metal_base.CreateBuffer<float>(array_length);
 
   // buffer にデータを書き込む
   for (std::size_t i = 0; i < array_length; i++)
@@ -67,7 +63,6 @@ int main()
   metal_function_base.SetBuffer(buffer_result, 0, 2);
   metal_function_base.ExecuteKernel();
 
-
   std::cout << "Execution finished." << std::endl;
 
   for (std::size_t i = 0; i < array_length; i++)
@@ -75,11 +70,6 @@ int main()
     std::cout << buffer_result[i] << ", ";
   }
   std::cout << std::endl;
-
-  // メモリ解放
-  device->autorelease();
-  command_queue->autorelease();
-  pool->release();
 
   return 0;
 }
