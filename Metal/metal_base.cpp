@@ -37,6 +37,15 @@ MetalBase::MetalBase(std::string kernel_file_name)
         nullptr,
         &error)
     );
+
+  if (library_.get() == nullptr || error != nullptr)
+  {
+    if (error != nullptr)
+    {
+      std::cout << "Error: " << error->localizedDescription()->utf8String() << std::endl;
+    }
+    throw std::runtime_error("Failed to create Metal library.");
+  }
 }
 
 MetalBase::~MetalBase()
