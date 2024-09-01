@@ -76,16 +76,11 @@ kernel void sum_arrays(
   device float *output [[buffer(1)]],      // 出力配列 (総和)
   device uint *array_size [[buffer(2)]],            // 配列の長さ
   threadgroup float * buf [[threadgroup(0)]], // スレッドグループの共有メモリ
-  uint index [[thread_position_in_grid]], // スレッドのインデックス
-  uint tpig [[ thread_position_in_threadgroup ]], // スレッドグループ内のスレッドのインデックス
-  uint group_index [[ threadgroup_position_in_grid ]], // グループのインデックス
-  uint tpg [[ threads_per_threadgroup ]], // グループのスレッド数
-  uint thread_per_grid [[ threads_per_grid ]], // グリッドのスレッド数
-  uint group_per_grid [[ threadgroups_per_grid ]] // グリッドのグループ数
+  uint index [[thread_position_in_grid]] // スレッドのインデックス
 )
 {
   // 1 スレッドあたり処理するデータ数
-  uint process_size = 1000;
+  uint process_size = data_size_per_thread;
 
   uint start = index * process_size;
   uint end = start + process_size < *array_size ? start + process_size : *array_size;

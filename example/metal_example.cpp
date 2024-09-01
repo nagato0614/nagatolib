@@ -11,6 +11,8 @@
 
 #include "metal_base.hpp"
 #include "metal_function_base.hpp"
+#include "metal_common.hpp"
+
 constexpr std::size_t array_length = 1980 * 1080 * 3;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
@@ -116,6 +118,9 @@ void sum_example()
 
   nagato::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
 
+
+  // 計算時間を計測
+  const auto start = std::chrono::system_clock::now();
   auto metal_function_base
     = metal_base.CreateFunctionBase("sum_arrays",
                                     array_length);
@@ -141,8 +146,6 @@ void sum_example()
     max_total_threads_per_threadgroup = metal_function_base.maxTotalThreadsPerThreadgroup();
   std::cout << "max_total_threads_per_threadgroup: " << max_total_threads_per_threadgroup
             << std::endl;
-  // 1スレッドあたり処理するデータ数
-  const std::size_t data_size_per_thread = 1000;
 
   const std::size_t thread_num = (array_length - 1) / data_size_per_thread + 1;
   std::cout << "thread_num: " << thread_num << std::endl;
@@ -153,11 +156,10 @@ void sum_example()
   const MTL::Size thread_group_size = MTL::Size(thread_group_num, 1, 1);
 
   // 作成するgroupサイズに合わせてresultのバッファーを作成
-  auto buffer_result = metal_function_base.CreateBuffer<float>(thread_num);
+  auto buffer_result =
+    metal_function_base.CreateBuffer<float>(thread_num);
   metal_function_base.SetBuffer(buffer_result, 0, 1);
 
-  // 計算時間を計測
-  const auto start = std::chrono::system_clock::now();
   // カーネルを実行
   metal_function_base.ExecuteKernel(grid_size, thread_group_size);
 
@@ -175,13 +177,6 @@ void sum_example()
   std::cout << "Elapsed time with GPU : " << elapsed << " us" << std::endl;
   std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
 
-//  // 結果のバッファーを表示
-//  for (std::size_t i = 0; i < thread_num; i++)
-//  {
-//    std::cout << "buffer_result[" << i << "] = " << buffer_result[i] << std::endl;
-//  }
-
-
   // 結果を比較
   if (std::abs(gpu_sum - cpu_sum) > 1)
   {
@@ -191,6 +186,6 @@ void sum_example()
 
 int main()
 {
-  add_example();
+  sum_example();
   return 0;
 }
