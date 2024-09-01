@@ -38,8 +38,8 @@ class MetalBase
 
 
 
-  [[nodiscard]] MetalFunctionBase CreateFunctionBase(std::string kernel_function_name,
-                                                     std::size_t buffer_length);
+  [[nodiscard]] std::unique_ptr<MetalFunctionBase> CreateFunctionBase(std::string kernel_function_name,
+                                                                      std::size_t buffer_length);
 
  private:
   std::string kernel_file_name_;

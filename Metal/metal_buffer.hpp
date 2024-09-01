@@ -9,7 +9,8 @@
 
 #include <iostream>
 
-namespace nagato{
+namespace nagato
+{
 
 template<typename T>
 class MetalBuffer
@@ -66,6 +67,26 @@ class MetalBuffer
   {
     std::cout << "buffer_length: " << buffer_length_ << std::endl;
     std::cout << "buffer Size : " << buffer_->length() << " [byte]" << std::endl;
+  }
+
+  /**
+   * バッファにデータをコピーする
+   * @param data
+   * @param length
+   */
+  void CopyToDevice(const T *data, std::size_t length) noexcept
+  {
+    std::memcpy(buffer_->contents(), data, length * sizeof(T));
+  }
+
+  /**
+   * バッファからデータを取得する
+   * @param data
+   * @param length
+   */
+  void CopyToHost(T *data, std::size_t length) noexcept
+  {
+    std::memcpy(data, buffer_->contents(), length * sizeof(T));
   }
 
   /**

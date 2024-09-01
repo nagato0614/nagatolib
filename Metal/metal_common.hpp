@@ -5,7 +5,14 @@
 #ifndef NAGATOLIB_METAL_METAL_COMMON_HPP_
 #define NAGATOLIB_METAL_METAL_COMMON_HPP_
 
-//constexpr unsigned int data_size_per_thread = 1000;
+#include <cstdint>
 
-#define data_size_per_thread 100
+// constant values
+constexpr int data_size_per_thread = 100;
+
+// types
+using nFloat = float;
+using nBool = bool;
+using nInt = int32_t;
+
 #endif //NAGATOLIB_METAL_METAL_COMMON_HPP_

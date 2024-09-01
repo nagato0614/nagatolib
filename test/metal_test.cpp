@@ -36,17 +36,16 @@ void sum_arrays(const float *a, float *result, std::size_t length)
 
 TEST(MetalTest, add_arrays)
 {
-  nagato::MetalBase metal_base;
+  nagato::MetalBase metal_base("metal_kernel/linear_algebra.metal");
 
   auto metal_function_base
-    = metal_base.CreateFunctionBase("metal_kernel/linear_algebra.metal",
-                                    "add_arrays",
+    = metal_base.CreateFunctionBase("add_arrays",
                                     array_length);
 
   // buffer を取得
-  auto buffer_a = metal_function_base.CreateBuffer<float>();
-  auto buffer_b = metal_function_base.CreateBuffer<float>();
-  auto buffer_result = metal_function_base.CreateBuffer<float>();
+  auto buffer_a = metal_function_base->CreateBuffer<float>();
+  auto buffer_b = metal_function_base->CreateBuffer<float>();
+  auto buffer_result = metal_function_base->CreateBuffer<float>();
   buffer_a.ShowBufferSize();
 
   // buffer にデータを書き込む
@@ -56,12 +55,12 @@ TEST(MetalTest, add_arrays)
     buffer_b[i] = static_cast<float>(i);
   }
   // buffer を encoder にセット
-  metal_function_base.SetBuffer(buffer_a, 0, 0);
-  metal_function_base.SetBuffer(buffer_b, 0, 1);
-  metal_function_base.SetBuffer(buffer_result, 0, 2);
+  metal_function_base->SetBuffer(buffer_a, 0, 0);
+  metal_function_base->SetBuffer(buffer_b, 0, 1);
+  metal_function_base->SetBuffer(buffer_result, 0, 2);
 
   // カーネルを実行
-  metal_function_base.ExecuteKernel();
+  metal_function_base->ExecuteKernel();
 
   // GPU を使わない場合の計算時間を計測
   std::unique_ptr<float[]> a(new float[array_length]);
@@ -84,17 +83,16 @@ TEST(MetalTest, add_arrays)
 
 TEST(MetalTest, sum_arrays)
 {
-  nagato::MetalBase metal_base;
+  nagato::MetalBase metal_base("metal_kernel/linear_algebra.metal");
 
   auto metal_function_base
-    = metal_base.CreateFunctionBase("metal_kernel/linear_algebra.metal",
-                                    "sum_arrays",
+    = metal_base.CreateFunctionBase("sum_arrays",
                                     array_length);
 
 
   // buffer を取得
-  auto buffer_a = metal_function_base.CreateBuffer<float>();
-  auto buffer_result = metal_function_base.CreateBuffer<float>(1);
+  auto buffer_a = metal_function_base->CreateBuffer<float>();
+  auto buffer_result = metal_function_base->CreateBuffer<float>(1);
   buffer_a.ShowBufferSize();
 
   // buffer にデータを書き込む
@@ -103,11 +101,11 @@ TEST(MetalTest, sum_arrays)
     buffer_a[i] = static_cast<float>(i);
   }
   // buffer を encoder にセット
-  metal_function_base.SetBuffer(buffer_a, 0, 0);
-  metal_function_base.SetBuffer(buffer_result, 0, 1);
+  metal_function_base->SetBuffer(buffer_a, 0, 0);
+  metal_function_base->SetBuffer(buffer_result, 0, 1);
 
   // カーネルを実行
-  metal_function_base.ExecuteKernel();
+  metal_function_base->ExecuteKernel();
 
   // GPU を使わない場合の計算時間を計測
   std::unique_ptr<float[]> a(new float[array_length]);

@@ -6,6 +6,7 @@ using namespace metal;
 
 /**
  * 要素ごとの和を求める
+ * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
  * @param inB
  * @param result
@@ -22,6 +23,7 @@ kernel void add_arrays(device const float *inA,
 
 /**
  * 要素ごとの差を求める
+ * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
  * @param inB
  * @param result
@@ -38,6 +40,7 @@ kernel void sub_arrays(device const float *inA,
 
 /**
  * 要素ごとの積を求める
+ * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
  * @param inB
  * @param result
@@ -55,6 +58,7 @@ kernel void mul_arrays(device const float *inA,
 /**
  * 要素ごとの商を求める
  * 分母が0の場合は考慮されていないため注意
+ * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
  * @param inB
  * @param result

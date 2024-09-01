@@ -6,6 +6,7 @@
 
 #include <utility>
 #include <fstream>
+#include <memory>
 
 namespace nagato
 {
@@ -43,8 +44,8 @@ MetalBase::~MetalBase()
   pool_->release();
 }
 
-MetalFunctionBase MetalBase::CreateFunctionBase(std::string kernel_function_name,
-                                                std::size_t buffer_length)
+std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(std::string kernel_function_name,
+                                                                 std::size_t buffer_length)
 {
   NS::Error *error = nullptr;
 
@@ -72,10 +73,12 @@ MetalFunctionBase MetalBase::CreateFunctionBase(std::string kernel_function_name
     throw std::runtime_error("Failed to create Metal compute pipeline state.");
   }
 
-  MetalFunctionBase metal_function_base(buffer_length,
-                                        function_pso,
-                                        device_.get(),
-                                        command_queue_.get());
+  auto metal_function_base = std::make_unique<MetalFunctionBase>(
+    buffer_length,
+    function_pso,
+    device_.get(),
+    command_queue_.get()
+  );
   return metal_function_base;
 }
 
