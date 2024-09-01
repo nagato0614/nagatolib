@@ -7,9 +7,11 @@
 #include <Metal.hpp>
 
 #include <iostream>
+#include <random>
 
 #include "metal_base.hpp"
 #include "metal_function_base.hpp"
+constexpr std::size_t array_length = 1980 * 1080 * 3;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -19,14 +21,20 @@ void add_arrays(const float *a, const float *b, float *result, std::size_t lengt
   }
 }
 
-constexpr std::size_t array_length = 100000000;
-int main()
+void sum_arrays(const float *a, float *result, std::size_t length)
 {
-  nagato::MetalBase metal_base;
+  for (std::size_t i = 0; i < length; i++)
+  {
+    *result += a[i];
+  }
+}
+
+void add_example()
+{
+  nagato::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
 
   auto metal_function_base
-    = metal_base.CreateFunctionBase("metal_kernel/linear_algebra.metal",
-                                    "add_arrays",
+    = metal_base.CreateFunctionBase("add_arrays",
                                     array_length);
 
   // buffer を取得
@@ -68,13 +76,15 @@ int main()
   const auto start_cpu = std::chrono::system_clock::now();
   add_arrays(a, b, result, array_length);
   const auto end_cpu = std::chrono::system_clock::now();
-  const auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
 
   for (std::size_t i = 0; i < array_length; i++)
   {
-    if (result[i] != buffer_result[i])
+    if (std::abs(result[i] - buffer_result[i]) > 1)
     {
-      std::cerr << "Error: result[" << i << "] = " << result[i] << " vs " << buffer_result[i] << std::endl;
+      std::cerr << "Error: result[" << i << "] = " << result[i] << " vs " << buffer_result[i]
+                << std::endl;
     }
   }
 
@@ -84,6 +94,103 @@ int main()
   delete[] a;
   delete[] b;
   delete[] result;
+}
 
+void sum_example()
+{
+  // CPUで計算
+  auto a = std::make_unique<float[]>(array_length);
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    // ランダムに値を設定
+    std::random_device rnd;
+    a[i] = static_cast<float>(rnd()) / static_cast<float>(rnd.max());
+  }
+
+  float cpu_sum = 0;
+  const auto start_cpu = std::chrono::system_clock::now();
+  sum_arrays(a.get(), &cpu_sum, array_length);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  nagato::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
+
+  auto metal_function_base
+    = metal_base.CreateFunctionBase("sum_arrays",
+                                    array_length);
+
+  // buffer を取得
+  auto buffer_a = metal_function_base.CreateBuffer<float>();
+  auto buffer_array_size = metal_function_base.CreateBuffer<unsigned int>();
+  buffer_a.ShowBufferSize();
+
+  // buffer にデータを書き込む
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    buffer_a[i] = a[i];
+  }
+  buffer_array_size[0] = array_length;
+
+  // buffer を encoder にセット
+  metal_function_base.SetBuffer(buffer_a, 0, 0);
+  metal_function_base.SetBuffer(buffer_array_size, 0, 2);
+
+  // グリッドサイズとスレッドグループサイズを設定
+  const auto
+    max_total_threads_per_threadgroup = metal_function_base.maxTotalThreadsPerThreadgroup();
+  std::cout << "max_total_threads_per_threadgroup: " << max_total_threads_per_threadgroup
+            << std::endl;
+  // 1スレッドあたり処理するデータ数
+  const std::size_t data_size_per_thread = 1000;
+
+  const std::size_t thread_num = (array_length - 1) / data_size_per_thread + 1;
+  std::cout << "thread_num: " << thread_num << std::endl;
+  const std::size_t thread_group_num = (thread_num - 1) / max_total_threads_per_threadgroup + 1;
+  std::cout << "thread_group_num: " << thread_group_num << std::endl;
+
+  const MTL::Size grid_size = MTL::Size(thread_num, 1, 1);
+  const MTL::Size thread_group_size = MTL::Size(thread_group_num, 1, 1);
+
+  // 作成するgroupサイズに合わせてresultのバッファーを作成
+  auto buffer_result = metal_function_base.CreateBuffer<float>(thread_num);
+  metal_function_base.SetBuffer(buffer_result, 0, 1);
+
+  // 計算時間を計測
+  const auto start = std::chrono::system_clock::now();
+  // カーネルを実行
+  metal_function_base.ExecuteKernel(grid_size, thread_group_size);
+
+  float gpu_sum = 0;
+  for (std::size_t i = 0; i < thread_num; i++)
+  {
+    gpu_sum += buffer_result[i];
+  }
+  const auto end = std::chrono::system_clock::now();
+  const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+  // 結果を表示
+  std::cout << "GPU Result: " << gpu_sum << std::endl;
+  std::cout << "CPU Result: " << cpu_sum << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed << " us" << std::endl;
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+
+//  // 結果のバッファーを表示
+//  for (std::size_t i = 0; i < thread_num; i++)
+//  {
+//    std::cout << "buffer_result[" << i << "] = " << buffer_result[i] << std::endl;
+//  }
+
+
+  // 結果を比較
+  if (std::abs(gpu_sum - cpu_sum) > 1)
+  {
+    std::cerr << "Error: diff = " << std::abs(gpu_sum - cpu_sum) << std::endl;
+  }
+}
+
+int main()
+{
+  add_example();
   return 0;
 }

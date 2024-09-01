@@ -19,9 +19,8 @@ namespace nagato
 class MetalFunctionBase
 {
  public:
-  MetalFunctionBase(std::string kernel_file_name,
-                    std::string kernel_function_name,
-                    std::size_t buffer_length,
+  MetalFunctionBase(std::size_t buffer_length,
+                    MTL::ComputePipelineState *function_pso,
                     MTL::Device *p_device,
                     MTL::CommandQueue *p_command_queue);
 
@@ -42,6 +41,8 @@ class MetalFunctionBase
     SetBuffer(buffer.GetBuffer(), offset, index);
   }
 
+  [[nodiscard]] std::size_t maxTotalThreadsPerThreadgroup() const;
+
   /**
  * Buffer を作成する.
  * @tparam T バッファの型
@@ -49,9 +50,14 @@ class MetalFunctionBase
  * @return
  */
   template<typename T>
-  [[nodiscard]] MetalBuffer<T> CreateBuffer()
+  [[nodiscard]] MetalBuffer<T> CreateBuffer(std::size_t buffer_length = 0)
   {
-    MetalBuffer<T> buffer(device_.get(), this->buffer_length_);
+    auto l = buffer_length_;
+    if (buffer_length != 0)
+    {
+      l = buffer_length;
+    }
+    MetalBuffer<T> buffer(device_.get(), l);
     return buffer;
   }
 
@@ -66,12 +72,13 @@ class MetalFunctionBase
    */
   void ExecuteKernel();
 
+  void ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size);
+
  private:
   std::string kernel_file_name_;
   std::string kernel_function_name_;
   std::size_t buffer_length_;
   NS::SharedPtr<MTL::Device> device_;
-  NS::SharedPtr<MTL::Function> kernel_function_;
   NS::SharedPtr<MTL::CommandQueue> command_queue_;
   NS::SharedPtr<MTL::ComputePipelineState> function_pso_;
   NS::SharedPtr<MTL::CommandBuffer> command_buffer_;

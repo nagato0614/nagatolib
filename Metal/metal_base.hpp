@@ -14,7 +14,7 @@ namespace nagato
 class MetalBase
 {
  public:
-  explicit MetalBase();
+  explicit MetalBase(std::string kernel_file_name);
 
   ~MetalBase();
 
@@ -38,15 +38,15 @@ class MetalBase
 
 
 
-  [[nodiscard]] MetalFunctionBase CreateFunctionBase(std::string kernel_file_name,
-                                                     std::string kernel_function_name,
+  [[nodiscard]] MetalFunctionBase CreateFunctionBase(std::string kernel_function_name,
                                                      std::size_t buffer_length);
 
  private:
-
+  std::string kernel_file_name_;
   NS::AutoreleasePool *pool_;
   NS::SharedPtr<MTL::Device> device_;
   NS::SharedPtr<MTL::CommandQueue> command_queue_;
+  NS::SharedPtr<MTL::Library> library_;
 };
 
 } // namespace nagato

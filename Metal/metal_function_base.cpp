@@ -13,67 +13,15 @@
 namespace nagato
 {
 
-MetalFunctionBase::MetalFunctionBase(std::string kernel_file_name,
-                                     std::string kernel_function_name,
-                                     std::size_t buffer_length,
+MetalFunctionBase::MetalFunctionBase(std::size_t buffer_length,
+                                     MTL::ComputePipelineState *function_pso,
                                      MTL::Device *p_device,
                                      MTL::CommandQueue *p_command_queue) :
-  kernel_file_name_(std::move(kernel_file_name)),
-  kernel_function_name_(std::move(kernel_function_name)),
   buffer_length_(buffer_length),
   device_(NS::RetainPtr(p_device)),
-  command_queue_(NS::RetainPtr(p_command_queue))
+  command_queue_(NS::RetainPtr(p_command_queue)),
+  function_pso_(NS::TransferPtr(function_pso))
 {
-  NS::Error *error = nullptr;
-
-  const auto librarySource = [this]
-  {
-    std::cout << "Kernel file name: " << this->kernel_file_name_ << std::endl;
-    std::ifstream source(this->kernel_file_name_);
-    return std::string((std::istreambuf_iterator<char>(source)), {});
-  }();
-
-  NS::SharedPtr<MTL::Library> library =
-    NS::TransferPtr(
-      device_->newLibrary(
-        NS::String::string(
-          librarySource.c_str(),
-          NS::ASCIIStringEncoding),
-        nullptr,
-        &error)
-    );
-
-  if (library.get() == nullptr || error != nullptr)
-  {
-    throw std::runtime_error("Failed to create Metal library.");
-  }
-
-  std::cout << "Kernel function name: " << kernel_function_name_ << std::endl;
-  kernel_function_ = NS::TransferPtr(
-    library->newFunction(
-      NS::String::string(
-        kernel_function_name_.c_str(),
-        NS::ASCIIStringEncoding)
-    )
-  );
-
-  if (!kernel_function_)
-  {
-    std::cerr << "Failed to find the kernel function." << std::endl;
-    exit(1);
-  }
-
-  function_pso_ = NS::TransferPtr(
-    device_->newComputePipelineState(
-      kernel_function_->retain(),
-      &error
-    )
-  );
-
-  if (function_pso_.get() == nullptr || error != nullptr)
-  {
-    throw std::runtime_error("Failed to create Metal compute pipeline state.");
-  }
   command_buffer_ = NS::RetainPtr(command_queue_->commandBuffer());
   compute_command_encoder_ = NS::RetainPtr(command_buffer_->computeCommandEncoder());
   compute_command_encoder_->setComputePipelineState(function_pso_->retain());
@@ -84,6 +32,7 @@ void MetalFunctionBase::ExecuteKernel()
   MTL::Size grid_size = MTL::Size(buffer_length_, 1, 1);
 
   NS::UInteger thread_group_size_ = function_pso_->maxTotalThreadsPerThreadgroup();
+  std::cout << "thread_group_size: " << thread_group_size_ << std::endl;
   if (thread_group_size_ > buffer_length_)
   {
     thread_group_size_ = buffer_length_;
@@ -91,6 +40,11 @@ void MetalFunctionBase::ExecuteKernel()
 
   MTL::Size thread_group_size = MTL::Size(thread_group_size_, 1, 1);
 
+  this->ExecuteKernel(grid_size, thread_group_size);
+}
+
+void MetalFunctionBase::ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size)
+{
   compute_command_encoder_->dispatchThreads(grid_size, thread_group_size);
 
   compute_command_encoder_->endEncoding();
@@ -131,6 +85,11 @@ MetalFunctionBase::~MetalFunctionBase()
   {
     compute_command_encoder_->endEncoding();
   }
+}
+
+std::size_t MetalFunctionBase::maxTotalThreadsPerThreadgroup() const
+{
+  return function_pso_->maxTotalThreadsPerThreadgroup();
 }
 
 } // namespace nagato

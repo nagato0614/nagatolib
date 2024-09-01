@@ -12,24 +12,20 @@ namespace nagato::mla
 class MLASingleton
 {
  public:
-  static MLASingleton &GetInstance()
+  static auto &GetInstance()
   {
     static MLASingleton instance;
     return instance;
   }
 
-  MetalBase &GetMetalBase()
-  {
-    return metal_base_;
-  }
+  auto &GetMetalBase();
  private:
-  MLASingleton() = default;
+
+  MLASingleton();
   ~MLASingleton() = default;
 
-  MetalBase metal_base_;
+  std::unique_ptr<MetalBase> metal_base_;
 };
-
-
 
 }
 

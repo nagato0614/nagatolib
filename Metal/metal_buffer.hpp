@@ -37,6 +37,11 @@ class MetalBuffer
     buffer_ = other.buffer_;
   }
 
+  T *contents() noexcept
+  {
+    return static_cast<T *>(buffer_->contents());
+  }
+
   T &operator[](std::size_t index) noexcept
   {
     return static_cast<T *>(buffer_->contents())[index];
@@ -60,7 +65,7 @@ class MetalBuffer
   void ShowBufferSize() const noexcept
   {
     std::cout << "buffer_length: " << buffer_length_ << std::endl;
-    std::cout << "buffer Size : " << buffer_->length() << std::endl;
+    std::cout << "buffer Size : " << buffer_->length() << " [byte]" << std::endl;
   }
 
   /**
