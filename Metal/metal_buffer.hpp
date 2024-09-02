@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-namespace nagato
+namespace nagato::mtl
 {
 
 template<typename T>

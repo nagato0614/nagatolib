@@ -2,8 +2,8 @@
 // Created by toru on 2024/08/31.
 //
 
-#ifndef NAGATOLIB_METAL_NARRAY_HPP_
-#define NAGATOLIB_METAL_NARRAY_HPP_
+#ifndef NAGATOLIB_SRC_NARRAY_HPP_
+#define NAGATOLIB_SRC_NARRAY_HPP_
 
 #include <vector>
 #include <type_traits>
@@ -36,4 +36,4 @@ class NArray
 
 #include "narray_impl.hpp"
 
-#endif //NAGATOLIB_METAL_NARRAY_HPP_
+#endif //NAGATOLIB_SRC_NARRAY_HPP_

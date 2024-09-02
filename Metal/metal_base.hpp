@@ -9,7 +9,7 @@
 #include "metal_buffer.hpp"
 #include "metal_function_base.hpp"
 
-namespace nagato
+namespace nagato::mtl
 {
 class MetalBase
 {

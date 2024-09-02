@@ -14,7 +14,7 @@
 // nagato metal library
 #include "metal_buffer.hpp"
 
-namespace nagato
+namespace nagato::mtl
 {
 class MetalFunctionBase
 {

@@ -2,8 +2,8 @@
 // Created by toru on 2024/09/02.
 //
 
-#ifndef NAGATOLIB_METAL_NARRAY_IMPL_HPP_
-#define NAGATOLIB_METAL_NARRAY_IMPL_HPP_
+#ifndef NAGATOLIB_SRC_NARRAY_IMPL_HPP_
+#define NAGATOLIB_SRC_NARRAY_IMPL_HPP_
 
 #include "narray.hpp"
 
@@ -47,4 +47,4 @@ constexpr bool is_metal_arithmetic_type()
 
 }
 
-#endif //NAGATOLIB_METAL_NARRAY_IMPL_HPP_
+#endif //NAGATOLIB_SRC_NARRAY_IMPL_HPP_

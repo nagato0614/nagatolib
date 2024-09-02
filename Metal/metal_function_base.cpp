@@ -10,7 +10,7 @@
 #include <iostream>
 #include <utility>
 
-namespace nagato
+namespace nagato::mtl
 {
 
 MetalFunctionBase::MetalFunctionBase(std::size_t buffer_length,

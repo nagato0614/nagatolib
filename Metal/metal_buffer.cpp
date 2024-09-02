@@ -4,7 +4,7 @@
 
 #include "metal_buffer.hpp"
 
-namespace nagato
+namespace nagato::mtl
 {
 
 }

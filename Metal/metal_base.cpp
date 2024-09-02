@@ -8,7 +8,7 @@
 #include <fstream>
 #include <memory>
 
-namespace nagato
+namespace nagato::mtl
 {
 
 MetalBase::MetalBase(std::string kernel_file_name)
