@@ -33,7 +33,7 @@ void sum_arrays(const float *a, float *result, std::size_t length)
 
 void add_example()
 {
-  nagato::mla::MLASingleton::GetInstance();
+  nagato::mtl::MLASingleton::GetInstance();
 
   // GPU を使わない場合の計算時間を計測
   auto *a = new float[array_length];
@@ -58,7 +58,7 @@ void add_example()
   // 計算時間を計測
   const auto start = std::chrono::system_clock::now();
 
-  nagato::mla::MetalAdderFunction metal_adder_function(array_length);
+  nagato::mtl::MetalAdderFunction metal_adder_function(array_length);
   metal_adder_function(a, b, gpu_result);
 
   // カーネルを実行
@@ -101,7 +101,7 @@ void sum_example()
   const auto elapsed_cpu =
     std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
 
-  nagato::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
+  nagato::mtl::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
 
 
   // 計算時間を計測

@@ -5,7 +5,7 @@
 #ifndef NAGATOLIB_METAL_METAL_FUNCTIONS_IMPL_HPP_
 #define NAGATOLIB_METAL_METAL_FUNCTIONS_IMPL_HPP_
 
-namespace nagato::mla
+namespace nagato::mtl
 {
 
 

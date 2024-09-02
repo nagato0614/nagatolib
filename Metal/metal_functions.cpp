@@ -4,7 +4,7 @@
 
 #include "metal_functions.hpp"
 
-namespace nagato::mla
+namespace nagato::mtl
 {
 
 auto &MLASingleton::GetMetalBase()

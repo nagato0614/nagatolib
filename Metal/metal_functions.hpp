@@ -7,7 +7,7 @@
 #include "metal_base.hpp"
 #include "metal_common.hpp"
 
-namespace nagato::mla
+namespace nagato::mtl
 {
 
 class MLASingleton
