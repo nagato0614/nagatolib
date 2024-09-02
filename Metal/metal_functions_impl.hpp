@@ -1,0 +1,13 @@
+//
+// Created by toru on 2024/09/02.
+//
+
+#ifndef NAGATOLIB_METAL_METAL_FUNCTIONS_IMPL_HPP_
+#define NAGATOLIB_METAL_METAL_FUNCTIONS_IMPL_HPP_
+
+namespace nagato::mla
+{
+
+
+}
+#endif //NAGATOLIB_METAL_METAL_FUNCTIONS_IMPL_HPP_

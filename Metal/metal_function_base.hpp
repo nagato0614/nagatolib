@@ -61,6 +61,12 @@ class MetalFunctionBase
     return buffer;
   }
 
+  template<typename T>
+  void SetConstant(const T &value, std::size_t length, int index)
+  {
+    this->compute_command_encoder_->setBytes(&value, length * sizeof(T), index);
+  }
+
   /**
    * リセットして再度カーネルを実行できる状態にする.
    */

@@ -79,7 +79,6 @@ class MetalMulFunction
   std::unique_ptr<MetalFunctionBase> mul_arrays_;
 };
 
-
 class MetalDivFunction
 {
  public:
@@ -99,5 +98,7 @@ class MetalDivFunction
 
 
 }
+
+#include "metal_functions_impl.hpp"
 
 #endif //NAGATOLIB_METAL_METAL_FUNCTIONS_HPP_

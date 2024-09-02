@@ -92,4 +92,5 @@ std::size_t MetalFunctionBase::maxTotalThreadsPerThreadgroup() const
   return function_pso_->maxTotalThreadsPerThreadgroup();
 }
 
+
 } // namespace nagato

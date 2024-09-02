@@ -90,5 +90,92 @@ TEST(MetalTest, add_arrays)
   }
 }
 
+TEST(MetalTest, sub_arrays)
+{
+  // GPU を使わない場合の計算
+  std::unique_ptr<float[]> a(new float[array_length]);
+  std::unique_ptr<float[]> b(new float[array_length]);
+  std::unique_ptr<float[]> cpu_result(new float[array_length]);
+  std::unique_ptr<float[]> gpu_result(new float[array_length]);
+
+  // メルセンヌ・ツイスター法による乱数生成器
+  std::mt19937 mt(0);
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    a[i] = static_cast<float>(mt() / mt.max());
+    b[i] = static_cast<float>(mt() / mt.max());
+  }
+
+  sub_arrays(a.get(), b.get(), cpu_result.get(), array_length);
+
+  nagato::mla::MetalSubFunction sub(array_length);
+  sub(a.get(), b.get(), gpu_result.get());
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    ASSERT_EQ(cpu_result[i], gpu_result[i]);
+  }
+}
+
+TEST(MetalTest, mul_arrays)
+{
+  // GPU を使わない場合の計算
+  std::unique_ptr<float[]> a(new float[array_length]);
+  std::unique_ptr<float[]> b(new float[array_length]);
+  std::unique_ptr<float[]> cpu_result(new float[array_length]);
+
+  std::unique_ptr<float[]> gpu_result(new float[array_length]);
+
+  // メルセンヌ・ツイスター法による乱数生成器
+  std::mt19937 mt(0);
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    a[i] = static_cast<float>(mt() / mt.max());
+    b[i] = static_cast<float>(mt() / mt.max());
+  }
+
+  mul_arrays(a.get(), b.get(), cpu_result.get(), array_length);
+
+  nagato::mla::MetalMulFunction mul(array_length);
+  mul(a.get(), b.get(), gpu_result.get());
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    ASSERT_EQ(cpu_result[i], gpu_result[i]);
+  }
+}
+
+TEST(MetalTest, div_arrays)
+{
+  // GPU を使わない場合の計算
+  std::unique_ptr<float[]> a(new float[array_length]);
+  std::unique_ptr<float[]> b(new float[array_length]);
+  std::unique_ptr<float[]> cpu_result(new float[array_length]);
+
+  std::unique_ptr<float[]> gpu_result(new float[array_length]);
+
+  // メルセンヌ・ツイスター法による乱数生成器
+  std::mt19937 mt(0);
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    a[i] = static_cast<float>(mt() / mt.max());
+    b[i] = static_cast<float>(mt() / mt.max()) + 1e-6;
+  }
+
+  div_arrays(a.get(), b.get(), cpu_result.get(), array_length);
+
+  nagato::mla::MetalDivFunction div(array_length);
+  div(a.get(), b.get(), gpu_result.get());
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    ASSERT_EQ(cpu_result[i], gpu_result[i]);
+  }
+}
+
+
 
 #endif // NAGATO_METAL

@@ -11,6 +11,7 @@
 
 #include "metal_base.hpp"
 #include "metal_common.hpp"
+#include "metal_functions.hpp"
 
 constexpr std::size_t array_length = 1980 * 1080 * 3;
 
@@ -32,17 +33,19 @@ void sum_arrays(const float *a, float *result, std::size_t length)
 
 void add_example()
 {
-  nagato::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
+  nagato::mla::MLASingleton::GetInstance();
 
   // GPU を使わない場合の計算時間を計測
   auto *a = new float[array_length];
   auto *b = new float[array_length];
   auto *result = new float[array_length];
+  auto *gpu_result = new float[array_length];
 
+  std::mt19937 mt(0);
   for (std::size_t i = 0; i < array_length; i++)
   {
-    a[i] = static_cast<float>(i);
-    b[i] = static_cast<float>(i);
+    a[i] = static_cast<float>(mt());
+    b[i] = static_cast<float>(mt());
   }
 
   const auto start_cpu = std::chrono::system_clock::now();
@@ -54,35 +57,19 @@ void add_example()
 
   // 計算時間を計測
   const auto start = std::chrono::system_clock::now();
-  auto metal_function_base
-    = metal_base.CreateFunctionBase("add_arrays",
-                                    array_length);
 
-  // buffer を取得
-  auto buffer_a = metal_function_base->CreateBuffer<float>();
-  auto buffer_b = metal_function_base->CreateBuffer<float>();
-  auto buffer_result = metal_function_base->CreateBuffer<float>();
-  buffer_a.ShowBufferSize();
-
-  // buffer にデータをコピー
-  buffer_a.CopyToDevice(a, array_length);
-  buffer_b.CopyToDevice(b, array_length);
-
-  // buffer を encoder にセット
-  metal_function_base->SetBuffer(buffer_a, 0, 0);
-  metal_function_base->SetBuffer(buffer_b, 0, 1);
-  metal_function_base->SetBuffer(buffer_result, 0, 2);
+  nagato::mla::MetalAdderFunction metal_adder_function(array_length);
+  metal_adder_function(a, b, gpu_result);
 
   // カーネルを実行
-  metal_function_base->ExecuteKernel();
   const auto end = std::chrono::system_clock::now();
   const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
   for (std::size_t i = 0; i < array_length; i++)
   {
-    if (std::abs(result[i] - buffer_result[i]) > 1)
+    if (std::abs(result[i] - gpu_result[i]) > 1e-5)
     {
-      std::cerr << "Error: result[" << i << "] = " << result[i] << " vs " << buffer_result[i]
+      std::cerr << "Error: result[" << i << "] = " << result[i] << " vs " << gpu_result[i]
                 << std::endl;
     }
   }
@@ -93,6 +80,7 @@ void add_example()
   delete[] a;
   delete[] b;
   delete[] result;
+  delete[] gpu_result;
 }
 
 void sum_example()
@@ -180,6 +168,8 @@ void sum_example()
 
 int main()
 {
-  sum_example();
+  std::cout << "--- add_example ---" << std::endl;
+  add_example();
+
   return 0;
 }
