@@ -5,7 +5,7 @@
 #include "narray.hpp"
 
 
-namespace nagato
+namespace nagato::na
 {
 
 }
