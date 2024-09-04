@@ -5,23 +5,27 @@
 #ifndef NAGATOLIB_SRC_NARRAY_HPP_
 #define NAGATOLIB_SRC_NARRAY_HPP_
 
+#include <span>
 #include <vector>
 #include <type_traits>
+
+#include "narray_types.hpp"
+#include "narray_inner.hpp"
+#include "narray_concepts.hpp"
 
 namespace nagato::na
 {
 
-template<typename T>
-using nVector = std::vector<T>;
-
-template<typename T>
-constexpr bool is_arithmetic_type();
+// -----------------------------------------------------------------------------
 
 template<typename T>
 class NArray
 {
+  using Type = T;
+  using Self = NArray<T>;
+
   static_assert(
-    is_arithmetic_type<T>(),
+    NArray_concept<Self, T>,
     "NArray only supports arithmetic types"
   );
  public:
@@ -33,14 +37,13 @@ class NArray
    * @param index
    * @return
    */
-  NArray<T> operator[](int index) const;
-
-  NArray<T> &operator[](int index);
+  NArray_inner<T> operator[](int index) const;
 
   [[nodiscard]] const nVector<int> &Shape() const;
   nVector<int> shape_;
   nVector<T> data_;
 };
+
 
 
 // -----------------------------------------------------------------------------
@@ -88,7 +91,6 @@ std::ostream &operator<<(std::ostream &os, const NArray<T> &array);
 
 template<typename T>
 void Show(const NArray<T> &array);
-
 
 } // namespace nagato::mla
 

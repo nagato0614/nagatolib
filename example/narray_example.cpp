@@ -11,12 +11,12 @@ int main(int argc, char *argv[])
 
   const auto a = na::Array(1.f);
 
-  na::Show(a);
-
-
-  const auto b = na::Zeros<int>({1, 2, 2});
-  std::cout << b << std::endl;
-
-  na::Show(b);
+//  na::Show(a);
+//
+//
+//  const auto b = na::Zeros<int>({1, 2, 2});
+//  std::cout << b << std::endl;
+//
+//  na::Show(b);
 
 }

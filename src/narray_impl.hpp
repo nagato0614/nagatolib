@@ -15,40 +15,7 @@
 namespace nagato::na
 {
 
-// -----------------------------------------------------------------------------
 
-template<typename T>
-constexpr bool is_arithmetic_type()
-{
-  bool type_list[] =
-    {
-      std::is_same<T, bool>::value,
-      std::is_same<T, char>::value,
-      std::is_same<T, unsigned char>::value,
-      std::is_same<T, short>::value,
-      std::is_same<T, unsigned short>::value,
-      std::is_same<T, int>::value,
-      std::is_same<T, unsigned int>::value,
-      std::is_same<T, long>::value,
-      std::is_same<T, unsigned long>::value,
-      std::is_same<T, float>::value,
-#ifdef __STDCPP_BFLOAT16_T__
-      std::is_same<T, half>::value,
-      std::is_same<T, std::bfloat16_t>::value,
-#endif
-    };
-
-  const auto result = std::any_of(
-    std::begin(type_list),
-    std::end(type_list),
-    [](bool x)
-    {
-      return x;
-    }
-  );
-
-  return result;
-}
 // -----------------------------------------------------------------------------
 
 template<typename T>
@@ -97,6 +64,12 @@ NArray<T>::NArray(std::vector<T> &&data, std::vector<int> &&shape)
 }
 // -----------------------------------------------------------------------------
 
+/**
+ * 値を一つ受取り、NArrayを返す
+ * @tparam T
+ * @param value
+ * @return
+ */
 template<typename T>
 NArray<T> Array(T value)
 {
@@ -125,7 +98,7 @@ NArray<T> Zeros(const std::initializer_list<int> &shape)
 // -----------------------------------------------------------------------------
 
 template<typename T>
-NArray<T> NArray<T>::operator[](int index) const
+NArray_inner<T> NArray<T>::operator[](int index) const
 {
   std::vector<int> shape = this->shape_;
 
@@ -155,18 +128,6 @@ NArray<T> NArray<T>::operator[](int index) const
 
     return NArray<T>(std::move(data), std::move(shape));
   }
-}
-
-// -----------------------------------------------------------------------------
-
-template<typename T>
-NArray<T> &NArray<T>::operator[](int index)
-{
-  if (this->shape_.size() == 1)
-  {
-    return this->data_.at(index);
-  }
-
 }
 
 // -----------------------------------------------------------------------------
