@@ -9,14 +9,19 @@ int main(int argc, char *argv[])
 {
   using namespace nagato;
 
-  const auto a = na::Array(1.f);
+  const auto a = na::Array<float, 2, 2>(1.f);
 
-//  na::Show(a);
-//
-//
-//  const auto b = na::Zeros<int>({1, 2, 2});
-//  std::cout << b << std::endl;
-//
-//  na::Show(b);
+  std::cout << a(0, 0) << std::endl;
 
+  const na::NagatoArrayInner<float, 2> b = a[0];
+
+  std::cout << b(0) << std::endl;
+
+  std::cout << a[0][0] << std::endl;
+
+  a[0][0] = 2.f;
+
+  std::cout << a[0][0] << std::endl;
+
+  return 0;
 }
