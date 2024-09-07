@@ -31,9 +31,15 @@ int main(int argc, char *argv[])
   c[1] = 2.f;
   na::Show(c);
 
-  const na::NagatoArray<float, 4> d = {1.f, 2.f, 3.f, 4.f};
+  na::NagatoArray<float, 4> d = {1.f, 2.f, 3.f, 4.f};
 
   na::Show(d);
+
+  auto e = na::Copy(b);
+
+  d[1] = 10.f;
+
+  na::Show(e);
 
   return 0;
 }

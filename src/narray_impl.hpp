@@ -164,7 +164,7 @@ NagatoArrayInner<T, N...>::NagatoArrayInner(std::span<T> data)
 
 template<typename T, size_t... N>
 auto NagatoArray<T, N...>::operator[](std::size_t index) const
-  -> const typename NagatoArraySlice<T, N...>::Type
+-> const typename NagatoArraySlice<T, N...>::Type
 {
   // index が範囲内に収まっているかどうかを判定する
   assert(index < Shapes_[0]);
@@ -190,7 +190,7 @@ auto NagatoArray<T, N...>::operator[](std::size_t index) const
 
 template<typename T, size_t... N>
 auto NagatoArray<T, N...>::operator[](std::size_t index)
-  -> NagatoArraySlice<T, N...>::Type
+-> NagatoArraySlice<T, N...>::Type
 {
   // index が範囲内に収まっているかどうかを判定する
   assert(index < Shapes_[0]);
@@ -240,7 +240,20 @@ const T &NagatoArrayInner<T, N>::operator()(std::size_t index) const
 {
   return data[index];
 }
+// -----------------------------------------------------------------------------
 
+template<typename ArrayType>
+auto Copy(const ArrayType &array)
+{
+  static_assert(
+    array_c<ArrayType>,
+    "Copy function is only supported for NagatoArrayFamily"
+  );
+
+  typename ArrayType::CopyType copy(array);
+
+  return copy;
+}
 }
 
 #endif //NAGATOLIB_SRC_NARRAY_IMPL_HPP_

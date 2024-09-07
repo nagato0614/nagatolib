@@ -66,6 +66,7 @@ class NagatoArray<T, N>
 
   using Self = NagatoArray<T, N>;
   using ValueType = T;
+  using CopyType = NagatoArray<T, N>;
 
   // 次元数
   static constexpr std::size_t Dimension_ = 1;
@@ -90,6 +91,16 @@ class NagatoArray<T, N>
     }
 
     std::copy(list.begin(), list.end(), this->data.get());
+  }
+
+  NagatoArray(const NagatoArray<T, N> &array)
+  {
+    std::copy(array.data.get(), array.data.get() + TotalSize_, this->data.get());
+  }
+
+  explicit NagatoArray(const NagatoArrayInner<T, N> &array)
+  {
+    std::copy(array.data.begin(), array.data.end(), this->data.get());
   }
 
   explicit NagatoArray(T value);
@@ -125,7 +136,6 @@ class NagatoArray<T, N>
     return this->data[index];
   }
 
- private:
   std::unique_ptr<T[]> data = std::make_unique<T[]>(TotalSize_);
 };
 
@@ -139,6 +149,7 @@ class NagatoArray
 
   using Self = NagatoArray<T, N...>;
   using ValueType = T;
+  using CopyType = NagatoArray<T, N...>;
 
   // 次元数
   static constexpr std::size_t Dimension_ = sizeof...(N);
@@ -154,6 +165,16 @@ class NagatoArray
 
   // N.. の個数が 1 以上かどうかを判定する
   static_assert(Dimension_ > 0);
+
+  NagatoArray(const NagatoArray<T, N...> &array)
+  {
+    std::copy(array.data.get(), array.data.get() + TotalSize_, this->data.get());
+  }
+
+  explicit NagatoArray(const NagatoArrayInner<T, N...> &array)
+  {
+    std::copy(array.data.begin(), array.data.end(), this->data.get());
+  }
 
   explicit NagatoArray(T value);
 
@@ -181,7 +202,6 @@ class NagatoArray
   auto operator[](std::size_t index)
   -> typename NagatoArraySlice<T, N...>::Type;
 
- private:
   std::unique_ptr<T[]> data = std::make_unique<T[]>(TotalSize_);
 };
 
@@ -196,6 +216,7 @@ class NagatoArrayInner
 
   using Self = NagatoArrayInner<T, N...>;
   using ValueType = T;
+  using CopyType = NagatoArray<T, N...>;
 
   // 次元数
   static constexpr std::size_t Dimension_ = sizeof...(N);
@@ -228,7 +249,6 @@ class NagatoArrayInner
   template<typename... Args>
   const T &operator()(Args... args) const;
 
- private:
   std::span<T, TotalSize_> data;
 };
 
@@ -240,6 +260,7 @@ class NagatoArrayInner<T, N>
 
   using Self = NagatoArrayInner<T, N>;
   using ValueType = T;
+  using CopyType = NagatoArray<T, N>;
 
   // 次元数
   static constexpr std::size_t Dimension_ = 1;
@@ -295,7 +316,6 @@ class NagatoArrayInner<T, N>
     return this->data[index];
   }
 
- private:
   std::span<T, TotalSize_> data;
 };
 
@@ -304,6 +324,10 @@ class NagatoArrayInner<T, N>
 
 template<typename T, std::size_t... N>
 NagatoArray<T, N...> Fill(T value);
+// -----------------------------------------------------------------------------
+
+template<typename ArrayType>
+auto Copy(const ArrayType &array);
 
 // -----------------------------------------------------------------------------
 
