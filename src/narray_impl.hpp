@@ -299,6 +299,35 @@ auto Copy(const ArrayType &array)
 
   return copy;
 }
+
+// -----------------------------------------------------------------------------
+
+template<typename ConvertType, typename ArrayType>
+auto AsType(const ArrayType &array)
+-> typename ArrayType::template AsType<ConvertType>
+{
+  // ConvertType が算術型かどうかを判定する
+  static_assert(NagatoArithmetic<ConvertType>);
+
+  using ConvertArrayType = typename ArrayType::template AsType<ConvertType>;
+
+  ConvertArrayType result;
+
+  std::transform(
+    array.begin(),
+    array.end(),
+    result.begin(),
+    [](auto value) -> ConvertType
+    {
+      return static_cast<ConvertType>(value);
+    }
+  );
+
+  return result;
+}
+
+
+
 }
 
 #endif //NAGATOLIB_SRC_NARRAY_IMPL_HPP_

@@ -6,6 +6,10 @@
 #define NAGATOLIB_SRC_NARRAY_HPP_
 #include <iostream>
 #include <span>
+#include <iostream>
+#include <array>
+#include <numeric>
+#include <cassert>
 
 #include "narray_concepts.hpp"
 
@@ -99,6 +103,10 @@ class NagatoArray<T, N>
   NAGATO_ARRAY_INNER_TYPE(NagatoArray, T, N);
   NAGATO_ARRAY_CONSTANTS_ONE_DIM(N);
 
+  NagatoArray()
+  {
+    std::fill(this->data.get(), this->data.get() + TotalSize_, T());
+  }
 
   NagatoArray(std::initializer_list<T> list)
   {
@@ -123,6 +131,16 @@ class NagatoArray<T, N>
   explicit NagatoArray(T value);
 
   explicit NagatoArray(std::unique_ptr<T[]> &&data);
+
+  T *begin() const
+  {
+    return this->data.get();
+  }
+
+  T *end() const
+  {
+    return this->data.get() + TotalSize_;
+  }
 
   /**
   * 指定したインデックスの要素を取得する.
@@ -166,6 +184,10 @@ class NagatoArray
   NAGATO_ARRAY_INNER_TYPE(NagatoArray, T, N...);
   NAGATO_ARRAY_CONSTANTS(N);
 
+  NagatoArray()
+  {
+    std::fill(this->data.get(), this->data.get() + TotalSize_, T());
+  }
 
   NagatoArray(const NagatoArray<T, N...> &array)
   {
@@ -180,6 +202,16 @@ class NagatoArray
   explicit NagatoArray(T value);
 
   explicit NagatoArray(std::unique_ptr<T[]> &&data);
+
+  T *begin() const
+  {
+    return this->data.get();
+  }
+
+  T *end() const
+  {
+    return this->data.get() + TotalSize_;
+  }
 
   /**
    * 指定したインデックスの要素を取得する.
@@ -223,6 +255,16 @@ class NagatoArrayInner
                             std::size_t start,
                             std::size_t end);
 
+  T *begin() const
+  {
+    return this->data.data();
+  }
+
+  T *end() const
+  {
+    return this->data.data() + TotalSize_;
+  }
+
   /**
   * 指定したインデックスの要素を取得する.
   * 引数の数は次元数と同じでなければならない.
@@ -244,7 +286,6 @@ class NagatoArrayInner<T, N>
   NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N);
   NAGATO_ARRAY_CONSTANTS_ONE_DIM(N);
 
-
   explicit NagatoArrayInner(std::span<T> data);
 
   /**
@@ -256,6 +297,16 @@ class NagatoArrayInner<T, N>
   explicit NagatoArrayInner(const std::unique_ptr<T[]> &data,
                             std::size_t start,
                             std::size_t end);
+
+  T *begin() const
+  {
+    return this->data.data();
+  }
+
+  T *end() const
+  {
+    return this->data.data() + TotalSize_;
+  }
 
   /**
   * 指定したインデックスの要素を取得する.
@@ -318,14 +369,33 @@ void Show(const ArrayType &array);
  */
 template<typename ConvertType, typename ArrayType>
 auto AsType(const ArrayType &array)
+-> typename ArrayType::template AsType<ConvertType>;
+// -----------------------------------------------------------------------------
+
+template<typename L, typename R>
+auto operator+(const L &lhs, const R &rhs)
 {
-  // ConvertType が算術型かどうかを判定する
-  static_assert(NagatoArithmetic<ConvertType>);
+  // 左辺値が NagatoArrayFamily であることを確認
+  static_assert(
+    array_c<L>,
+    "lhs is not NagatoArrayFamily"
+  );
 
-  ArrayType::template AsType<ConvertType> result;
+  // 右辺値が NagatoArrayFamily であることを確認
+  static_assert(
+    array_c<R>,
+    "rhs is not NagatoArrayFamily"
+  );
+
+  // 左辺値と右辺値の次元数が等しいことを確認
+  static_assert(
+    array_size_c<L, R>,
+    "lhs and rhs dimension is not equal"
+  );
+
 }
 
-}
+} // namespace nagato::na
 
 #include "narray_impl.hpp"
 

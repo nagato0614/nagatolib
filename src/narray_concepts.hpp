@@ -21,14 +21,34 @@ std::same_as<T, bool> ||
   std::same_as<T, float> ||
   std::same_as<T, size_t>;
 
-
+// NagatoArray のコンセプト
 template<typename ArrayType>
-concept array_c = requires(ArrayType array) {
+concept array_c =
+requires(ArrayType array) {
   { array.Dimension_ };
+  { array.Shapes_ };
   { array.TotalSize_ };
   { array[0] };
+  { array.data };
+  { array.begin() };
+  { array.end() };
+  std::same_as<decltype(array.begin()), std::add_pointer<typename ArrayType::ValueType>>;
+  std::same_as<decltype(array.end()), std::add_pointer<typename ArrayType::ValueType>>;
 };
 
+// NagatoArray のサイズ比較用コンセプト
+template<typename A, typename B>
+concept array_size_c =
+requires(A a, B b) {
+  // 左右の次元が等しい
+  { a.Dimension_ == b.Dimension_ };
+
+  // 左右のサイズが等しい
+  { a.TotalSize_ == b.TotalSize_ };
+
+  // 左右の形状が等しい
+  { a.Shapes_ == b.Shapes_ };
+};
 }
 
 #endif //NAGATOLIB_SRC_NARRAY_CONCEPTS_HPP_

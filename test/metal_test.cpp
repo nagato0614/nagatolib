@@ -81,7 +81,7 @@ TEST(MetalTest, add_arrays)
 
   add_arrays(a.get(), b.get(), cpu_result.get(), array_length);
 
-  nagato::mla::MetalAdderFunction adder(array_length);
+  nagato::mtl::MetalAdderFunction adder(array_length);
   adder(a.get(), b.get(), gpu_result.get());
 
   for (std::size_t i = 0; i < array_length; i++)
@@ -109,7 +109,7 @@ TEST(MetalTest, sub_arrays)
 
   sub_arrays(a.get(), b.get(), cpu_result.get(), array_length);
 
-  nagato::mla::MetalSubFunction sub(array_length);
+  nagato::mtl::MetalSubFunction sub(array_length);
   sub(a.get(), b.get(), gpu_result.get());
 
   for (std::size_t i = 0; i < array_length; i++)
@@ -138,7 +138,7 @@ TEST(MetalTest, mul_arrays)
 
   mul_arrays(a.get(), b.get(), cpu_result.get(), array_length);
 
-  nagato::mla::MetalMulFunction mul(array_length);
+  nagato::mtl::MetalMulFunction mul(array_length);
   mul(a.get(), b.get(), gpu_result.get());
 
   for (std::size_t i = 0; i < array_length; i++)
@@ -167,7 +167,7 @@ TEST(MetalTest, div_arrays)
 
   div_arrays(a.get(), b.get(), cpu_result.get(), array_length);
 
-  nagato::mla::MetalDivFunction div(array_length);
+  nagato::mtl::MetalDivFunction div(array_length);
   div(a.get(), b.get(), gpu_result.get());
 
   for (std::size_t i = 0; i < array_length; i++)
