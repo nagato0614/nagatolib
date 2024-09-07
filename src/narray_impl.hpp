@@ -19,19 +19,23 @@ namespace nagato::na
 template<typename T, size_t... N>
 NagatoArray<T, N...>::NagatoArray(T value)
 {
-  for (std::size_t i = 0; i < TotalSize_; i++)
-  {
-    data[i] = value;
-  }
+  std::transform(
+    data.get(),
+    data.get() + TotalSize_,
+    data.get(),
+    [value](T v) { return value; }
+  );
 }
 // -----------------------------------------------------------------------------
 template<typename T, std::size_t N>
 NagatoArray<T, N>::NagatoArray(T value)
 {
-  for (std::size_t i = 0; i < TotalSize_; ++i)
-  {
-    data[i] = value;
-  }
+  std::transform(
+    data.get(),
+    data.get() + TotalSize_,
+    data.get(),
+    [value](T v) { return value; }
+  );
 }
 // -----------------------------------------------------------------------------
 
@@ -240,6 +244,47 @@ const T &NagatoArrayInner<T, N>::operator()(std::size_t index) const
 {
   return data[index];
 }
+// -----------------------------------------------------------------------------
+
+template<typename T, std::size_t N>
+const T &NagatoArrayInner<T, N>::operator[](std::size_t index) const
+{
+  return operator()(index);
+}
+
+// -----------------------------------------------------------------------------
+
+template<typename T, std::size_t N>
+T &NagatoArrayInner<T, N>::operator[](std::size_t index)
+{
+  if (index >= TotalSize_)
+  {
+    throw std::out_of_range("Index out of range!");
+  }
+
+  return this->data[index];
+}
+
+// -----------------------------------------------------------------------------
+
+template<typename T, std::size_t N>
+T &NagatoArrayInner<T, N>::operator()(std::size_t index)
+{
+  if (index >= TotalSize_)
+  {
+    throw std::out_of_range("Index out of range!");
+  }
+  return this->data[index];
+}
+
+// -----------------------------------------------------------------------------
+
+template<typename T, std::size_t N>
+NagatoArray<T, N> Zeros()
+{
+  return Fill<T, N>(static_cast<T>(0));
+}
+
 // -----------------------------------------------------------------------------
 
 template<typename ArrayType>

@@ -242,27 +242,8 @@ class NagatoArrayInner<T, N>
 {
  public:
   NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N);
-//  using Self = NagatoArrayInner<T, N>;
-//  using ValueType = T;
-//  using CopyType = NagatoArray<T, N>;
-//
-//  template<typename Y>
-//  using AsType = NagatoArray<Y, N>;
+  NAGATO_ARRAY_CONSTANTS_ONE_DIM(N);
 
-  // 次元数
-  static constexpr std::size_t Dimension_ = 1;
-
-  // 各次元のサイズ
-  static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N};
-
-  // 全体のデータサイズ
-  static constexpr std::size_t TotalSize_ = N;
-
-  // concepts を使って、Tが算術型かどうかを判定する
-  static_assert(NagatoArithmetic<T>);
-
-  // N.. の個数が 1 以上かどうかを判定する
-  static_assert(Dimension_ > 0);
 
   explicit NagatoArrayInner(std::span<T> data);
 
@@ -285,38 +266,32 @@ class NagatoArrayInner<T, N>
   */
   const T &operator()(std::size_t index) const;
 
-  const T &operator[](std::size_t index) const
-  {
-    return operator()(index);
-  }
+  const T &operator[](std::size_t index) const;
 
-  T &operator()(std::size_t index)
-  {
-    if (index >= TotalSize_)
-    {
-      throw std::out_of_range("Index out of range!");
-    }
-    return this->data[index];
-  }
+  T &operator()(std::size_t index);
 
-  T &operator[](std::size_t index)
-  {
-    if (index >= TotalSize_)
-    {
-      throw std::out_of_range("Index out of range!");
-    }
-
-    return this->data[index];
-  }
+  T &operator[](std::size_t index);
 
   std::span<T, TotalSize_> data;
 };
 
+// -----------------------------------------------------------------------------
+
+/**
+ * 指定した値で NagatoArray を初期化する
+ * @tparam T
+ * @tparam N
+ * @param value
+ * @return
+ */
+template<typename T, std::size_t... N>
+NagatoArray<T, N...> Fill(T value);
 
 // -----------------------------------------------------------------------------
 
-template<typename T, std::size_t... N>
-NagatoArray<T, N...> Fill(T value);
+template<typename T, std::size_t N>
+NagatoArray<T, N> Zeros();
+
 // -----------------------------------------------------------------------------
 
 template<typename ArrayType>
@@ -346,6 +321,8 @@ auto AsType(const ArrayType &array)
 {
   // ConvertType が算術型かどうかを判定する
   static_assert(NagatoArithmetic<ConvertType>);
+
+  ArrayType::template AsType<ConvertType> result;
 }
 
 }
