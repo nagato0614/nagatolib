@@ -25,6 +25,15 @@ NagatoArray<T, N...>::NagatoArray(T value)
   }
 }
 // -----------------------------------------------------------------------------
+template<typename T, std::size_t N>
+NagatoArray<T, N>::NagatoArray(T value)
+{
+  for (std::size_t i = 0; i < TotalSize_; ++i)
+  {
+    data[i] = value;
+  }
+}
+// -----------------------------------------------------------------------------
 
 template<typename T, size_t... N>
 NagatoArray<T, N...>::NagatoArray(std::unique_ptr<T[]> &&data)
@@ -34,8 +43,13 @@ NagatoArray<T, N...>::NagatoArray(std::unique_ptr<T[]> &&data)
 // -----------------------------------------------------------------------------
 
 template<typename T, size_t... N>
-NagatoArray<T, N...> Array(T value)
+NagatoArray<T, N...> Fill(T value)
 {
+  // Tが数値演算可能な型であるかどうかを判定する
+  static_assert(
+    NagatoArithmetic<T>,
+    "T is not arithmetic"
+  );
 
   return NagatoArray<T, N...>(value);
 }
@@ -95,13 +109,48 @@ const T &NagatoArrayInner<T, N...>::operator()(Args... args) const
 // -----------------------------------------------------------------------------
 
 template<typename ArrayType>
+void Show_impl(const ArrayType &array)
+{
+  if constexpr (ArrayType::Dimension_ == 1)
+  {
+    std::cout << "[";
+    for (std::size_t i = 0; i < ArrayType::Shapes_[0]; i++)
+    {
+      std::cout << array[i];
+      if (i != ArrayType::Shapes_[0] - 1)
+      {
+        std::cout << ", ";
+      }
+    }
+    std::cout << "]";
+  }
+  else
+  {
+    std::cout << "[";
+    for (std::size_t i = 0; i < ArrayType::Shapes_[0]; i++)
+    {
+      Show_impl(array[i]);
+      if (i != ArrayType::Shapes_[0] - 1)
+      {
+        std::cout << ", ";
+      }
+    }
+    std::cout << "]";
+  }
+}
+
+template<typename ArrayType>
 void Show(const ArrayType &array)
 {
   static_assert(
     array_c<ArrayType>,
     "Show function is only supported for NagatoArrayFamily"
   );
+
+  Show_impl(array);
+  std::cout << std::endl;
 }
+
 
 // -----------------------------------------------------------------------------
 
@@ -115,6 +164,7 @@ NagatoArrayInner<T, N...>::NagatoArrayInner(std::span<T> data)
 
 template<typename T, size_t... N>
 auto NagatoArray<T, N...>::operator[](std::size_t index) const
+  -> const typename NagatoArraySlice<T, N...>::Type
 {
   // index が範囲内に収まっているかどうかを判定する
   assert(index < Shapes_[0]);
@@ -127,39 +177,60 @@ auto NagatoArray<T, N...>::operator[](std::size_t index) const
   );
 
   using SliceType = NagatoArraySlice<T, N...>::Type;
+  const std::size_t start = index * stride;
+  const std::size_t end = start + stride;
 
   return SliceType(
-    this->data
+    this->data,
+    start,
+    end
+  );
+}
+// -----------------------------------------------------------------------------
+
+template<typename T, size_t... N>
+auto NagatoArray<T, N...>::operator[](std::size_t index)
+  -> NagatoArraySlice<T, N...>::Type
+{
+  // index が範囲内に収まっているかどうかを判定する
+  assert(index < Shapes_[0]);
+
+  const int stride = std::accumulate(
+    Shapes_.begin() + 1,
+    Shapes_.end(),
+    1,
+    std::multiplies<>()
+  );
+
+  using SliceType = NagatoArraySlice<T, N...>::Type;
+  const std::size_t start = index * stride;
+  const std::size_t end = start + stride;
+
+  return SliceType(
+    this->data,
+    start,
+    end
   );
 }
 
 // -----------------------------------------------------------------------------
 
 template<typename T, size_t... N>
-NagatoArrayInner<T, N...>::NagatoArrayInner(const std::unique_ptr<T[]> &data)
-: data(std::span<T, TotalSize_>(data.get(), TotalSize_))
+NagatoArrayInner<T, N...>::NagatoArrayInner(const std::unique_ptr<T[]> &data,
+                                            std::size_t start,
+                                            std::size_t end)
+  : data(std::span<T, TotalSize_>(data.get() + start, end - start))
 {
 }
 
 // -----------------------------------------------------------------------------
 
 template<typename T, std::size_t N>
-NagatoArrayInner<T, N>::NagatoArrayInner(const std::unique_ptr<T[]> &data)
-: data(std::span<T, N>(data.get(), N))
+NagatoArrayInner<T, N>::NagatoArrayInner(const std::unique_ptr<T[]> &data,
+                                         std::size_t start,
+                                         std::size_t end)
+  : data(std::span<T, TotalSize_>(data.get() + start, end - start))
 {
-}
-
-// -----------------------------------------------------------------------------
-
-template<typename T, std::size_t N>
-const T &NagatoArray<T, N>::operator()(std::size_t index) const
-{
-  // index が shape[0] 未満であるかどうかを判定する
-  static_assert(
-    index < Shapes_[0],
-    "Index out of range!"
-  );
-  return data[index];
 }
 
 // -----------------------------------------------------------------------------

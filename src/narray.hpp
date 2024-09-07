@@ -82,7 +82,15 @@ class NagatoArray<T, N>
   // N.. の個数が 1 以上かどうかを判定する
   static_assert(Dimension_ > 0);
 
-  NagatoArray() = default;
+  NagatoArray(std::initializer_list<T> list)
+  {
+    if (list.size() != TotalSize_)
+    {
+      throw std::invalid_argument("Size is not match!");
+    }
+
+    std::copy(list.begin(), list.end(), this->data.get());
+  }
 
   explicit NagatoArray(T value);
 
@@ -94,7 +102,28 @@ class NagatoArray<T, N>
   * @param args
   * @return
   */
-  const T &operator()(std::size_t index) const;
+  const T &operator()(std::size_t index) const
+  {
+    if (index >= TotalSize_)
+    {
+      throw std::out_of_range("Index out of range!");
+    }
+    return data[index];
+  }
+
+  const T &operator[](std::size_t index) const
+  {
+    return operator()(index);
+  }
+
+  T &operator[](std::size_t index)
+  {
+    if (index >= TotalSize_)
+    {
+      throw std::out_of_range("Index out of range!");
+    }
+    return this->data[index];
+  }
 
  private:
   std::unique_ptr<T[]> data = std::make_unique<T[]>(TotalSize_);
@@ -126,8 +155,6 @@ class NagatoArray
   // N.. の個数が 1 以上かどうかを判定する
   static_assert(Dimension_ > 0);
 
-  NagatoArray() = default;
-
   explicit NagatoArray(T value);
 
   explicit NagatoArray(std::unique_ptr<T[]> &&data);
@@ -148,7 +175,11 @@ class NagatoArray
    * @param index
    * @return
    */
-  auto operator[](std::size_t index) const;
+  auto operator[](std::size_t index) const
+  -> const typename NagatoArraySlice<T, N...>::Type;
+
+  auto operator[](std::size_t index)
+  -> typename NagatoArraySlice<T, N...>::Type;
 
  private:
   std::unique_ptr<T[]> data = std::make_unique<T[]>(TotalSize_);
@@ -183,7 +214,9 @@ class NagatoArrayInner
 
   explicit NagatoArrayInner(std::span<T> data);
 
-  explicit NagatoArrayInner(const std::unique_ptr<T[]> &data);
+  explicit NagatoArrayInner(const std::unique_ptr<T[]> &data,
+                            std::size_t start,
+                            std::size_t end);
 
   /**
   * 指定したインデックスの要素を取得する.
@@ -225,7 +258,9 @@ class NagatoArrayInner<T, N>
 
   explicit NagatoArrayInner(std::span<T> data);
 
-  explicit NagatoArrayInner(const std::unique_ptr<T[]> &data);
+  explicit NagatoArrayInner(const std::unique_ptr<T[]> &data,
+                            std::size_t start,
+                            std::size_t end);
 
   /**
   * 指定したインデックスの要素を取得する.
@@ -268,12 +303,20 @@ class NagatoArrayInner<T, N>
 // -----------------------------------------------------------------------------
 
 template<typename T, std::size_t... N>
-NagatoArray<T, N...> Array(T value);
+NagatoArray<T, N...> Fill(T value);
 
 // -----------------------------------------------------------------------------
 
+/**
+ * NagatoArray の要素を表示する
+ * @tparam ArrayType
+ * @param array
+ */
 template<typename ArrayType>
 void Show(const ArrayType &array);
+
+// -----------------------------------------------------------------------------
+
 
 }
 

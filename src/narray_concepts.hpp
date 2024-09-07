@@ -25,6 +25,8 @@ std::same_as<T, bool> ||
 template<typename ArrayType>
 concept array_c = requires(ArrayType array) {
   { array.Dimension_ };
+  { array.TotalSize_ };
+  { array[0] };
 };
 
 }
