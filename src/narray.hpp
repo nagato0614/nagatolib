@@ -50,6 +50,12 @@ class NagatoArrayInner;
 template<typename T, std::size_t N>
 class NagatoArrayInner<T, N>;
 
+/**
+ * サポートクラス : NagatoArray のスライスを取得する
+ * @tparam T
+ * @tparam First
+ * @tparam Rest
+ */
 template<typename T, std::size_t First, std::size_t... Rest>
 struct NagatoArraySlice
 {
@@ -59,29 +65,40 @@ struct NagatoArraySlice
 // -----------------------------------------------------------------------------
 
 
+// NagatoArray 内部型作成マクロ
+#define NAGATO_ARRAY_INNER_TYPE(SELF, TYPE, DIMENSION) \
+  using Self = SELF<TYPE, DIMENSION>;    \
+  using ValueType = TYPE; \
+  using CopyType = SELF; \
+  template<typename Y> \
+  using AsType = NagatoArray<Y, DIMENSION>;
+
+
+// 内部定数作成マクロ (1次元部分特殊化用)
+#define NAGATO_ARRAY_CONSTANTS_ONE_DIM(DIMENSION) \
+  static constexpr std::size_t Dimension_ = 1; \
+  static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N}; \
+  static constexpr std::size_t TotalSize_ = N;    \
+  static_assert(NagatoArithmetic<T>);             \
+  static_assert(Dimension_ > 0);
+
+// 内部定数作成マクロ (多次元用)
+#define NAGATO_ARRAY_CONSTANTS(DIMENSION) \
+  static constexpr std::size_t Dimension_ = sizeof...(DIMENSION); \
+  static constexpr std::array<std::size_t, Dimension_> Shapes_ = { DIMENSION...}; \
+  static constexpr std::size_t TotalSize_ = ( N * ...); \
+  static_assert(NagatoArithmetic<T>); \
+  static_assert(Dimension_ > 0);
+
+// -----------------------------------------------------------------------------
+
 template<typename T, std::size_t N>
 class NagatoArray<T, N>
 {
  public:
+  NAGATO_ARRAY_INNER_TYPE(NagatoArray, T, N);
+  NAGATO_ARRAY_CONSTANTS_ONE_DIM(N);
 
-  using Self = NagatoArray<T, N>;
-  using ValueType = T;
-  using CopyType = NagatoArray<T, N>;
-
-  // 次元数
-  static constexpr std::size_t Dimension_ = 1;
-
-  // 各次元のサイズ
-  static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N};
-
-  // 全体のデータサイズ
-  static constexpr std::size_t TotalSize_ = N;
-
-  // concepts を使って、Tが算術型かどうかを判定する
-  static_assert(NagatoArithmetic<T>);
-
-  // N.. の個数が 1 以上かどうかを判定する
-  static_assert(Dimension_ > 0);
 
   NagatoArray(std::initializer_list<T> list)
   {
@@ -146,25 +163,9 @@ template<typename T, std::size_t... N>
 class NagatoArray
 {
  public:
+  NAGATO_ARRAY_INNER_TYPE(NagatoArray, T, N...);
+  NAGATO_ARRAY_CONSTANTS(N);
 
-  using Self = NagatoArray<T, N...>;
-  using ValueType = T;
-  using CopyType = NagatoArray<T, N...>;
-
-  // 次元数
-  static constexpr std::size_t Dimension_ = sizeof...(N);
-
-  // 各次元のサイズ
-  static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N...};
-
-  // 全体のデータサイズ
-  static constexpr std::size_t TotalSize_ = (N * ...);
-
-  // concepts を使って、Tが算術型かどうかを判定する
-  static_assert(NagatoArithmetic<T>);
-
-  // N.. の個数が 1 以上かどうかを判定する
-  static_assert(Dimension_ > 0);
 
   NagatoArray(const NagatoArray<T, N...> &array)
   {
@@ -213,25 +214,8 @@ class NagatoArrayInner
 {
 
  public:
-
-  using Self = NagatoArrayInner<T, N...>;
-  using ValueType = T;
-  using CopyType = NagatoArray<T, N...>;
-
-  // 次元数
-  static constexpr std::size_t Dimension_ = sizeof...(N);
-
-  // 各次元のサイズ
-  static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N...};
-
-  // 全体のデータサイズ
-  static constexpr std::size_t TotalSize_ = (N * ...);
-
-  // concepts を使って、Tが算術型かどうかを判定する
-  static_assert(NagatoArithmetic<T>);
-
-  // N.. の個数が 1 以上かどうかを判定する
-  static_assert(Dimension_ > 0);
+  NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N...);
+  NAGATO_ARRAY_CONSTANTS(N);
 
   explicit NagatoArrayInner(std::span<T> data);
 
@@ -257,10 +241,13 @@ template<typename T, std::size_t N>
 class NagatoArrayInner<T, N>
 {
  public:
-
-  using Self = NagatoArrayInner<T, N>;
-  using ValueType = T;
-  using CopyType = NagatoArray<T, N>;
+  NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N);
+//  using Self = NagatoArrayInner<T, N>;
+//  using ValueType = T;
+//  using CopyType = NagatoArray<T, N>;
+//
+//  template<typename Y>
+//  using AsType = NagatoArray<Y, N>;
 
   // 次元数
   static constexpr std::size_t Dimension_ = 1;
@@ -279,6 +266,12 @@ class NagatoArrayInner<T, N>
 
   explicit NagatoArrayInner(std::span<T> data);
 
+  /**
+   * スライスを作成する
+   * @param data
+   * @param start
+   * @param end
+   */
   explicit NagatoArrayInner(const std::unique_ptr<T[]> &data,
                             std::size_t start,
                             std::size_t end);
@@ -341,6 +334,19 @@ void Show(const ArrayType &array);
 
 // -----------------------------------------------------------------------------
 
+/**
+ * NagatoArray 型を変える
+ * @tparam ConvertType
+ * @tparam ArrayType
+ * @param array
+ * @return
+ */
+template<typename ConvertType, typename ArrayType>
+auto AsType(const ArrayType &array)
+{
+  // ConvertType が算術型かどうかを判定する
+  static_assert(NagatoArithmetic<ConvertType>);
+}
 
 }
 
