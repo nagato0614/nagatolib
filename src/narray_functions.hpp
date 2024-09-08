@@ -146,28 +146,189 @@ auto operator*(const L &lhs, const R &rhs);
  */
 template<typename L, typename R>
 auto operator/(const L &lhs, const R &rhs);
+
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を比較する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
+template<typename L, typename R>
+bool operator==(const L &lhs, const R &rhs);
+
 // -----------------------------------------------------------------------------
 
 template<typename L, typename R>
-bool operator==(const L &lhs, const R &rhs)
+bool operator!=(const L &lhs, const R &rhs)
 {
+  return !(lhs == rhs);
+}
 
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を比較する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
+template<typename L, typename R>
+auto operator<(const L &lhs, const R &rhs)
+-> typename L::template AsType<bool>
+{
+  using ResultType = typename L::template AsType<bool>;
+  ResultType result;
+  // 左辺値がArray型, 右辺値がArray型の場合
   if constexpr (array_c<L> && array_c<R>)
   {
-    return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = lhs.data[i] < rhs.data[i];
+    }
   }
+    // 左辺値がArray型, 右辺値が数値型の場合
   else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
   {
-    return std::all_of(lhs.begin(), lhs.end(), [rhs](auto a)
-    { return a == rhs; });
+    return Transform(lhs, [rhs](auto a)
+    { return a < rhs; });
   }
+    // 左辺値が数値型, 右辺値がArray型の場合
   else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
   {
-    return std::all_of(rhs.begin(), rhs.end(), [lhs](auto a)
-    { return a == lhs; });
+    return Transform(rhs, [lhs](auto a)
+    { return lhs < a; });
   }
+
+  return result;
 }
+
+// -----------------------------------------------------------------------------
+/**
+ * NagatoArray の要素を比較する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
+template<typename L, typename R>
+auto operator>(const L &lhs, const R &rhs)
+-> typename L::template AsType<bool>
+{
+  using ResultType = typename L::template AsType<bool>;
+  ResultType result;
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = lhs.data[i] > rhs.data[i];
+    }
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a > rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return lhs > a; });
+  }
+
+  return result;
 }
+
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を比較する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
+template<typename L, typename R>
+auto operator<=(const L &lhs, const R &rhs)
+-> typename L::template AsType<bool>
+{
+  using ResultType = typename L::template AsType<bool>;
+  ResultType result;
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = lhs.data[i] <= rhs.data[i];
+    }
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a <= rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return lhs <= a; });
+  }
+
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を比較する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
+template<typename L, typename R>
+auto operator>=(const L &lhs, const R &rhs)
+-> typename L::template AsType<bool>
+{
+  using ResultType = typename L::template AsType<bool>;
+  ResultType result;
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = lhs.data[i] >= rhs.data[i];
+    }
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a >= rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return lhs >= a; });
+  }
+
+  return result;
+}
+
+
+} // namespace nagato::na
 
 #include "narray_functions_impl.hpp"
 #endif //NAGATOLIB_SRC_NARRAY_FUNCTIONS_HPP_

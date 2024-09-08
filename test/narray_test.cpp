@@ -271,3 +271,127 @@ TEST(NArrayTest, ArrayEquality)
   EXPECT_FALSE(a == b);  // a と b は異なるため false
   EXPECT_TRUE(a == c);   // a と c は同じため true
 }
+
+TEST(NArrayTest, ArrayComparison)
+{
+  using namespace nagato;
+
+  // 4x4 の NagatoArray を初期化
+  auto a = na::Fill<float, 4, 4>(1.5f);
+  auto b = na::Fill<float, 4, 4>(2.5f);
+
+  // b[0][0] を変更
+  b[0][0] = 1.5f;
+
+  // 配列 a と b の比較
+  auto c = a < b;
+
+  // 結果が期待通りか確認
+  for (int i = 0; i < 4; ++i)
+  {
+    for (int j = 0; j < 4; ++j)
+    {
+      if (i == 0 && j == 0)
+      {
+        EXPECT_FALSE(c(i, j));  // a[0][0] == b[0][0] なので false
+      }
+      else
+      {
+        EXPECT_TRUE(c(i, j));   // それ以外の要素は a < b なので true
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, GreaterThanComparison)
+{
+  using namespace nagato;
+
+  // 4x4 の NagatoArray を初期化
+  auto a = na::Fill<float, 4, 4>(3.5f);
+  auto b = na::Fill<float, 4, 4>(2.5f);
+
+  // b[0][0] を変更
+  b[0][0] = 3.5f;
+
+  // 配列 a と b の比較
+  auto c = a > b;
+
+  // 結果が期待通りか確認
+  for (int i = 0; i < 4; ++i)
+  {
+    for (int j = 0; j < 4; ++j)
+    {
+      if (i == 0 && j == 0)
+      {
+        EXPECT_FALSE(c(i, j));  // a[0][0] == b[0][0] なので false
+      }
+      else
+      {
+        EXPECT_TRUE(c(i, j));   // a > b なので true
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, LessThanOrEqualComparison)
+{
+  using namespace nagato;
+
+  // 4x4 の NagatoArray を初期化
+  auto a = na::Fill<float, 4, 4>(2.5f);
+  auto b = na::Fill<float, 4, 4>(2.5f);
+
+  // b[0][0] を変更
+  b[0][0] = 3.0f;
+
+  // 配列 a と b の比較
+  auto c = a <= b;
+
+  // 結果が期待通りか確認
+  for (int i = 0; i < 4; ++i)
+  {
+    for (int j = 0; j < 4; ++j)
+    {
+      if (i == 0 && j == 0)
+      {
+        EXPECT_TRUE(c(i, j));  // a[0][0] <= b[0][0] なので true
+      }
+      else
+      {
+        EXPECT_TRUE(c(i, j));  // a == b なので true
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, GreaterThanOrEqualComparison)
+{
+  using namespace nagato;
+
+  // 4x4 の NagatoArray を初期化
+  auto a = na::Fill<float, 4, 4>(2.5f);
+  auto b = na::Fill<float, 4, 4>(2.5f);
+
+  // b[0][0] を変更
+  b[0][0] = 2.0f;
+
+  // 配列 a と b の比較
+  auto c = a >= b;
+
+  // 結果が期待通りか確認
+  for (int i = 0; i < 4; ++i)
+  {
+    for (int j = 0; j < 4; ++j)
+    {
+      if (i == 0 && j == 0)
+      {
+        EXPECT_TRUE(c(i, j));  // a[0][0] >= b[0][0] なので true
+      }
+      else
+      {
+        EXPECT_TRUE(c(i, j));  // a == b なので true
+      }
+    }
+  }
+}

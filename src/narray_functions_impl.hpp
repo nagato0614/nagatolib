@@ -123,7 +123,14 @@ void Show_impl(const ArrayType &array)
     std::cout << "[";
     for (std::size_t i = 0; i < ArrayType::Shapes_[0]; i++)
     {
-      std::cout << array[i];
+      if (std::same_as<typename ArrayType::ValueType, bool>)
+      {
+        std::cout << (array[i] ? "true" : "false");
+      }
+      else
+      {
+        std::cout << array[i];
+      }
       if (i != ArrayType::Shapes_[0] - 1)
       {
         std::cout << ", ";
@@ -301,6 +308,27 @@ auto operator/(const L &lhs, const R &rhs)
 
 // -----------------------------------------------------------------------------
 
+template<typename L, typename R>
+bool operator==(const L &lhs, const R &rhs)
+{
+
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+  }
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return std::all_of(lhs.begin(), lhs.end(), [rhs](auto a)
+    { return a == rhs; });
+  }
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return std::all_of(rhs.begin(), rhs.end(), [lhs](auto a)
+    { return a == lhs; });
+  }
 }
+// -----------------------------------------------------------------------------
+
+} // namespace nagato::na
 
 #endif //NAGATOLIB_SRC_NARRAY_FUNCTIONS_IMPL_HPP_
