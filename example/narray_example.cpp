@@ -9,5 +9,8 @@ int main(int argc, char *argv[])
 {
   using namespace nagato;
 
+  const auto a = na::NagatoArray<int, 1, 1, 1>(1);
+
+  na::Show(a);
   return 0;
 }

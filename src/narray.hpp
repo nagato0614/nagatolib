@@ -249,7 +249,10 @@ class NagatoArrayInner
   NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N...);
   NAGATO_ARRAY_CONSTANTS(N);
 
-  explicit NagatoArrayInner(std::span<T> data);
+  explicit NagatoArrayInner(std::span<T> data)
+  {
+    this->data = data;
+  }
 
   explicit NagatoArrayInner(const std::unique_ptr<T[]> &data,
                             std::size_t start,
@@ -275,6 +278,49 @@ class NagatoArrayInner
   template<typename... Args>
   const T &operator()(Args... args) const;
 
+  auto operator[](std::size_t index) const
+  -> const typename NagatoArraySlice<T, N...>::Type
+  {
+    assert(index < Shapes_[0]);
+
+    const int stride = std::accumulate(
+      Shapes_.begin() + 1,
+      Shapes_.end(),
+      1,
+      std::multiplies<>()
+    );
+
+    using SliceType = NagatoArraySlice<T, N...>::Type;
+    const std::size_t start = index * stride;
+
+    static_assert(stride > 0);
+    static_assert(stride <= TotalSize_);
+
+    return SliceType(
+      this->data.subspan(start, stride)
+    );
+  }
+
+  auto operator[](std::size_t index)
+  -> typename NagatoArraySlice<T, N...>::Type
+  {
+    assert(index < Shapes_[0]);
+
+    const int stride = std::accumulate(
+      Shapes_.begin() + 1,
+      Shapes_.end(),
+      1,
+      std::multiplies<>()
+    );
+
+    using SliceType = NagatoArraySlice<T, N...>::Type;
+    const std::size_t start = index * stride;
+
+    return SliceType(
+      this->data.subspan(start, stride)
+    );
+  }
+
   std::span<T, TotalSize_> data;
 };
 
@@ -286,7 +332,10 @@ class NagatoArrayInner<T, N>
   NAGATO_ARRAY_INNER_TYPE(NagatoArrayInner, T, N);
   NAGATO_ARRAY_CONSTANTS_ONE_DIM(N);
 
-  explicit NagatoArrayInner(std::span<T> data);
+  explicit NagatoArrayInner(std::span<T> data)
+    : data(data)
+  {
+  }
 
   /**
    * スライスを作成する
@@ -372,6 +421,15 @@ auto AsType(const ArrayType &array)
 -> typename ArrayType::template AsType<ConvertType>;
 // -----------------------------------------------------------------------------
 
+/**
+ * NagatoArray の同士の加算
+ * 形状が違う場合はブロードキャストして計算する
+ * @tparam L
+ * @tparam R
+ * @param lhs
+ * @param rhs
+ * @return
+ */
 template<typename L, typename R>
 auto operator+(const L &lhs, const R &rhs)
 {
@@ -385,12 +443,6 @@ auto operator+(const L &lhs, const R &rhs)
   static_assert(
     array_c<R>,
     "rhs is not NagatoArrayFamily"
-  );
-
-  // 左辺値と右辺値の次元数が等しいことを確認
-  static_assert(
-    array_size_c<L, R>,
-    "lhs and rhs dimension is not equal"
   );
 
 }

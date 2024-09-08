@@ -39,15 +39,8 @@ requires(ArrayType array) {
 // NagatoArray のサイズ比較用コンセプト
 template<typename A, typename B>
 concept array_size_c =
-requires(A a, B b) {
-  // 左右の次元が等しい
-  { a.Dimension_ == b.Dimension_ };
-
-  // 左右のサイズが等しい
-  { a.TotalSize_ == b.TotalSize_ };
-
-  // 左右の形状が等しい
-  { a.Shapes_ == b.Shapes_ };
+requires{
+  { A::TotalSize_ };
 };
 }
 

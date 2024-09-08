@@ -71,3 +71,14 @@ TEST(NArrayTest, AsTypeConversion)
     }
   }
 }
+
+TEST(NArrayTest, SingleElementArray)
+{
+  using namespace nagato;
+
+  // NagatoArray の作成
+  const auto a = na::NagatoArray<int, 1, 1, 1>(1);
+
+  // 正しい初期化が行われているかの確認
+  EXPECT_EQ(a(0, 0, 0), 1);
+}

@@ -115,6 +115,11 @@ const T &NagatoArrayInner<T, N...>::operator()(Args... args) const
 template<typename ArrayType>
 void Show_impl(const ArrayType &array)
 {
+  static_assert(
+    array_c<ArrayType>,
+    "Show function is only supported for NagatoArrayFamily"
+  );
+
   if constexpr (ArrayType::Dimension_ == 1)
   {
     std::cout << "[";
@@ -155,14 +160,6 @@ void Show(const ArrayType &array)
   std::cout << std::endl;
 }
 
-
-// -----------------------------------------------------------------------------
-
-template<typename T, size_t... N>
-NagatoArrayInner<T, N...>::NagatoArrayInner(std::span<T> data)
-{
-  this->data = data;
-}
 
 // -----------------------------------------------------------------------------
 
