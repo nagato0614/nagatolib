@@ -419,36 +419,10 @@ void Show(const ArrayType &array);
 template<typename ConvertType, typename ArrayType>
 auto AsType(const ArrayType &array)
 -> typename ArrayType::template AsType<ConvertType>;
-// -----------------------------------------------------------------------------
-
-/**
- * NagatoArray の同士の加算
- * 形状が違う場合はブロードキャストして計算する
- * @tparam L
- * @tparam R
- * @param lhs
- * @param rhs
- * @return
- */
-template<typename L, typename R>
-auto operator+(const L &lhs, const R &rhs)
-{
-  // 左辺値が NagatoArrayFamily であることを確認
-  static_assert(
-    array_c<L>,
-    "lhs is not NagatoArrayFamily"
-  );
-
-  // 右辺値が NagatoArrayFamily であることを確認
-  static_assert(
-    array_c<R>,
-    "rhs is not NagatoArrayFamily"
-  );
-
-}
 
 } // namespace nagato::na
 
 #include "narray_impl.hpp"
+#include "narray_functions.hpp"
 
 #endif //NAGATOLIB_SRC_NARRAY_HPP_
