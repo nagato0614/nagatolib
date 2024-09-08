@@ -51,7 +51,7 @@ NagatoArray<T, N...> Fill(T value)
 {
   // Tが数値演算可能な型であるかどうかを判定する
   static_assert(
-    NagatoArithmetic<T>,
+    nagato_arithmetic_c<T>,
     "T is not arithmetic"
   );
 
@@ -304,7 +304,7 @@ auto AsType(const ArrayType &array)
 -> typename ArrayType::template AsType<ConvertType>
 {
   // ConvertType が算術型かどうかを判定する
-  static_assert(NagatoArithmetic<ConvertType>);
+  static_assert(nagato_arithmetic_c<ConvertType>);
 
   using ConvertArrayType = typename ArrayType::template AsType<ConvertType>;
 

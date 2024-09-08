@@ -30,7 +30,7 @@ namespace nagato::na
  */
 template<typename L, typename R, typename F>
 auto Transform(const L &lhs, const R &rhs, F op)
--> typename L::template AsType<L::ValueType>
+-> typename L::template AsType<typename L::ValueType>
 {
   // 左辺値が NagatoArrayFamily であることを確認
   static_assert(
@@ -38,26 +38,36 @@ auto Transform(const L &lhs, const R &rhs, F op)
     "lhs is not NagatoArrayFamily"
   );
 
-  // 右辺値が NagatoArrayFamily であることを確認
+  // op が関数オブジェクトであることを確認
   static_assert(
-    array_c<R>,
-    "rhs is not NagatoArrayFamily"
+    is_callable_c<F>,
+    "op is not callable"
   );
 
-  // opが関数であることを確認
-  static_assert(
-    std::is_function_v<F>,
-    "op is not function"
-  );
-
-  // 形状が同じであることを確認
-  static_assert(
-    lhs.TotalSize_ == rhs.TotalSize_,
-    "Shape is not match"
-  );
-
-  using ReturnType = L::template AsType<L::ValueType>;
+  using ReturnType = typename L::template AsType<typename L::ValueType>;
   ReturnType result;
+
+  // 両方が NagatoArrayFamily の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    // 形状が同じであることを確認
+    static_assert(
+      L::TotalSize_ == R::TotalSize_,
+      "Shape is not match"
+    );
+
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = static_cast<L::ValueType>(op(lhs.data[i], rhs.data[i]));
+    }
+  }
+  else if (array_c<L> && !array_c<R>)
+  {
+    for (std::size_t i = 0; i < lhs.TotalSize_; ++i)
+    {
+      result.data[i] = static_cast<L::ValueType>(op(lhs.data[i], rhs));
+    }
+  }
 
   return result;
 }

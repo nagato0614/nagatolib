@@ -82,3 +82,60 @@ TEST(NArrayTest, SingleElementArray)
   // 正しい初期化が行われているかの確認
   EXPECT_EQ(a(0, 0, 0), 1);
 }
+
+TEST(NArrayTest, ArrayTransformAddition)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+
+  // 2つの配列の要素ごとに加算する
+  const auto c =
+    na::Transform(a,
+                  b,
+                  [](auto x, auto y)
+                  { return x + y; }
+    );
+
+  // 各要素が正しく加算されているかをチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 6.0f);  // 4 + 2 = 6
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, ArrayTransformAdditionWithScaler)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4.f);
+
+  // 2つの配列の要素ごとに加算する
+  const auto c =
+    na::Transform(a,
+                  3,
+                  [](auto x, auto y)
+                  { return x + y; }
+    );
+
+  // 各要素が正しく加算されているかをチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 7.0f);  // 4 + 2 = 6
+      }
+    }
+  }
+}

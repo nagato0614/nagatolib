@@ -10,7 +10,7 @@ namespace nagato::na
 {
 
 template<typename T>
-concept NagatoArithmetic =
+concept nagato_arithmetic_c =
 std::same_as<T, bool> ||
   std::same_as<T, char> ||
   std::same_as<T, unsigned char> ||
@@ -42,6 +42,16 @@ concept array_size_c =
 requires{
   { A::TotalSize_ };
 };
+
+
+// 関数として呼び出し可能かを確認する
+template<typename F>
+concept is_callable_c =
+requires(F f)
+{
+  f(0, 0);
+};
+
 }
 
 #endif //NAGATOLIB_SRC_NARRAY_CONCEPTS_HPP_

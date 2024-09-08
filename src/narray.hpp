@@ -83,7 +83,7 @@ struct NagatoArraySlice
   static constexpr std::size_t Dimension_ = 1; \
   static constexpr std::array<std::size_t, Dimension_> Shapes_ = {N}; \
   static constexpr std::size_t TotalSize_ = N;    \
-  static_assert(NagatoArithmetic<T>);             \
+  static_assert(nagato_arithmetic_c<T>);             \
   static_assert(Dimension_ > 0);
 
 // 内部定数作成マクロ (多次元用)
@@ -91,7 +91,7 @@ struct NagatoArraySlice
   static constexpr std::size_t Dimension_ = sizeof...(DIMENSION); \
   static constexpr std::array<std::size_t, Dimension_> Shapes_ = { DIMENSION...}; \
   static constexpr std::size_t TotalSize_ = ( N * ...); \
-  static_assert(NagatoArithmetic<T>); \
+  static_assert(nagato_arithmetic_c<T>); \
   static_assert(Dimension_ > 0);
 
 // -----------------------------------------------------------------------------
