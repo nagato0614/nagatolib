@@ -57,6 +57,34 @@ auto Transform(const L &lhs,
 
 // -----------------------------------------------------------------------------
 
+template<typename L, typename F>
+auto Transform(const L &lhs, F op) -> typename L::template AsType<typename L::ValueType>
+{
+  // op が関数オブジェクトであることを確認
+  static_assert(
+    is_callable_one_c<F>,
+    "op is not callable"
+  );
+
+  static_assert
+    (
+      array_c<L>,
+      "L is not NagatoArray"
+    );
+
+  using ReturnType = typename L::template AsType<typename L::ValueType>;
+  ReturnType result;
+
+  for (std::size_t i = 0; i < L::TotalSize_; ++i)
+  {
+    result.data[i] = static_cast<L::ValueType>(op(lhs.data[i]));
+  }
+
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+
 template<typename ConvertType, typename ArrayType>
 auto AsType(const ArrayType &array)
 -> typename ArrayType::template AsType<ConvertType>
@@ -156,7 +184,6 @@ auto Copy(const ArrayType &array)
 
 // -----------------------------------------------------------------------------
 
-
 template<typename T, size_t... N>
 NagatoArray<T, N...> Fill(T value)
 {
@@ -168,6 +195,111 @@ NagatoArray<T, N...> Fill(T value)
 
   return NagatoArray<T, N...>(value);
 }
+
+// -----------------------------------------------------------------------------
+
+template<typename L, typename R>
+auto operator+(const L &lhs, const R &rhs)
+{
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return Transform(lhs, rhs, [](auto a, auto b)
+    { return a + b; });
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a + rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return a + lhs; });
+  }
+}
+
+// -----------------------------------------------------------------------------
+template<typename L, typename R>
+auto operator-(const L &lhs, const R &rhs)
+{
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return Transform(lhs, rhs, [](auto a, auto b)
+    { return a - b; });
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a - rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return a - lhs; });
+  }
+}
+
+// -----------------------------------------------------------------------------
+
+template<typename L, typename R>
+auto operator*(const L &lhs, const R &rhs)
+{
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return Transform(lhs, rhs, [](auto a, auto b)
+    { return a * b; });
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return Transform(lhs, [rhs](auto a)
+    { return a * rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return a * lhs; });
+  }
+}
+
+// -----------------------------------------------------------------------------
+
+template<typename L, typename R>
+auto operator/(const L &lhs, const R &rhs)
+{
+  // 左辺値がArray型, 右辺値がArray型の場合
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return Transform(lhs, rhs, [](auto a, auto b)
+    { return a / b; });
+  }
+    // 左辺値がArray型, 右辺値が数値型の場合
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    if (rhs == 0)
+    {
+      throw std::runtime_error("Division by zero");
+    }
+    return Transform(lhs, [rhs](auto a)
+    { return a / rhs; });
+  }
+    // 左辺値が数値型, 右辺値がArray型の場合
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return Transform(rhs, [lhs](auto a)
+    { return lhs / a; });
+  }
+}
+
+// -----------------------------------------------------------------------------
 
 }
 

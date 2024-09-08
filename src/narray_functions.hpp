@@ -10,6 +10,7 @@
 #include <array>
 #include <numeric>
 #include <cassert>
+#include <algorithm>
 
 #include "narray.hpp"
 #include "narray_concepts.hpp"
@@ -36,30 +37,7 @@ auto Transform(const L &lhs, const R &rhs, F op)
 
 template<typename L, typename F>
 auto Transform(const L &lhs, F op)
--> typename L::template AsType<typename L::ValueType>
-{
-  // op が関数オブジェクトであることを確認
-  static_assert(
-    is_callable_one_c<F>,
-    "op is not callable"
-  );
-
-  static_assert
-    (
-      array_c<L>,
-      "L is not NagatoArray"
-    );
-
-  using ReturnType = typename L::template AsType<typename L::ValueType>;
-  ReturnType result;
-
-  for (std::size_t i = 0; i < L::TotalSize_; ++i)
-  {
-    result.data[i] = static_cast<L::ValueType>(op(lhs.data[i]));
-  }
-
-  return result;
-}
+-> typename L::template AsType<typename L::ValueType>;
 
 // -----------------------------------------------------------------------------
 
@@ -120,6 +98,75 @@ auto Copy(const ArrayType &array);
 
 // -----------------------------------------------------------------------------
 
+/**
+ * NagatoArray の要素を足し算する
+ * @tparam Primitive
+ * @tparam size
+ * @param a
+ * @param b
+ * @return
+ */
+template<typename L, typename R>
+auto operator+(const L &lhs, const R &rhs);
+
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を引き算する
+ * @tparam Primitive
+ * @tparam size
+ * @param a
+ * @param b
+ * @return
+ */
+template<typename L, typename R>
+auto operator-(const L &lhs, const R &rhs);
+
+// -----------------------------------------------------------------------------
+
+/**
+ * NagatoArray の要素を掛け算する
+ * @tparam Primitive
+ * @tparam size
+ * @param a
+ * @param b
+ * @return
+ */
+template<typename L, typename R>
+auto operator*(const L &lhs, const R &rhs);
+
+// -----------------------------------------------------------------------------
+/**
+ * NagatoArray の要素を割り算する
+ * @tparam Primitive
+ * @tparam size
+ * @param a
+ * @param b
+ * @return
+ */
+template<typename L, typename R>
+auto operator/(const L &lhs, const R &rhs);
+// -----------------------------------------------------------------------------
+
+template<typename L, typename R>
+bool operator==(const L &lhs, const R &rhs)
+{
+
+  if constexpr (array_c<L> && array_c<R>)
+  {
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+  }
+  else if constexpr (array_c<L> && nagato_arithmetic_c<R>)
+  {
+    return std::all_of(lhs.begin(), lhs.end(), [rhs](auto a)
+    { return a == rhs; });
+  }
+  else if constexpr (nagato_arithmetic_c<L> && array_c<R>)
+  {
+    return std::all_of(rhs.begin(), rhs.end(), [lhs](auto a)
+    { return a == lhs; });
+  }
+}
 }
 
 #include "narray_functions_impl.hpp"

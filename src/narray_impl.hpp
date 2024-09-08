@@ -23,7 +23,8 @@ NagatoArray<T, N...>::NagatoArray(T value)
     data.get(),
     data.get() + TotalSize_,
     data.get(),
-    [value](T v) { return value; }
+    [value](T v)
+    { return value; }
   );
 }
 // -----------------------------------------------------------------------------
@@ -34,7 +35,8 @@ NagatoArray<T, N>::NagatoArray(T value)
     data.get(),
     data.get() + TotalSize_,
     data.get(),
-    [value](T v) { return value; }
+    [value](T v)
+    { return value; }
   );
 }
 // -----------------------------------------------------------------------------
@@ -212,7 +214,6 @@ T &NagatoArrayInner<T, N>::operator()(std::size_t index)
 
 
 // -----------------------------------------------------------------------------
-
 
 }
 

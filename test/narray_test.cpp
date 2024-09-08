@@ -137,3 +137,137 @@ TEST(NArrayTest, TransformSingleArray)
     }
   }
 }
+
+TEST(NArrayTest, ArrayAddition)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+
+  // 配列同士の加算
+  const auto c = a + b;
+
+  // 配列とスカラーの加算
+  const auto d = a + 3;
+  const auto e = 4 + a;
+
+  // それぞれの結果をチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 6.0f);  // 4 + 2 = 6
+        EXPECT_EQ(d(i, j, k), 7.0f);  // 4 + 3 = 7
+        EXPECT_EQ(e(i, j, k), 8.0f);  // 4 + 4 = 8
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, ArraySubtraction)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+
+  // 配列同士の減算
+  const auto c = a - b;
+
+  // 配列とスカラーの減算
+  const auto d = a - 3;
+  const auto e = 4 - a;
+
+  // それぞれの結果をチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 2.0f);  // 4 - 2 = 2
+        EXPECT_EQ(d(i, j, k), 1.0f);  // 4 - 3 = 1
+        EXPECT_EQ(e(i, j, k), 0.0f);  // 4 - 4 = 0
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, ArrayMultiplication)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+
+  // 配列同士の乗算
+  const auto c = a * b;
+
+  // 配列とスカラーの乗算
+  const auto d = a * 3;
+  const auto e = 4 * a;
+
+  // それぞれの結果をチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 8.0f);  // 4 * 2 = 8
+        EXPECT_EQ(d(i, j, k), 12.0f); // 4 * 3 = 12
+        EXPECT_EQ(e(i, j, k), 16.0f); // 4 * 4 = 16
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, ArrayDivision)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+
+  // 配列同士の除算
+  const auto c = a / b;
+
+  // 配列とスカラーの除算
+  const auto d = a / 2;
+  const auto e = 8 / a;
+
+  // それぞれの結果をチェック
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      for (int k = 0; k < 3; ++k)
+      {
+        EXPECT_EQ(c(i, j, k), 2.0f);  // 4 / 2 = 2
+        EXPECT_EQ(d(i, j, k), 2.0f);  // 4 / 2 = 2
+        EXPECT_EQ(e(i, j, k), 2.0f);  // 8 / 4 = 2
+      }
+    }
+  }
+}
+
+TEST(NArrayTest, ArrayEquality)
+{
+  using namespace nagato;
+
+  // 3x3x3 の NagatoArray を初期化
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
+  const auto b = na::NagatoArray<float, 3, 3, 3>(2);
+  const auto c = na::NagatoArray<float, 3, 3, 3>(4);
+
+  // 配列同士の比較
+  EXPECT_FALSE(a == b);  // a と b は異なるため false
+  EXPECT_TRUE(a == c);   // a と c は同じため true
+}

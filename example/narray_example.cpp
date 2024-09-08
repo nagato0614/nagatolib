@@ -9,13 +9,8 @@ int main(int argc, char *argv[])
 {
   using namespace nagato;
 
-  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
-
-  const auto c = na::Transform(a,
-                               [](auto v)
-                               { return v * 2; }
-  );
-  na::Show(c);
+  auto a = na::Fill<float, 4, 4>(1.5f);
+  auto b = na::Fill<float, 4, 4>(2.5f);
 
   return 0;
 }
