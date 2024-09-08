@@ -43,10 +43,16 @@ requires{
   { A::TotalSize_ };
 };
 
-
 // 関数として呼び出し可能かを確認する
 template<typename F>
-concept is_callable_c =
+concept is_callable_one_c =
+requires(F f)
+{
+  f(0);
+};
+
+template<typename F>
+concept is_callable_two_c =
 requires(F f)
 {
   f(0, 0);

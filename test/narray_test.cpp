@@ -112,29 +112,27 @@ TEST(NArrayTest, ArrayTransformAddition)
   }
 }
 
-TEST(NArrayTest, ArrayTransformAdditionWithScaler)
+TEST(NArrayTest, TransformSingleArray)
 {
   using namespace nagato;
 
   // 3x3x3 の NagatoArray を初期化
-  const auto a = na::NagatoArray<float, 3, 3, 3>(4.f);
+  const auto a = na::NagatoArray<float, 3, 3, 3>(4);
 
-  // 2つの配列の要素ごとに加算する
-  const auto c =
-    na::Transform(a,
-                  3,
-                  [](auto x, auto y)
-                  { return x + y; }
-    );
+  // 配列の各要素を2倍にするTransformを適用
+  const auto c = na::Transform(a,
+                               [](auto v)
+                               { return v * 2; }
+  );
 
-  // 各要素が正しく加算されているかをチェック
+  // 各要素が正しく2倍になっているかを確認
   for (int i = 0; i < 3; ++i)
   {
     for (int j = 0; j < 3; ++j)
     {
       for (int k = 0; k < 3; ++k)
       {
-        EXPECT_EQ(c(i, j, k), 7.0f);  // 4 + 2 = 6
+        EXPECT_EQ(c(i, j, k), 8.0f);  // 4 * 2 = 8
       }
     }
   }

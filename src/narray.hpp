@@ -377,48 +377,7 @@ class NagatoArrayInner<T, N>
 
 // -----------------------------------------------------------------------------
 
-/**
- * 指定した値で NagatoArray を初期化する
- * @tparam T
- * @tparam N
- * @param value
- * @return
- */
-template<typename T, std::size_t... N>
-NagatoArray<T, N...> Fill(T value);
 
-// -----------------------------------------------------------------------------
-
-template<typename T, std::size_t N>
-NagatoArray<T, N> Zeros();
-
-// -----------------------------------------------------------------------------
-
-template<typename ArrayType>
-auto Copy(const ArrayType &array);
-
-// -----------------------------------------------------------------------------
-
-/**
- * NagatoArray の要素を表示する
- * @tparam ArrayType
- * @param array
- */
-template<typename ArrayType>
-void Show(const ArrayType &array);
-
-// -----------------------------------------------------------------------------
-
-/**
- * NagatoArray 型を変える
- * @tparam ConvertType
- * @tparam ArrayType
- * @param array
- * @return
- */
-template<typename ConvertType, typename ArrayType>
-auto AsType(const ArrayType &array)
--> typename ArrayType::template AsType<ConvertType>;
 
 } // namespace nagato::na
 

@@ -11,9 +11,9 @@ int main(int argc, char *argv[])
 
   const auto a = na::NagatoArray<float, 3, 3, 3>(4);
 
-  const auto c = na::Transform(a, 10,
-                               [](auto v, auto w)
-                               { return v + w; }
+  const auto c = na::Transform(a,
+                               [](auto v)
+                               { return v * 2; }
   );
   na::Show(c);
 
