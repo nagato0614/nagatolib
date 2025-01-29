@@ -1,6 +1,6 @@
 #include <metal_stdlib>
 #include <metal_compute>
-
+#include <metal_atomic>  // atomic_float使用
 #include "../Metal/metal_common.hpp"
 using namespace metal;
 
@@ -98,3 +98,60 @@ kernel void sum_arrays(
   output[index] = sum;
 }
 
+
+/**
+ * 1カーネルで配列の総和を求めるサンプル.
+ *   - 「atomic_float」が使用できない環境を想定し、atomic_uintによるビットパニングで実装.
+ *   - グループ内で部分和をまとめた後、グループ代表がatomicsでglobalSum[0]へ加算します.
+ *
+ * buffer(0): device const float*  (入力配列)
+ * buffer(1): device uint*         (最終的な総和をビット形式で貯める領域/要素数=1)
+ * buffer(2): constant uint*       (params[0] = 配列の長さ(arraySize), params[1] = 全スレッド数)
+ * threadgroup(0): float*          (スレッドグループ内共有メモリ)
+ */
+kernel void sum_arrays_full(
+  device const float* input       [[ buffer(0) ]],
+  device atomic_uint* globalSum   [[ buffer(1) ]],
+  constant uint*      params      [[ buffer(2) ]],
+  threadgroup float*  sharedMem   [[ threadgroup(0) ]],
+  uint tid                        [[ thread_position_in_threadgroup ]],
+  uint groupId                    [[ threadgroup_position_in_grid ]],
+  uint threadsPerThreadgroup      [[ threads_per_threadgroup ]]
+)
+{
+  // params配列から取得
+  uint arraySize   = params[0]; // 配列の長さ
+  uint totalThreads= params[1]; // 全グリッド合計のスレッド数
+
+  // グローバルIDを算出 (1次元dispatch想定)
+  uint globalId = groupId * threadsPerThreadgroup + tid;
+
+  // まず各スレッドが自分の担当分を足し合わせる
+  float localSum = 0.0f;
+  for (uint i = globalId; i < arraySize; i += totalThreads) {
+    localSum += input[i];
+  }
+
+  // スレッドグループ内共有メモリへ書き込み
+  sharedMem[tid] = localSum;
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+
+  // グループ内リダクション
+  //  典型的な手法で半分ずつ足し合わせていく
+  for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
+    if (tid < offset) {
+      sharedMem[tid] += sharedMem[tid + offset];
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+  }
+
+  // グループ内スレッド0だけがatomicsで加算
+  //  ここでは "ビットをuintに変換して" 加算している点に注意.
+  if (tid == 0) {
+    float groupSum = sharedMem[0];
+    // float -> uint へビットパニング
+    uint bitsToAdd = as_type<uint>(groupSum);
+
+    atomic_fetch_add_explicit(globalSum, bitsToAdd, memory_order_relaxed);
+  }
+}

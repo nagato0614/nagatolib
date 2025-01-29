@@ -92,6 +92,9 @@ void sum_example()
     // ランダムに値を設定
     std::random_device rnd;
     a[i] = static_cast<float>(rnd()) / static_cast<float>(rnd.max());
+
+    // 0 ~ 1 の範囲で正規化
+    a[i] = a[i] / static_cast<float>(rnd.max());
   }
 
   float cpu_sum = 0;
@@ -166,10 +169,113 @@ void sum_example()
   }
 }
 
+void sum_example_2()
+{
+  std::cout << "--- sum_example_2 (single-kernel reduction) ---" << std::endl;
+
+  // 1) 入力配列をCPU側で用意
+  auto a = std::make_unique<float[]>(array_length);
+  {
+    std::random_device rnd;
+    for (std::size_t i = 0; i < array_length; i++)
+    {
+      // 0～1範囲の乱数
+      a[i] = static_cast<float>(rnd()) / static_cast<float>(rnd.max());
+    }
+  }
+
+  // 2) CPUで総和を計算 & 時間計測
+  float cpu_sum = 0.0f;
+  {
+    const auto start_cpu = std::chrono::system_clock::now();
+    for (std::size_t i = 0; i < array_length; i++)
+    {
+      cpu_sum += a[i];
+    }
+    const auto end_cpu = std::chrono::system_clock::now();
+    const auto elapsed_cpu =
+      std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+    std::cout << "[CPU] sum=" << cpu_sum
+              << " , time=" << elapsed_cpu << " us" << std::endl;
+  }
+
+  // 3) Metal の準備
+  //    linear_algebra.metal 内に定義したカーネル "sum_arrays_full" をロード
+  nagato::mtl::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
+  auto metal_function_base
+    = metal_base.CreateFunctionBase("sum_arrays_full", array_length);
+
+  // 4) バッファの作成
+  //    入力用バッファ (配列a)
+  auto buffer_a = metal_function_base->CreateBuffer<float>(array_length);
+  buffer_a.CopyToDevice(a.get(), array_length);
+
+  //    原子加算 (atomic_uint) 用のバッファ (要素1)
+  //    カーネル内で最終的な合計値をビット変換して加算していく
+  auto buffer_globalSum = metal_function_base->CreateBuffer<unsigned int>(1);
+  buffer_globalSum[0] = 0; // 初期値 0
+
+  //    カーネルに渡すパラメータ [arraySize, totalThreads]
+  auto buffer_params = metal_function_base->CreateBuffer<unsigned int>(2);
+  buffer_params[0] = static_cast<unsigned int>(array_length); // arraySize
+
+  // 5) スレッドグループとスレッド総数の計算
+  //    1次元ディスパッチで、groupCount × threadsPerGroup = totalThreads
+  const uint threadsPerGroup = 256;
+  const uint groupCount = (array_length + threadsPerGroup - 1) / threadsPerGroup;
+  uint totalThreads = groupCount * threadsPerGroup;
+  buffer_params[1] = totalThreads; // totalThreads
+
+  // 6) 作成したバッファをカーネルに紐付け
+  //    ( index = 0,1,2 は sum_arrays_fullカーネルの定義に合わせる )
+  metal_function_base->SetBuffer(buffer_a,         0, 0);
+  metal_function_base->SetBuffer(buffer_globalSum, 0, 1);
+  metal_function_base->SetBuffer(buffer_params,    0, 2);
+
+  // 7) 実行時のグリッドサイズ & スレッドグループサイズを設定
+  MTL::Size grid_size         = MTL::Size(totalThreads, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
+
+  // 8) GPU でカーネルを実行 & 時間計測
+  const auto start_gpu = std::chrono::system_clock::now();
+  metal_function_base->ExecuteKernel(grid_size, thread_group_size);
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 9) 結果 (atomic_uint) を float に再変換
+  unsigned int bits = buffer_globalSum[0];
+  float gpu_sum = static_cast<float>(bits);
+
+  // 10) 結果を表示
+  std::cout << "[GPU] sum=" << gpu_sum
+            << " , time=" << elapsed_gpu << " us" << std::endl;
+
+  // 誤差をチェック
+  float diff = std::abs(cpu_sum - gpu_sum);
+  if (diff > 1.0f) // 値の大きさ次第で多少の誤差は出やすいため、判定をある程度緩めに
+  {
+    std::cerr << "Error: CPU sum=" << cpu_sum
+              << " vs GPU sum=" << gpu_sum
+              << " (diff=" << diff << ")" << std::endl;
+  }
+  else
+  {
+    std::cout << "OK: diff=" << diff << std::endl;
+  }
+}
+
+
 int main()
 {
-  std::cout << "--- add_example ---" << std::endl;
-  add_example();
+//  std::cout << "--- add_example ---" << std::endl;
+//  add_example();
+//
+//  std::cout << "--- sum_example ---" << std::endl;
+//  sum_example();
 
+  std::cout << "--- sum_example_2 ---" << std::endl;
+  sum_example_2();
   return 0;
 }
