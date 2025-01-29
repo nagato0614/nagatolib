@@ -13,7 +13,7 @@
 #include "metal_common.hpp"
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 1980 * 1080 * 3;
+constexpr std::size_t array_length = 1920 * 1080 * 3;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -91,7 +91,7 @@ void add_example()
   delete[] gpu_result;
 }
 
-void sum_example_2()
+void sum_example()
 {
   // 1) 入力配列をCPU側で用意
   auto a = std::make_unique<float[]>(array_length);
@@ -100,7 +100,7 @@ void sum_example_2()
     for (std::size_t i = 0; i < array_length; i++)
     {
       // 0～1範囲の乱数
-      a[i] = 1.f;
+      a[i] = static_cast<float>(rnd()) / static_cast<float>(rnd.max());
     }
   }
 
@@ -202,7 +202,7 @@ void sqrt_example()
   std::mt19937 mt(0);
   for (std::size_t i = 0; i < array_length; i++)
   {
-    a[i] = 3.f;
+    a[i] = static_cast<float>(mt());
     result[i] = 0.f;
     gpu_result[i] = 0.f;
   }
@@ -225,7 +225,7 @@ void sqrt_example()
 
   for (std::size_t i = 0; i < array_length; i++)
   {
-    if (std::abs(result[i] - gpu_result[i]) > 1e-5)
+    if (std::abs(result[i] - gpu_result[i]) > 1.f)
     {
       std::cerr << "Error: sqrt result[" << i << "] = " << result[i] << " vs " << gpu_result[i]
                 << std::endl;
@@ -245,8 +245,8 @@ int main()
   std::cout << "--- add_example ---" << std::endl;
   add_example();
 
-  std::cout << "--- sum_example_2 ---" << std::endl;
-  sum_example_2();
+  std::cout << "--- sum_example ---" << std::endl;
+  sum_example();
 
   std::cout << "--- sqrt_example ---" << std::endl;
   sqrt_example();

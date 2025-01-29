@@ -33,19 +33,23 @@ void MetalAdderFunction::operator()(
   auto bufferA = add_arrays_->CreateBuffer<float>(buffer_length_);
   auto bufferB = add_arrays_->CreateBuffer<float>(buffer_length_);
   auto bufferResult = add_arrays_->CreateBuffer<float>(buffer_length_);
+  auto bufferLength = add_arrays_->CreateBuffer<uint>(1);
 
+  auto buffer_length = static_cast<uint>(buffer_length_);
   // buffer にデータをコピー
   bufferA.CopyToDevice(inA, buffer_length_);
   bufferB.CopyToDevice(inB, buffer_length_);
+  bufferLength.CopyToDevice(&buffer_length, 1);
 
   // buffer を function にセット
   add_arrays_->SetBuffer(bufferA, 0, 0);
   add_arrays_->SetBuffer(bufferB, 0, 1);
   add_arrays_->SetBuffer(bufferResult, 0, 2);
+  add_arrays_->SetBuffer(bufferLength, 0, 3); // buffer_length をカーネルに渡す
 
   // スレッドグループサイズとグリッドサイズを設定
   const uint threadsPerGroup = DefaultThreadPerGroup;
-  uint threadGroups = (buffer_length_ + threadsPerGroup - 1) / threadsPerGroup;
+  uint threadGroups = ((buffer_length_ + DataSizePerThread - 1) / DataSizePerThread + threadsPerGroup - 1) / threadsPerGroup;
 
   MTL::Size grid_size = MTL::Size(threadsPerGroup * threadGroups, 1, 1);
   MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);

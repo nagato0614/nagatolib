@@ -7,20 +7,26 @@ using namespace metal;
 
 /**
  * 要素ごとの和を求める
- * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
  * @param inB
  * @param result
  * @param index
  * @return
  */
-kernel void add_arrays(device const float *inA,
-                       device const float *inB,
-                       device float *result,
+kernel void add_arrays(device const float *inA [[buffer(0)]],
+                       device const float *inB [[buffer(1)]],
+                       device float *result    [[buffer(2)]],
+                       constant uint &buffer_length,
                        uint index [[thread_position_in_grid]])
 {
-  result[index] = inA[index] + inB[index];
+  for (uint i = 0; i < DataSizePerThread; ++i) {
+    uint dataIndex = index * DataSizePerThread + i;
+    if (dataIndex < buffer_length) {
+      result[dataIndex] = inA[dataIndex] + inB[dataIndex];
+    }
+  }
 }
+
 
 /**
  * 要素ごとの差を求める
