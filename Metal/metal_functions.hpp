@@ -10,6 +10,8 @@
 namespace nagato::mtl
 {
 
+constexpr size_t DefaultThreadPerGroup = 256;
+
 class MLASingleton
 {
  public:
@@ -97,6 +99,21 @@ class MetalDivFunction
 };
 
 
+class MetalSqrtFunction
+{
+ public:
+  explicit MetalSqrtFunction(std::size_t length);
+  ~MetalSqrtFunction() = default;
+
+  void operator()(
+    const nFloat *inA,
+    nFloat *result
+  );
+
+ private:
+  std::size_t buffer_length_;
+  std::unique_ptr<MetalFunctionBase> sqrt_arrays_;
+};
 }
 
 #include "metal_functions_impl.hpp"

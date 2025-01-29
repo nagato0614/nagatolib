@@ -1,6 +1,7 @@
 #include <metal_stdlib>
 #include <metal_compute>
-#include <metal_atomic>  // atomic_float使用
+#include <metal_atomic>
+
 #include "../Metal/metal_common.hpp"
 using namespace metal;
 
@@ -35,7 +36,7 @@ kernel void sub_arrays(device const float *inA,
                        device float *result,
                        uint index [[thread_position_in_grid]])
 {
-  result[index] = inA[index] - inB[index];
+    result[index] = inA[index] - inB[index];
 }
 
 /**
@@ -52,7 +53,7 @@ kernel void mul_arrays(device const float *inA,
                        device float *result,
                        uint index [[thread_position_in_grid]])
 {
-  result[index] = inA[index] * inB[index];
+    result[index] = inA[index] * inB[index];
 }
 
 /**
@@ -68,36 +69,10 @@ kernel void mul_arrays(device const float *inA,
 kernel void div_arrays(device const float *inA,
                        device const float *inB,
                        device float *result,
-                       uint index [[thread_position_in_grid]]
-)
+                       uint index [[thread_position_in_grid]])
 {
-  result[index] = inA[index] / inB[index];
+    result[index] = inA[index] / inB[index];
 }
-
-// グループごとに総和を求める
-kernel void sum_arrays(
-  device const float *input [[buffer(0)]], // 入力配列
-  device float *output [[buffer(1)]],      // 出力配列 (総和)
-  device uint *array_size [[buffer(2)]],            // 配列の長さ
-  threadgroup float * buf [[threadgroup(0)]], // スレッドグループの共有メモリ
-  uint index [[thread_position_in_grid]] // スレッドのインデックス
-)
-{
-  // 1 スレッドあたり処理するデータ数
-  uint process_size = data_size_per_thread;
-
-  uint start = index * process_size;
-  uint end = start + process_size < *array_size ? start + process_size : *array_size;
-
-  // スレッドごとに総和を求める
-  float sum = 0;
-  for (uint i = start; i < end; i++)
-  {
-    sum += input[i];
-  }
-  output[index] = sum;
-}
-
 
 /**
  * 1カーネルで配列の総和を求めるサンプル.
@@ -110,48 +85,68 @@ kernel void sum_arrays(
  * threadgroup(0): float*          (スレッドグループ内共有メモリ)
  */
 kernel void sum_arrays_full(
-  device const float* input       [[ buffer(0) ]],
-  device atomic_uint* globalSum   [[ buffer(1) ]],
-  constant uint*      params      [[ buffer(2) ]],
-  threadgroup float*  sharedMem   [[ threadgroup(0) ]],
-  uint tid                        [[ thread_position_in_threadgroup ]],
-  uint groupId                    [[ threadgroup_position_in_grid ]],
-  uint threadsPerThreadgroup      [[ threads_per_threadgroup ]]
+    device const float* input       [[buffer(0)]],
+    device atomic_float* globalSum  [[buffer(1)]],
+    constant uint*      params      [[buffer(2)]],
+    threadgroup float*  sharedMem   [[threadgroup(0)]],
+    uint tid                        [[thread_position_in_threadgroup]],
+    uint groupId                    [[threadgroup_position_in_grid]],
+    uint threadsPerThreadgroup      [[threads_per_threadgroup]]
 )
 {
-  // params配列から取得
-  uint arraySize   = params[0]; // 配列の長さ
-  uint totalThreads= params[1]; // 全グリッド合計のスレッド数
+    // params配列から取得
+    uint arraySize    = params[0]; // 配列の長さ
+    uint totalThreads = params[1]; // 全グリッド合計のスレッド数
 
-  // グローバルIDを算出 (1次元dispatch想定)
-  uint globalId = groupId * threadsPerThreadgroup + tid;
+    // グローバルIDを算出 (1次元dispatch想定)
+    uint globalId = groupId * threadsPerThreadgroup + tid;
 
-  // まず各スレッドが自分の担当分を足し合わせる
-  float localSum = 0.0f;
-  for (uint i = globalId; i < arraySize; i += totalThreads) {
-    localSum += input[i];
-  }
-
-  // スレッドグループ内共有メモリへ書き込み
-  sharedMem[tid] = localSum;
-  threadgroup_barrier(mem_flags::mem_threadgroup);
-
-  // グループ内リダクション
-  //  典型的な手法で半分ずつ足し合わせていく
-  for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
-    if (tid < offset) {
-      sharedMem[tid] += sharedMem[tid + offset];
+    // まず各スレッドが自分の担当分を足し合わせる
+    float localSum = 0.0f;
+    for (uint i = globalId; i < arraySize; i += totalThreads) {
+        localSum += input[i];
     }
+
+    // スレッドグループ内共有メモリへ書き込み
+    sharedMem[tid] = localSum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
-  }
 
-  // グループ内スレッド0だけがatomicsで加算
-  //  ここでは "ビットをuintに変換して" 加算している点に注意.
-  if (tid == 0) {
-    float groupSum = sharedMem[0];
-    // float -> uint へビットパニング
-    uint bitsToAdd = as_type<uint>(groupSum);
+    // グループ内リダクション
+    /*
+     * リダクション（足し合わせの集約）の定番手法は、半分ずつ束ねていくという考え方です。
+     * たとえば threadsPerThreadgroup = 8 だとして、それぞれに部分和が入っていると仮定すると:
+     *
+     * 共有メモリ:
+     *          index:   0    1    2    3    4    5    6    7
+     *             -------------------------------------
+     * 初期値             v0   v1   v2   v3   v4   v5   v6   v7   (各tidの部分和)
+     * 1回目 (offset=4) v0+v4 v1+v5 v2+v6 v3+v7   (4~7は上書きされるが使わない)
+     * 2回目 (offset=2) (v0+v4)+(v2+v6)  (v1+v5)+(v3+v7)
+     * 3回目 (offset=1) 全体の合計  ...
+     *
+     * このように、ループを回すたびに offset を半分にしながら、下位の要素が上位の要素を足し込んでいく
+     * 最終的に sharedMem[0] にグループ全体の合計が残る
+     **/
+    for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
+        if (tid < offset) {
+            sharedMem[tid] += sharedMem[tid + offset];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
 
-    atomic_fetch_add_explicit(globalSum, bitsToAdd, memory_order_relaxed);
-  }
+    // グループ内スレッド0だけがatomicsで加算
+    //  ここでは "ビットをuintに変換して" 加算している点に注意.
+    if (tid == 0) {
+        float groupSum = sharedMem[0];
+
+        // メモリ同期性の向上
+        atomic_fetch_add_explicit(globalSum, groupSum, memory_order_relaxed);
+    }
+}
+
+kernel void sqrt_arrays(device const float *in,
+                       device float *out,
+                       uint index [[thread_position_in_grid]])
+{
+    out[index] = sqrt(in[index]);
 }

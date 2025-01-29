@@ -80,6 +80,11 @@ class MetalFunctionBase
 
   void ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size);
 
+  /**
+   * スレッドグループ共有メモリの確保
+   */
+   void SetThreadgroupMemoryLength(std::size_t length, int index);
+
  private:
   std::string kernel_file_name_;
   std::string kernel_function_name_;
