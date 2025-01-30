@@ -246,4 +246,48 @@ void MetalSumFunction::operator()(const nFloat *inA, nFloat *result)
   bufferResult.CopyToHost(result, 1);
 }
 
-} // namespace nagato::mtl
+MetalSoftmaxFunction::MetalSoftmaxFunction(std::size_t arrayLength)
+    : array_length_(arrayLength)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  softmax_ = base->CreateFunctionBase("softmax", arrayLength);
+}
+
+void MetalSoftmaxFunction::operator()(const float* inputArray, float* resultArray)
+{
+  // バッファの作成
+  auto bufferInput = softmax_->CreateBuffer<float>(array_length_);
+  auto bufferResult = softmax_->CreateBuffer<float>(array_length_);
+  auto bufferGlobalSum = softmax_->CreateBuffer<float>(1);
+  auto bufferArraySize = softmax_->CreateBuffer<uint>(1);
+
+  // バッファにデータをコピー
+  bufferInput.CopyToDevice(inputArray, array_length_);
+  bufferArraySize[0] = static_cast<uint>(array_length_);
+  
+  // バッファを関数にセット
+  softmax_->SetBuffer(bufferInput, 0, 0);
+  softmax_->SetBuffer(bufferResult, 0, 1);
+  softmax_->SetBuffer(bufferGlobalSum, 0, 2);
+  softmax_->SetBuffer(bufferArraySize, 0, 3);
+
+  // スレッドグループサイズとグリッドサイズを設定
+  const uint threadsPerGroup = 256;
+  const uint groupCount = (array_length_ + threadsPerGroup - 1) / threadsPerGroup;
+  uint totalThreads = groupCount * threadsPerGroup;
+  bufferArraySize[1] = totalThreads;
+
+  MTL::Size grid_size = MTL::Size(totalThreads, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
+
+  // グループ共有メモリの確保
+  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
+  softmax_->SetThreadgroupMemoryLength(shared_memory_size, 0);
+
+  // 関数の実行
+  softmax_->ExecuteKernel(grid_size, thread_group_size);
+
+  // 結果をコピー
+  bufferResult.CopyToHost(resultArray, array_length_);
+}
+}

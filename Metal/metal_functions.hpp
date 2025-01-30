@@ -144,6 +144,18 @@ class MetalSumFunction
 
 };
 
+class MetalSoftmaxFunction
+{
+public:
+    MetalSoftmaxFunction(std::size_t arrayLength);
+    void operator()(const float* inputArray, float* resultArray);
+
+private:
+    // メンバ変数の宣言
+    std::size_t array_length_;
+    std::unique_ptr<MetalFunctionBase> softmax_;
+};
+
 }
 
 #include "metal_functions_impl.hpp"

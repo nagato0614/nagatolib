@@ -13,7 +13,7 @@
 #include "metal_common.hpp"
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 1920 * 1080 * 3;
+constexpr std::size_t array_length = 1000 * 1000;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -37,6 +37,26 @@ void sqrt_arrays(const float *a, float *result, std::size_t length)
   {
     result[i] = std::sqrt(a[i]);
   }
+}
+
+void softmax_arrays(const float *a, float *result, std::size_t length)
+{
+    if (length == 0) return;
+
+    float max_val = *std::max_element(a, a + length);
+
+    float sum = 0.0f;
+    for (std::size_t i = 0; i < length; i++)  
+    {
+        result[i] = expf(a[i] - max_val) + 1e-30f;  // underflow 防止
+        sum += result[i];
+    }
+
+    float inv_sum = 1.0f / sum;
+    for (std::size_t i = 0; i < length; i++)
+    {
+        result[i] *= inv_sum;
+    }
 }
 
 void add_example()
@@ -197,15 +217,62 @@ void sqrt_example()
   delete[] gpu_result;
 }
 
+void softmax_example()
+{
+  // 入力配列をCPU側で用意
+  auto a = std::make_unique<float[]>(array_length);
+  auto cpu_result = std::make_unique<float[]>(array_length);
+  auto gpu_result = std::make_unique<float[]>(array_length);
+  {
+    std::random_device rnd;
+    for (std::size_t i = 0; i < array_length; i++)
+    {
+      a[i] = static_cast<float>(rnd());
+    }
+  }
+
+  // CPUでソフトマックスを計算 & 時間計測
+  const auto start_cpu = std::chrono::system_clock::now();
+  softmax_arrays(a.get(), cpu_result.get(), array_length);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  // GPUでソフトマックスを計算 & 時間計測
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalSoftmaxFunction metal_softmax_function(array_length);
+  metal_softmax_function(a.get(), gpu_result.get());
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    {
+      std::cerr << "Error: softmax result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
+                << std::endl;
+    }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+}
+
 int main()
 {
-  std::cout << "--- add_example ---" << std::endl;
-  add_example();
+  // std::cout << "--- add_example ---" << std::endl;
+  // add_example();
 
-  std::cout << "--- sum_example ---" << std::endl;
-  sum_example();
+  // std::cout << "--- sum_example ---" << std::endl;
+  // sum_example();
 
-  std::cout << "--- sqrt_example ---" << std::endl;
-  sqrt_example();
+  // std::cout << "--- sqrt_example ---" << std::endl;
+  // sqrt_example();
+
+  std::cout << "--- softmax_example ---" << std::endl;
+  softmax_example();
+
   return 0;
 }

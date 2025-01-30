@@ -61,6 +61,14 @@ void sum_arrays(const float *a, float *result, std::size_t length)
   }
 }
 
+void sqrt_array(const float *a, float *result, std::size_t length)
+{
+  for (std::size_t i = 0; i < length; i++)
+  {
+    result[i] = std::sqrt(a[i]);
+  }
+}
+
 TEST(MetalTest, add_arrays)
 {
   // GPU を使わない場合の計算
@@ -176,6 +184,55 @@ TEST(MetalTest, div_arrays)
   }
 }
 
+TEST(MetalTest, sum_arrays)
+{
+  // GPU を使わない場合の計算
+  std::unique_ptr<float[]> a(new float[array_length]);
+  std::unique_ptr<float[]> cpu_result(new float[1]);
+  std::unique_ptr<float[]> gpu_result(new float[1]);
+
+  // メルセンヌ・ツイスター法による乱数生成器
+  std::mt19937 mt(0);
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    a[i] = static_cast<float>(mt() / mt.max());
+  }
+
+  sum_arrays(a.get(), cpu_result.get(), array_length);
+
+  nagato::mtl::MetalSumFunction sum(array_length);
+  sum(a.get(), gpu_result.get());
+
+  ASSERT_EQ(cpu_result[0], gpu_result[0]);
+}
+
+TEST(MetalTest, sqrt_array)
+{
+  // GPU を使わない場合の計算
+  std::unique_ptr<float[]> a(new float[array_length]);
+  std::unique_ptr<float[]> cpu_result(new float[array_length]);
+  std::unique_ptr<float[]> gpu_result(new float[array_length]);
+
+  // メルセンヌ・ツイスター法による乱数生成器
+  std::mt19937 mt(0);
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    a[i] = static_cast<float>(mt());
+  }
+
+  sqrt_array(a.get(), cpu_result.get(), array_length);
+
+  nagato::mtl::MetalSqrtFunction sqrt(array_length);
+  sqrt(a.get(), gpu_result.get());
+
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    const auto diff = std::abs(cpu_result[i] - gpu_result[i]);
+    ASSERT_LT(diff, 1e-2);
+  }
+}
 
 
 #endif // NAGATO_METAL

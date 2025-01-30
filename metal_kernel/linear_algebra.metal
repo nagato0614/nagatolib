@@ -178,3 +178,103 @@ kernel void sqrt_arrays(device const float *in,
 {
     out[index] = sqrt(in[index]);
 }
+
+// kernel void softmax(
+//     device const float* input        [[buffer(0)]],
+//     device float*       output       [[buffer(1)]],
+//     device atomic_float* globalSum   [[buffer(2)]],
+//     constant uint&      arraySize    [[buffer(3)]],
+//     threadgroup float*  sharedMem    [[threadgroup(0)]],
+//     uint                tid          [[thread_position_in_threadgroup]],
+//     uint                groupId      [[threadgroup_position_in_grid]],
+//     uint                threadsPerThreadgroup [[threads_per_threadgroup]],
+//     uint                globalId     [[thread_position_in_grid]]
+// )
+// {
+//     // 配列の範囲内かチェック
+//     if (globalId >= arraySize) return;
+
+//     // 各スレッドが exp(x_i) を計算
+//     float expValue = exp(input[globalId]);
+
+//     // スレッドグループ内で部分和を計算
+//     sharedMem[tid] = expValue;
+//     threadgroup_barrier(mem_flags::mem_threadgroup);
+
+//     // リダクションによる部分和の計算
+//     for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
+//         if (tid < offset && (tid + offset) < threadsPerThreadgroup) {
+//             sharedMem[tid] += sharedMem[tid + offset];
+//         }
+//         threadgroup_barrier(mem_flags::mem_threadgroup);
+//     }
+
+//     // グループ内スレッド0がグローバル総和に加算
+//     if (tid == 0) {
+//         atomic_fetch_add_explicit(globalSum, sharedMem[0], memory_order_relaxed);
+//     }
+//     threadgroup_barrier(mem_flags::mem_threadgroup);
+
+//     // グローバル総和を取得
+//     float sum = atomic_load_explicit(globalSum, memory_order_relaxed);
+
+//     float inv_sum = 1.0f / globalSum;
+
+//     // ソフトマックスの計算
+//     output[globalId] = expValue * inv_sum;
+// }
+
+kernel void softmax(
+    device const float* input        [[buffer(0)]],
+    device float*       output       [[buffer(1)]],
+    device atomic_float* globalSum   [[buffer(2)]],
+    constant uint&      arraySize    [[buffer(3)]],
+    threadgroup float*  sharedMem    [[threadgroup(0)]],
+    uint                tid          [[thread_position_in_threadgroup]],
+    uint                groupId      [[threadgroup_position_in_grid]],
+    uint                threadsPerThreadgroup [[threads_per_threadgroup]],
+    uint                globalId     [[thread_position_in_grid]]
+)
+{
+    if (globalId >= arraySize) return;
+
+    // **ステップ 1: 最大値を求める**
+    float localMax = input[globalId];
+    localMax = simd_max(localMax);
+
+    // **スレッドグループ内で最大値を求める**
+    sharedMem[tid] = localMax;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    for (uint offset = threadsPerThreadgroup / 2; offset > 0; offset >>= 1) {
+        if (tid < offset) {
+            sharedMem[tid] = max(sharedMem[tid], sharedMem[tid + offset]);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    float maxVal = sharedMem[0];
+
+    // **ステップ 2: exp(x - max) を計算し、部分和を求める**
+    float expValue = exp(input[globalId] - maxVal) + 1e-30f;  // アンダーフロー防止
+    sharedMem[tid] = expValue;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    float localSum = simd_sum(expValue);
+    for (uint offset = threadsPerThreadgroup / 2; offset > 0; offset >>= 1) {
+        if (tid < offset) {
+            sharedMem[tid] += sharedMem[tid + offset];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    // **スレッドグループごとの部分和を 1 回だけ加算**
+    if (tid == 0) {
+        atomic_fetch_add_explicit(globalSum, sharedMem[0], memory_order_relaxed);
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    // **ステップ 3: 合計値を取得して Softmax 計算**
+    float sum = atomic_load_explicit(globalSum, memory_order_relaxed);
+    float inv_sum = 1.0f / sum;
+    output[globalId] = expValue * inv_sum;
+}
