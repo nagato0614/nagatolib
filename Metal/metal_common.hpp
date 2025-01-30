@@ -6,7 +6,7 @@
 #define NAGATOLIB_METAL_METAL_COMMON_HPP_
 
 // constant values
-#define DataSizePerThread (256)
+#define DataSizePerThread (4 * 8)
 
 // types
 using nFloat = float;

@@ -93,18 +93,17 @@ void add_example()
 
 void sum_example()
 {
-  // 1) 入力配列をCPU側で用意
+  // 入力配列をCPU側で用意
   auto a = std::make_unique<float[]>(array_length);
   {
     std::random_device rnd;
     for (std::size_t i = 0; i < array_length; i++)
     {
-      // 0～1範囲の乱数
-      a[i] = static_cast<float>(rnd()) / static_cast<float>(rnd.max());
+      a[i] = 1.0f / array_length;
     }
   }
 
-  // 2) CPUで総和を計算 & 時間計測
+  // CPUで総和を計算 & 時間計測
   float cpu_sum = 0.0f;
   {
     const auto start_cpu = std::chrono::system_clock::now();
@@ -120,59 +119,17 @@ void sum_example()
               << " , time=" << elapsed_cpu << " us" << std::endl;
   }
 
-  // 3) Metal の準備
-  //    linear_algebra.metal 内に定義したカーネル "sum_arrays_full" をロード
-  nagato::mtl::MetalBase metal_base("../metal_kernel/linear_algebra.metal");
-  auto metal_function_base
-    = metal_base.CreateFunctionBase("sum_arrays_full", array_length);
+  nagato::mtl::MetalSumFunction metal_sum_function(array_length);
 
-  // 4) バッファの作成
-  //    入力用バッファ (配列a)
-  auto buffer_a = metal_function_base->CreateBuffer<float>(array_length);
-  buffer_a.CopyToDevice(a.get(), array_length);
-
-  //    原子加算 (atomic_uint) 用のバッファ (要素1)
-  //    カーネル内で最終的な合計値をビット変換して加算していく
-  auto buffer_globalSum = metal_function_base->CreateBuffer<unsigned int>(1);
-  buffer_globalSum[0] = 0; // 初期値 0
-
-  //    カーネルに渡すパラメータ [arraySize, totalThreads]
-  auto buffer_params = metal_function_base->CreateBuffer<unsigned int>(2);
-  buffer_params[0] = static_cast<unsigned int>(array_length); // arraySize
-
-  // 5) スレッドグループとスレッド総数の計算
-  //    1次元ディスパッチで、groupCount × threadsPerGroup = totalThreads
-  const uint threadsPerGroup = 256;
-  const uint groupCount = (array_length + threadsPerGroup - 1) / threadsPerGroup;
-  uint totalThreads = groupCount * threadsPerGroup;
-  buffer_params[1] = totalThreads; // totalThreads
-
-  // 6) 作成したバッファをカーネルに紐付け
-  //    ( index = 0,1,2 は sum_arrays_fullカーネルの定義に合わせる )
-  metal_function_base->SetBuffer(buffer_a,         0, 0);
-  metal_function_base->SetBuffer(buffer_globalSum, 0, 1);
-  metal_function_base->SetBuffer(buffer_params,    0, 2);
-
-  // グループ共有メモリの確保
-  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
-  metal_function_base->SetThreadgroupMemoryLength(shared_memory_size, 0);
-
-  // 7) 実行時のグリッドサイズ & スレッドグループサイズを設定
-  MTL::Size grid_size         = MTL::Size(totalThreads, 1, 1);
-  MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
-
-  // 8) GPU でカーネルを実行 & 時間計測
+  float gpu_sum = 0.0f;
+  // GPU でカーネルを実行 & 時間計測
   const auto start_gpu = std::chrono::system_clock::now();
-  metal_function_base->ExecuteKernel(grid_size, thread_group_size);
+  metal_sum_function(a.get(), &gpu_sum);
   const auto end_gpu = std::chrono::system_clock::now();
   const auto elapsed_gpu =
     std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
 
-  // 9) 結果 (atomic_uint) を float に再変換
-  auto bits = buffer_globalSum[0];
-  float gpu_sum = *reinterpret_cast<float *>(&bits);
-
-  // 10) 結果を表示
+  // 結果を表示
   std::cout << "[GPU] sum=" << gpu_sum
             << " , time=" << elapsed_gpu << " us" << std::endl;
 

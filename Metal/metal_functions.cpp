@@ -49,10 +49,16 @@ void MetalAdderFunction::operator()(
 
   // スレッドグループサイズとグリッドサイズを設定
   const uint threadsPerGroup = DefaultThreadPerGroup;
-  uint threadGroups = ((buffer_length_ + DataSizePerThread - 1) / DataSizePerThread + threadsPerGroup - 1) / threadsPerGroup;
+  uint threadGroups =
+    ((buffer_length_ + DataSizePerThread - 1) / DataSizePerThread + threadsPerGroup - 1)
+      / threadsPerGroup;
 
   MTL::Size grid_size = MTL::Size(threadsPerGroup * threadGroups, 1, 1);
   MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
+
+  // グループ共有メモリの確保
+  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
+  add_arrays_->SetThreadgroupMemoryLength(shared_memory_size, 0);
 
   // 関数の実行
   add_arrays_->ExecuteKernel(grid_size, thread_group_size);
@@ -192,6 +198,52 @@ void MetalSqrtFunction::operator()(const nFloat *inA, nFloat *result)
 
   // 結果をコピー
   bufferResult.CopyToHost(result, buffer_length_);
+}
+
+MetalSumFunction::MetalSumFunction(std::size_t length)
+  : buffer_length_(length)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  sum_arrays_ = base->CreateFunctionBase("sum_arrays", buffer_length_);
+}
+
+void MetalSumFunction::operator()(const nFloat *inA, nFloat *result)
+{
+  // buffer の作成
+  auto bufferA = sum_arrays_->CreateBuffer<float>(buffer_length_);
+  auto bufferResult = sum_arrays_->CreateBuffer<float>(1);
+  auto buffer_params = sum_arrays_->CreateBuffer<unsigned int>(2);
+
+  // 結果を初期化
+  bufferResult[0] = 0.0f;
+  buffer_params[0] = static_cast<unsigned int>(this->buffer_length_); // arraySize
+
+  // buffer にデータをコピー
+  bufferA.CopyToDevice(inA, buffer_length_);
+
+  // buffer を function にセット
+  sum_arrays_->SetBuffer(bufferA, 0, 0);
+  sum_arrays_->SetBuffer(bufferResult, 0, 1);
+  sum_arrays_->SetBuffer(buffer_params, 0, 2);
+
+  // グループ共有メモリの確保
+  //    1次元ディスパッチで、groupCount × threadsPerGroup = totalThreads
+  const uint threadsPerGroup = 256;
+  const uint groupCount = (buffer_length_ + threadsPerGroup - 1) / threadsPerGroup;
+  uint totalThreads = groupCount * threadsPerGroup;
+  buffer_params[1] = totalThreads; // totalThreads
+  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
+  sum_arrays_->SetThreadgroupMemoryLength(shared_memory_size, 0);
+
+  // 実行時のグリッドサイズ & スレッドグループサイズを設定
+  MTL::Size grid_size = MTL::Size(totalThreads, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
+
+  // 関数の実行
+  sum_arrays_->ExecuteKernel(grid_size, thread_group_size);
+
+  // 結果をコピー
+  bufferResult.CopyToHost(result, 1);
 }
 
 } // namespace nagato::mtl

@@ -13,16 +13,38 @@ using namespace metal;
  * @param index
  * @return
  */
-kernel void add_arrays(device const float *inA [[buffer(0)]],
-                       device const float *inB [[buffer(1)]],
-                       device float *result    [[buffer(2)]],
-                       constant uint &buffer_length,
-                       uint index [[thread_position_in_grid]])
+kernel void add_arrays(device const float *inA         [[buffer(0)]],
+                       device const float *inB         [[buffer(1)]],
+                       device float       *result      [[buffer(2)]],
+                       constant uint      &buffer_length,
+                        uint              index        [[thread_position_in_grid]])
 {
-  for (uint i = 0; i < DataSizePerThread; ++i) {
+  // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+  // 4ずつ進めて simd_float4 で読み書き
+  for (uint i = 0; i < DataSizePerThread; i += 4) {
     uint dataIndex = index * DataSizePerThread + i;
-    if (dataIndex < buffer_length) {
-      result[dataIndex] = inA[dataIndex] + inB[dataIndex];
+
+    // 4要素まとめて処理可能かどうかをチェック
+    if (dataIndex + 3 < buffer_length) {
+      // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+      device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA + dataIndex);
+      device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB + dataIndex);
+      device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result + dataIndex);
+
+      simd_float4 aVal = *aPtr;
+      simd_float4 bVal = *bPtr;
+      *rPtr = aVal + bVal;
+    }
+    else
+    {
+      // buffer_length が 4 の倍数でない場合の端数処理
+      // 残りの要素を1つずつ処理する
+      for (uint j = 0; j < 4; ++j) {
+        uint idx = dataIndex + j;
+        if (idx < buffer_length) {
+          result[idx] = inA[idx] + inB[idx];
+        }
+      }
     }
   }
 }
@@ -90,7 +112,7 @@ kernel void div_arrays(device const float *inA,
  * buffer(2): constant uint*       (params[0] = 配列の長さ(arraySize), params[1] = 全スレッド数)
  * threadgroup(0): float*          (スレッドグループ内共有メモリ)
  */
-kernel void sum_arrays_full(
+kernel void sum_arrays(
     device const float* input       [[buffer(0)]],
     device atomic_float* globalSum  [[buffer(1)]],
     constant uint*      params      [[buffer(2)]],

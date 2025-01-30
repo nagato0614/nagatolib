@@ -30,6 +30,12 @@ class MLASingleton
   std::unique_ptr<MetalBase> metal_base_;
 };
 
+/**
+ * @brief MetalAdderFunction
+ *
+ * このクラスは要素ごとの加算をGPUで行うためのクラスです。
+ * 最適化されていないためこのクラスの利用は非推奨です.
+ */
 class MetalAdderFunction
 {
  public:
@@ -99,6 +105,12 @@ class MetalDivFunction
 };
 
 
+/**
+ * @brief MetalAdderFunction
+ *
+ * このクラスは要素ごとに, 平方根を求めるくらすです
+ * 最適化されていないためこのクラスの利用は非推奨です.
+ */
 class MetalSqrtFunction
 {
  public:
@@ -114,6 +126,24 @@ class MetalSqrtFunction
   std::size_t buffer_length_;
   std::unique_ptr<MetalFunctionBase> sqrt_arrays_;
 };
+
+class MetalSumFunction
+{
+ public:
+  explicit MetalSumFunction(std::size_t length);
+  ~MetalSumFunction() = default;
+
+  void operator()(
+    const nFloat *inA,
+    nFloat *result
+  );
+
+ private:
+  std::size_t buffer_length_;
+  std::unique_ptr<MetalFunctionBase> sum_arrays_;
+
+};
+
 }
 
 #include "metal_functions_impl.hpp"
