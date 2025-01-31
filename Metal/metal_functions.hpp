@@ -192,7 +192,6 @@ private:
     std::size_t m_;
     std::size_t l_;
     std::unique_ptr<MetalFunctionBase> matmul_;
-
 };
 
 } // namespace nagato::mtl

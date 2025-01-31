@@ -199,9 +199,7 @@ kernel void softmax(
 
     // **ステップ 1: 最大値を求める**
     float localMax = input[globalId];
-    localMax = simd_max(localMax);
-
-    // **スレッドグループ内で最大値を求める**
+    // 修正: スレッドグループ内での最大値を正しく求める
     sharedMem[tid] = localMax;
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
@@ -218,7 +216,7 @@ kernel void softmax(
     sharedMem[tid] = expValue;
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
-    float localSum = simd_sum(expValue);
+    // 修正: 部分和の計算を正しく行う
     for (uint offset = threadsPerThreadgroup / 2; offset > 0; offset >>= 1) {
         if (tid < offset) {
             sharedMem[tid] += sharedMem[tid + offset];
@@ -248,7 +246,7 @@ kernel void sigmoid_array(
     out[index] = 1.0f / (1.0f + exp(-x));
 }
 
-kernel void relu_arrays(
+kernel void relu_array(
     device const float * in  [[buffer(0)]],
     device       float * out [[buffer(1)]],
     constant uint &buffer_length  [[buffer(2)]],
@@ -282,80 +280,41 @@ kernel void relu_arrays(
     }
 }
 
-#include <metal_stdlib>
-using namespace metal;
-
-#define BLOCK_SIZE 16
-
-// 2D dispatch を想定したタイル分割行列積カーネル
-kernel void matmul_arrays(
-    device const float *a   [[buffer(0)]],  // 行列A: サイズ NxM
-    device const float *b   [[buffer(1)]],  // 行列B: サイズ MxL
-    device float       *out [[buffer(2)]],  // 結果C: サイズ NxL (出力先)
-    constant uint &N        [[buffer(3)]],  // Aの行数  (N)
-    constant uint &M        [[buffer(4)]],  // Aの列数 = Bの行数 (M)
-    constant uint &L        [[buffer(5)]],  // Bの列数 (L)
+/**
+ * A: NxM 行列 (row-major)
+ * B: MxL 行列 (row-major)
+ * C: NxL 行列 (row-major)
+ * N, M, L: 行列サイズ
+ * gid: グローバル座標 (x=列, y=行)
+ */
+kernel void matmul_array(
+    device const float *A [[buffer(0)]],
+    device const float *B [[buffer(1)]],
+    device float       *C [[buffer(2)]],
+    constant uint &N       [[buffer(3)]],
+    constant uint &M       [[buffer(4)]],
+    constant uint &L       [[buffer(5)]],
     
-    // 2D グリッド・2D スレッドグループを想定
-    ushort2 tgid  [[threadgroup_position_in_grid]],
-    ushort2 tid   [[thread_position_in_threadgroup]]
-    // threads_per_threadgroup は省略可
+    ushort2 gid [[thread_position_in_grid]]
 )
 {
-    // タイルを格納するための threadgroup メモリ (1次元配列を2次元的に使う)
-    threadgroup float blockA[BLOCK_SIZE * BLOCK_SIZE];
-    threadgroup float blockB[BLOCK_SIZE * BLOCK_SIZE];
+    // グローバル座標から 行(row) と 列(col) を取得
+    // gid.x : 列 (0..L-1), gid.y : 行 (0..N-1)
+    uint col = gid.x;
+    uint row = gid.y;
 
-    // タイル(ブロック)の先頭行・列を求める
-    uint rowBlock = tgid.y * BLOCK_SIZE;  // このスレッドグループが担当する行ブロック
-    uint colBlock = tgid.x * BLOCK_SIZE;  // このスレッドグループが担当する列ブロック
+    // 範囲外なら何もしない
+    if (col >= L || row >= N) {
+        return;
+    }
 
-    // タイル内でのローカル行・列
-    uint rowLocal = tid.y;
-    uint colLocal = tid.x;
-
-    // 実際のグローバルな行/列 (NxL のどこを担当するか)
-    uint globalRow = rowBlock + rowLocal;
-    uint globalCol = colBlock + colLocal;
-
-    // このスレッドが最終的に計算する要素 C[globalRow, globalCol]
+    // 素朴に行列積を計算
+    // C[row, col] = Σ (A[row, k] * B[k, col]) for k in [0..M-1]
     float sum = 0.0f;
-
-    // M次元方向を BLOCK_SIZE ずつスライドしながら計算
-    for (uint mStart = 0; mStart < M; mStart += BLOCK_SIZE) {
-        // A からタイルをロード
-        // blockA[rowLocal, colLocal] = A[globalRow, (mStart + colLocal)]
-        if (globalRow < N && (mStart + colLocal) < M) {
-            blockA[rowLocal * BLOCK_SIZE + colLocal] = a[globalRow * M + (mStart + colLocal)];
-        } else {
-            blockA[rowLocal * BLOCK_SIZE + colLocal] = 0.0f;
-        }
-
-        // B からタイルをロード
-        // blockB[rowLocal, colLocal] = B[(mStart + rowLocal), globalCol]
-        if ((mStart + rowLocal) < M && globalCol < L) {
-            blockB[rowLocal * BLOCK_SIZE + colLocal] = b[(mStart + rowLocal) * L + globalCol];
-        } else {
-            blockB[rowLocal * BLOCK_SIZE + colLocal] = 0.0f;
-        }
-
-        // タイルのロード完了を全スレッドで待機
-        threadgroup_barrier(mem_flags::mem_threadgroup);
-
-        // タイル内の積和
-        // blockA[rowLocal, k] * blockB[k, colLocal] を k=0..BLOCK_SIZE-1 で合計
-        for (uint k = 0; k < BLOCK_SIZE; k++) {
-            float aVal = blockA[rowLocal * BLOCK_SIZE + k];
-            float bVal = blockB[k        * BLOCK_SIZE + colLocal];
-            sum += aVal * bVal;
-        }
-
-        // 次のループ回に備えてバリア
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint k = 0; k < M; k++) {
+        sum += A[row * M + k] * B[k * L + col];
     }
 
-    // 結果をグローバルメモリに書き込み (範囲内なら)
-    if (globalRow < N && globalCol < L) {
-        out[globalRow * L + globalCol] = sum;
-    }
+    // 結果をCに書き込む
+    C[row * L + col] = sum;
 }

@@ -1036,17 +1036,11 @@ MatrixN<Primitive> operator-(
 )
 {
   MatrixN<Primitive> matrix(lhv.size(), rhv.Column());
-  for (
-    std::size_t i = 0;
-    i < lhv.
-      size();
-    i++)
+  for (std::size_t i = 0; i < lhv.size(); i++)
   {
-    matrix[i] = lhv[i] -
-      rhv;
+    matrix[i] = lhv[i] - rhv;
   }
-  return
-    matrix;
+  return matrix;
 }
 
 /**

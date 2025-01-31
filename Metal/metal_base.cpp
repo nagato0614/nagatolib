@@ -70,7 +70,7 @@ std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(
 
   if (!kernel_function)
   {
-    throw std::runtime_error("Failed to find the kernel function.");
+    throw std::runtime_error("Failed to find the kernel function. ; " + kernel_function_name);
   }
 
   auto function_pso = device_->newComputePipelineState(

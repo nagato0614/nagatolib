@@ -13,7 +13,7 @@ auto &MLASingleton::GetMetalBase()
 
 MLASingleton::MLASingleton()
 {
-  metal_base_ = std::make_unique<MetalBase>("metal_kernel/linear_algebra.metal");
+  metal_base_ = std::make_unique<MetalBase>("../metal_kernel/linear_algebra.metal");
 }
 
 MetalAdderFunction::MetalAdderFunction(std::size_t length)
@@ -357,13 +357,46 @@ void MetalReluFunction::operator()(
 }
 
 MetalMatMulFunction::MetalMatMulFunction(std::size_t n, std::size_t m, std::size_t l)
+  : n_(n), m_(m), l_(l)
 {
-  n_ = n;
-  m_ = m;
-  l_ = l;
-
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  matmul_ = base->CreateFunctionBase("matmul");
+  matmul_ = base->CreateFunctionBase("matmul_array");
+}
+
+void MetalMatMulFunction::operator()(const float *inputA, const float *inputB, float *result)
+{
+  // バッファの作成
+  auto bufferA = matmul_->CreateBuffer<float>(n_ * m_);
+  auto bufferB = matmul_->CreateBuffer<float>(m_ * l_);
+  auto bufferResult = matmul_->CreateBuffer<float>(n_ * l_);
+  auto bufferN = matmul_->CreateBuffer<uint>(1);
+  auto bufferM = matmul_->CreateBuffer<uint>(1);
+  auto bufferL = matmul_->CreateBuffer<uint>(1);
+
+  // 定数をセット
+  bufferN[0] = static_cast<uint>(n_);
+  bufferM[0] = static_cast<uint>(m_);
+  bufferL[0] = static_cast<uint>(l_);
+
+  // バッファにデータをコピー
+  bufferA.CopyToDevice(inputA, n_ * m_);
+  bufferB.CopyToDevice(inputB, m_ * l_);
+
+  // バッファを関数にセット
+  matmul_->SetBuffer(bufferA, 0, 0);
+  matmul_->SetBuffer(bufferB, 0, 1);
+  matmul_->SetBuffer(bufferResult, 0, 2);
+  matmul_->SetBuffer(bufferN, 0, 3);
+  matmul_->SetBuffer(bufferM, 0, 4);
+  matmul_->SetBuffer(bufferL, 0, 5);
+
+  // 実行
+  MTL::Size grid_size = MTL::Size(n_, l_, 1);
+  MTL::Size thread_group_size = MTL::Size(16, 16, 1);
+  matmul_->ExecuteKernel(grid_size, thread_group_size);
+
+  // 結果をコピー
+  bufferResult.CopyToHost(result, n_ * l_);
 }
 
 } // namespace nagato::mtl
