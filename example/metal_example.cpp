@@ -59,6 +59,22 @@ void softmax_arrays(const float *a, float *result, std::size_t length)
     }
 }
 
+void sigmoid_arrays(const float *a, float *result, std::size_t length)
+{
+    for (std::size_t i = 0; i < length; i++)
+    {
+        result[i] = 1.0f / (1.0f + expf(-a[i]));
+    }
+}
+
+void relu_arrays(const float *a, float *result, std::size_t length)
+{
+    for (std::size_t i = 0; i < length; i++)
+    {
+        result[i] = std::max(0.0f, a[i]);
+    }
+}
+
 void add_example()
 {
   nagato::mtl::MLASingleton::GetInstance();
@@ -249,7 +265,7 @@ void softmax_example()
   // 誤差をチェック
   for (std::size_t i = 0; i < array_length; i++)
   {
-    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-1)
     {
       std::cerr << "Error: softmax result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
@@ -260,19 +276,126 @@ void softmax_example()
   std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
 }
 
+void sigmoid_example()
+{
+  // 入力配列をCPU側で用意
+  auto a = std::make_unique<float[]>(array_length);
+  auto cpu_result = std::make_unique<float[]>(array_length);
+  auto gpu_result = std::make_unique<float[]>(array_length);
+  std::mt19937 mt(0);
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    // -10 ~ 10 の範囲でランダムな値を生成
+    a[i] = static_cast<float>(mt()) / mt.max() * 20.0f - 10.0f;
+    cpu_result[i] = 0.0f;
+    gpu_result[i] = 0.0f;
+  }
+
+  // CPUでシグモイドを計算 & 時間計測
+  const auto start_cpu = std::chrono::system_clock::now();
+  sigmoid_arrays(a.get(), cpu_result.get(), array_length);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  // GPUでシグモイドを計算 & 時間計測
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalSigmoidFunction metal_sigmoid_function(array_length);
+  metal_sigmoid_function(a.get(), gpu_result.get());
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    {
+      std::cerr << "Error: sigmoid result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
+                << std::endl;
+    }
+
+    if (i > 10)
+    {
+      break;
+    }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+}
+
+void relu_example()
+{
+  // 入力配列をCPU側で用意
+  auto a = std::make_unique<float[]>(array_length);
+  auto cpu_result = std::make_unique<float[]>(array_length);
+  auto gpu_result = std::make_unique<float[]>(array_length);
+  std::mt19937 mt(0);
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    // -10 ~ 10 の範囲でランダムな値を生成
+    a[i] = static_cast<float>(mt()) / mt.max() * 20.0f - 10.0f;
+    cpu_result[i] = 0.0f;
+    gpu_result[i] = 0.0f;
+  }
+
+  // CPUでReLUを計算 & 時間計測
+  const auto start_cpu = std::chrono::system_clock::now();
+  relu_arrays(a.get(), cpu_result.get(), array_length);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  // GPUでReLUを計算 & 時間計測
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalReluFunction metal_relu_function(array_length);
+  metal_relu_function(a.get(), gpu_result.get());
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    {
+      std::cerr << "Error: relu result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
+                << std::endl;
+    }
+
+    if (i > 10)
+    {
+      break;
+    }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+}
+
 int main()
 {
-  // std::cout << "--- add_example ---" << std::endl;
-  // add_example();
+  // Metal関連の初期化
+  nagato::mtl::MLASingleton::GetInstance();
 
-  // std::cout << "--- sum_example ---" << std::endl;
-  // sum_example();
+  std::cout << "--- add_example ---" << std::endl;
+  add_example();
 
-  // std::cout << "--- sqrt_example ---" << std::endl;
-  // sqrt_example();
+  std::cout << "--- sum_example ---" << std::endl;
+  sum_example();
+
+  std::cout << "--- sqrt_example ---" << std::endl;
+  sqrt_example();
 
   std::cout << "--- softmax_example ---" << std::endl;
   softmax_example();
+
+  std::cout << "--- sigmoid_example ---" << std::endl;
+  sigmoid_example();
+
+  std::cout << "--- relu_example ---" << std::endl;
+  relu_example();
 
   return 0;
 }

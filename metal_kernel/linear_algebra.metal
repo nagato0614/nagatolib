@@ -179,51 +179,10 @@ kernel void sqrt_arrays(device const float *in,
     out[index] = sqrt(in[index]);
 }
 
-// kernel void softmax(
-//     device const float* input        [[buffer(0)]],
-//     device float*       output       [[buffer(1)]],
-//     device atomic_float* globalSum   [[buffer(2)]],
-//     constant uint&      arraySize    [[buffer(3)]],
-//     threadgroup float*  sharedMem    [[threadgroup(0)]],
-//     uint                tid          [[thread_position_in_threadgroup]],
-//     uint                groupId      [[threadgroup_position_in_grid]],
-//     uint                threadsPerThreadgroup [[threads_per_threadgroup]],
-//     uint                globalId     [[thread_position_in_grid]]
-// )
-// {
-//     // 配列の範囲内かチェック
-//     if (globalId >= arraySize) return;
-
-//     // 各スレッドが exp(x_i) を計算
-//     float expValue = exp(input[globalId]);
-
-//     // スレッドグループ内で部分和を計算
-//     sharedMem[tid] = expValue;
-//     threadgroup_barrier(mem_flags::mem_threadgroup);
-
-//     // リダクションによる部分和の計算
-//     for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
-//         if (tid < offset && (tid + offset) < threadsPerThreadgroup) {
-//             sharedMem[tid] += sharedMem[tid + offset];
-//         }
-//         threadgroup_barrier(mem_flags::mem_threadgroup);
-//     }
-
-//     // グループ内スレッド0がグローバル総和に加算
-//     if (tid == 0) {
-//         atomic_fetch_add_explicit(globalSum, sharedMem[0], memory_order_relaxed);
-//     }
-//     threadgroup_barrier(mem_flags::mem_threadgroup);
-
-//     // グローバル総和を取得
-//     float sum = atomic_load_explicit(globalSum, memory_order_relaxed);
-
-//     float inv_sum = 1.0f / globalSum;
-
-//     // ソフトマックスの計算
-//     output[globalId] = expValue * inv_sum;
-// }
-
+/**
+ * Softmax 関数を計算するカーネル
+ * cpu実装の方が早い
+ */
 kernel void softmax(
     device const float* input        [[buffer(0)]],
     device float*       output       [[buffer(1)]],
@@ -277,4 +236,48 @@ kernel void softmax(
     float sum = atomic_load_explicit(globalSum, memory_order_relaxed);
     float inv_sum = 1.0f / sum;
     output[globalId] = expValue * inv_sum;
+}
+
+kernel void sigmoid_array(
+    device const float *in  [[buffer(0)]],
+    device       float *out [[buffer(1)]],
+    constant uint      &buffer_length,
+    uint index              [[thread_position_in_grid]])
+{
+    float x = in[index];
+    out[index] = 1.0f / (1.0f + exp(-x));
+}
+
+kernel void relu_arrays(
+    device const float * in  [[buffer(0)]],
+    device       float * out [[buffer(1)]],
+    constant uint &buffer_length  [[buffer(2)]],
+    uint index [[thread_position_in_grid]]
+)
+{
+    // 1スレッドあたり DataSizePerThread 個の要素を処理
+    // 4ずつ進めて simd_float4 で読み書きする
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+        uint dataIndex = index * DataSizePerThread + i;
+
+        // 4要素まとめて処理可能かどうかをチェック
+        if (dataIndex + 3 < buffer_length) {
+            // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+            device const simd_float4* inPtr  = reinterpret_cast<device const simd_float4*>(in  + dataIndex);
+            device       simd_float4* outPtr = reinterpret_cast<device       simd_float4*>(out + dataIndex);
+
+            simd_float4 x = *inPtr;
+            // ReLU(x) = max(0, x)
+            *outPtr = max(x, simd_float4(0.0f));
+        } else {
+            // buffer_length が 4 の倍数でない場合の端数処理
+            // 残りの要素を1つずつ処理
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    out[idx] = max(0.0f, in[idx]);
+                }
+            }
+        }
+    }
 }

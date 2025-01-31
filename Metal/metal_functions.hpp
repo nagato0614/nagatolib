@@ -156,7 +156,31 @@ private:
     std::unique_ptr<MetalFunctionBase> softmax_;
 };
 
-}
+class MetalSigmoidFunction
+{
+public:
+    MetalSigmoidFunction(std::size_t arrayLength);
+    void operator()(const float* inputArray, float* resultArray);
+
+private:
+    // メンバ変数の宣言
+    std::size_t array_length_;
+    std::unique_ptr<MetalFunctionBase> sigmoid_;
+};
+
+class MetalReluFunction
+{
+public:
+    MetalReluFunction(std::size_t arrayLength);
+    void operator()(const float* inputArray, float* resultArray);
+
+private:
+    // メンバ変数の宣言
+    std::size_t array_length_;
+    std::unique_ptr<MetalFunctionBase> relu_;
+};
+
+} // namespace nagato::mtl
 
 #include "metal_functions_impl.hpp"
 

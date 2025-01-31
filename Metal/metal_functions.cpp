@@ -6,7 +6,6 @@
 
 namespace nagato::mtl
 {
-
 auto &MLASingleton::GetMetalBase()
 {
   return metal_base_;
@@ -14,7 +13,7 @@ auto &MLASingleton::GetMetalBase()
 
 MLASingleton::MLASingleton()
 {
-  metal_base_ = std::make_unique<MetalBase>("../metal_kernel/linear_algebra.metal");
+  metal_base_ = std::make_unique<MetalBase>("metal_kernel/linear_algebra.metal");
 }
 
 MetalAdderFunction::MetalAdderFunction(std::size_t length)
@@ -34,8 +33,8 @@ void MetalAdderFunction::operator()(
   auto bufferB = add_arrays_->CreateBuffer<float>(buffer_length_);
   auto bufferResult = add_arrays_->CreateBuffer<float>(buffer_length_);
   auto bufferLength = add_arrays_->CreateBuffer<uint>(1);
-
   auto buffer_length = static_cast<uint>(buffer_length_);
+
   // buffer にデータをコピー
   bufferA.CopyToDevice(inA, buffer_length_);
   bufferB.CopyToDevice(inB, buffer_length_);
@@ -51,14 +50,10 @@ void MetalAdderFunction::operator()(
   const uint threadsPerGroup = DefaultThreadPerGroup;
   uint threadGroups =
     ((buffer_length_ + DataSizePerThread - 1) / DataSizePerThread + threadsPerGroup - 1)
-      / threadsPerGroup;
+    / threadsPerGroup;
 
   MTL::Size grid_size = MTL::Size(threadsPerGroup * threadGroups, 1, 1);
   MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
-
-  // グループ共有メモリの確保
-  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
-  add_arrays_->SetThreadgroupMemoryLength(shared_memory_size, 0);
 
   // 関数の実行
   add_arrays_->ExecuteKernel(grid_size, thread_group_size);
@@ -247,13 +242,13 @@ void MetalSumFunction::operator()(const nFloat *inA, nFloat *result)
 }
 
 MetalSoftmaxFunction::MetalSoftmaxFunction(std::size_t arrayLength)
-    : array_length_(arrayLength)
+  : array_length_(arrayLength)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
   softmax_ = base->CreateFunctionBase("softmax", arrayLength);
 }
 
-void MetalSoftmaxFunction::operator()(const float* inputArray, float* resultArray)
+void MetalSoftmaxFunction::operator()(const float *inputArray, float *resultArray)
 {
   // バッファの作成
   auto bufferInput = softmax_->CreateBuffer<float>(array_length_);
@@ -264,7 +259,7 @@ void MetalSoftmaxFunction::operator()(const float* inputArray, float* resultArra
   // バッファにデータをコピー
   bufferInput.CopyToDevice(inputArray, array_length_);
   bufferArraySize[0] = static_cast<uint>(array_length_);
-  
+
   // バッファを関数にセット
   softmax_->SetBuffer(bufferInput, 0, 0);
   softmax_->SetBuffer(bufferResult, 0, 1);
@@ -290,4 +285,64 @@ void MetalSoftmaxFunction::operator()(const float* inputArray, float* resultArra
   // 結果をコピー
   bufferResult.CopyToHost(resultArray, array_length_);
 }
+
+MetalSigmoidFunction::MetalSigmoidFunction(std::size_t arrayLength)
+  : array_length_(arrayLength)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  sigmoid_ = base->CreateFunctionBase("sigmoid_array", arrayLength);
 }
+
+void MetalSigmoidFunction::operator()(const float *inputArray, float *resultArray)
+{
+  // バッファの作成
+  auto bufferInput = sigmoid_->CreateBuffer<float>(array_length_);
+  auto bufferResult = sigmoid_->CreateBuffer<float>(array_length_);
+
+  // バッファにデータをコピー
+  bufferInput.CopyToDevice(inputArray, array_length_);
+
+  // バッファを関数にセット
+  sigmoid_->SetBuffer(bufferInput, 0, 0);
+  sigmoid_->SetBuffer(bufferResult, 0, 1);
+
+  // 実行
+  sigmoid_->ExecuteKernel();
+
+  // 結果をコピー
+  bufferResult.CopyToHost(resultArray, array_length_);
+}
+
+MetalReluFunction::MetalReluFunction(std::size_t arrayLength)
+  : array_length_(arrayLength)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  relu_ = base->CreateFunctionBase("relu_array", arrayLength);
+}
+
+void MetalReluFunction::operator()(
+  const float *inputArray, 
+  float *resultArray
+  )
+{
+  // バッファの作成
+  auto bufferInput = relu_->CreateBuffer<float>(array_length_);
+  auto bufferResult = relu_->CreateBuffer<float>(array_length_);
+  auto bufferArraySize = relu_->CreateBuffer<uint>(1);
+
+  // バッファにデータをコピー
+  bufferInput.CopyToDevice(inputArray, array_length_);
+  bufferArraySize[0] = static_cast<uint>(array_length_);
+
+  // バッファを関数にセット
+  relu_->SetBuffer(bufferInput, 0, 0);
+  relu_->SetBuffer(bufferResult, 0, 1);
+  relu_->SetBuffer(bufferArraySize, 0, 2);
+
+  // 実行
+  relu_->ExecuteKernel();
+
+  // 結果をコピー
+  bufferResult.CopyToHost(resultArray, array_length_);
+}
+} // namespace nagato::mtl
