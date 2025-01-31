@@ -53,8 +53,9 @@ MetalBase::~MetalBase()
   pool_->release();
 }
 
-std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(std::string kernel_function_name,
-                                                                 std::size_t buffer_length)
+std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(
+  std::string kernel_function_name
+  )
 {
   NS::Error *error = nullptr;
 
@@ -83,7 +84,6 @@ std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(std::string ker
   }
 
   auto metal_function_base = std::make_unique<MetalFunctionBase>(
-    buffer_length,
     function_pso,
     device_.get(),
     command_queue_.get()

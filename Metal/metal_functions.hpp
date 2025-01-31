@@ -180,6 +180,21 @@ private:
     std::unique_ptr<MetalFunctionBase> relu_;
 };
 
+class MetalMatMulFunction
+{
+public:
+    MetalMatMulFunction(std::size_t n, std::size_t m, std::size_t l);
+    void operator()(const float* inputA, const float* inputB, float* result);
+
+private:
+    // メンバ変数の宣言
+    std::size_t n_;
+    std::size_t m_;
+    std::size_t l_;
+    std::unique_ptr<MetalFunctionBase> matmul_;
+
+};
+
 } // namespace nagato::mtl
 
 #include "metal_functions_impl.hpp"

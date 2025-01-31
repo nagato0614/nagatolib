@@ -281,3 +281,81 @@ kernel void relu_arrays(
         }
     }
 }
+
+#include <metal_stdlib>
+using namespace metal;
+
+#define BLOCK_SIZE 16
+
+// 2D dispatch を想定したタイル分割行列積カーネル
+kernel void matmul_arrays(
+    device const float *a   [[buffer(0)]],  // 行列A: サイズ NxM
+    device const float *b   [[buffer(1)]],  // 行列B: サイズ MxL
+    device float       *out [[buffer(2)]],  // 結果C: サイズ NxL (出力先)
+    constant uint &N        [[buffer(3)]],  // Aの行数  (N)
+    constant uint &M        [[buffer(4)]],  // Aの列数 = Bの行数 (M)
+    constant uint &L        [[buffer(5)]],  // Bの列数 (L)
+    
+    // 2D グリッド・2D スレッドグループを想定
+    ushort2 tgid  [[threadgroup_position_in_grid]],
+    ushort2 tid   [[thread_position_in_threadgroup]]
+    // threads_per_threadgroup は省略可
+)
+{
+    // タイルを格納するための threadgroup メモリ (1次元配列を2次元的に使う)
+    threadgroup float blockA[BLOCK_SIZE * BLOCK_SIZE];
+    threadgroup float blockB[BLOCK_SIZE * BLOCK_SIZE];
+
+    // タイル(ブロック)の先頭行・列を求める
+    uint rowBlock = tgid.y * BLOCK_SIZE;  // このスレッドグループが担当する行ブロック
+    uint colBlock = tgid.x * BLOCK_SIZE;  // このスレッドグループが担当する列ブロック
+
+    // タイル内でのローカル行・列
+    uint rowLocal = tid.y;
+    uint colLocal = tid.x;
+
+    // 実際のグローバルな行/列 (NxL のどこを担当するか)
+    uint globalRow = rowBlock + rowLocal;
+    uint globalCol = colBlock + colLocal;
+
+    // このスレッドが最終的に計算する要素 C[globalRow, globalCol]
+    float sum = 0.0f;
+
+    // M次元方向を BLOCK_SIZE ずつスライドしながら計算
+    for (uint mStart = 0; mStart < M; mStart += BLOCK_SIZE) {
+        // A からタイルをロード
+        // blockA[rowLocal, colLocal] = A[globalRow, (mStart + colLocal)]
+        if (globalRow < N && (mStart + colLocal) < M) {
+            blockA[rowLocal * BLOCK_SIZE + colLocal] = a[globalRow * M + (mStart + colLocal)];
+        } else {
+            blockA[rowLocal * BLOCK_SIZE + colLocal] = 0.0f;
+        }
+
+        // B からタイルをロード
+        // blockB[rowLocal, colLocal] = B[(mStart + rowLocal), globalCol]
+        if ((mStart + rowLocal) < M && globalCol < L) {
+            blockB[rowLocal * BLOCK_SIZE + colLocal] = b[(mStart + rowLocal) * L + globalCol];
+        } else {
+            blockB[rowLocal * BLOCK_SIZE + colLocal] = 0.0f;
+        }
+
+        // タイルのロード完了を全スレッドで待機
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+
+        // タイル内の積和
+        // blockA[rowLocal, k] * blockB[k, colLocal] を k=0..BLOCK_SIZE-1 で合計
+        for (uint k = 0; k < BLOCK_SIZE; k++) {
+            float aVal = blockA[rowLocal * BLOCK_SIZE + k];
+            float bVal = blockB[k        * BLOCK_SIZE + colLocal];
+            sum += aVal * bVal;
+        }
+
+        // 次のループ回に備えてバリア
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    // 結果をグローバルメモリに書き込み (範囲内なら)
+    if (globalRow < N && globalCol < L) {
+        out[globalRow * L + globalCol] = sum;
+    }
+}

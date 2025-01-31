@@ -19,8 +19,7 @@ namespace nagato::mtl
 class MetalFunctionBase
 {
  public:
-  MetalFunctionBase(std::size_t buffer_length,
-                    MTL::ComputePipelineState *function_pso,
+  MetalFunctionBase(MTL::ComputePipelineState *function_pso,
                     MTL::Device *p_device,
                     MTL::CommandQueue *p_command_queue);
 
@@ -71,12 +70,6 @@ class MetalFunctionBase
    * リセットして再度カーネルを実行できる状態にする.
    */
   void Reset();
-
-  /**
-   * カーネルを実行する
-   * 先にバッファをセットしておく必要がある
-   */
-  void ExecuteKernel();
 
   void ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size);
 

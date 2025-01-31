@@ -13,11 +13,11 @@
 namespace nagato::mtl
 {
 
-MetalFunctionBase::MetalFunctionBase(std::size_t buffer_length,
-                                     MTL::ComputePipelineState *function_pso,
-                                     MTL::Device *p_device,
-                                     MTL::CommandQueue *p_command_queue) :
-  buffer_length_(buffer_length),
+MetalFunctionBase::MetalFunctionBase(
+  MTL::ComputePipelineState *function_pso,
+  MTL::Device *p_device,
+  MTL::CommandQueue *p_command_queue
+  ) :
   device_(NS::RetainPtr(p_device)),
   command_queue_(NS::RetainPtr(p_command_queue)),
   function_pso_(NS::TransferPtr(function_pso))
@@ -27,21 +27,6 @@ MetalFunctionBase::MetalFunctionBase(std::size_t buffer_length,
   compute_command_encoder_->setComputePipelineState(function_pso_->retain());
 }
 
-void MetalFunctionBase::ExecuteKernel()
-{
-  MTL::Size grid_size = MTL::Size(buffer_length_, 1, 1);
-
-  NS::UInteger thread_group_size_ = function_pso_->maxTotalThreadsPerThreadgroup();
-  std::cout << "thread_group_size: " << thread_group_size_ << std::endl;
-  if (thread_group_size_ > buffer_length_)
-  {
-    thread_group_size_ = buffer_length_;
-  }
-
-  MTL::Size thread_group_size = MTL::Size(thread_group_size_, 1, 1);
-
-  this->ExecuteKernel(grid_size, thread_group_size);
-}
 
 void MetalFunctionBase::ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size)
 {

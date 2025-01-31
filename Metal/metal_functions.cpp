@@ -20,7 +20,7 @@ MetalAdderFunction::MetalAdderFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  add_arrays_ = base->CreateFunctionBase("add_arrays", buffer_length_);
+  add_arrays_ = base->CreateFunctionBase("add_arrays");
 }
 
 void MetalAdderFunction::operator()(
@@ -66,7 +66,7 @@ MetalSubFunction::MetalSubFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  sub_arrays_ = base->CreateFunctionBase("sub_arrays", buffer_length_);
+  sub_arrays_ = base->CreateFunctionBase("sub_arrays");
 }
 
 void MetalSubFunction::operator()(
@@ -89,7 +89,9 @@ void MetalSubFunction::operator()(
   sub_arrays_->SetBuffer(bufferResult, 0, 2);
 
   // 関数の実行
-  sub_arrays_->ExecuteKernel();
+  MTL::Size grid_size = MTL::Size(buffer_length_, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(DefaultThreadPerGroup, 1, 1);
+  sub_arrays_->ExecuteKernel(grid_size, thread_group_size);
 
   // 結果をコピー
   bufferResult.CopyToHost(result, buffer_length_);
@@ -99,7 +101,7 @@ MetalMulFunction::MetalMulFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  mul_arrays_ = base->CreateFunctionBase("mul_arrays", buffer_length_);
+  mul_arrays_ = base->CreateFunctionBase("mul_arrays");
 }
 
 void MetalMulFunction::operator()(
@@ -122,7 +124,9 @@ void MetalMulFunction::operator()(
   mul_arrays_->SetBuffer(bufferResult, 0, 2);
 
   // 関数の実行
-  mul_arrays_->ExecuteKernel();
+  MTL::Size grid_size = MTL::Size(buffer_length_, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(DefaultThreadPerGroup, 1, 1);
+  mul_arrays_->ExecuteKernel(grid_size, thread_group_size);
 
   // 結果をコピー
   bufferResult.CopyToHost(result, buffer_length_);
@@ -132,7 +136,7 @@ MetalDivFunction::MetalDivFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  div_arrays_ = base->CreateFunctionBase("div_arrays", buffer_length_);
+  div_arrays_ = base->CreateFunctionBase("div_arrays");
 }
 
 void MetalDivFunction::operator()(
@@ -155,7 +159,9 @@ void MetalDivFunction::operator()(
   div_arrays_->SetBuffer(bufferResult, 0, 2);
 
   // 関数の実行
-  div_arrays_->ExecuteKernel();
+  MTL::Size grid_size = MTL::Size(buffer_length_, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(DefaultThreadPerGroup, 1, 1);
+  div_arrays_->ExecuteKernel(grid_size, thread_group_size);
 
   // 結果をコピー
   bufferResult.CopyToHost(result, buffer_length_);
@@ -165,7 +171,7 @@ MetalSqrtFunction::MetalSqrtFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  sqrt_arrays_ = base->CreateFunctionBase("sqrt_arrays", buffer_length_);
+  sqrt_arrays_ = base->CreateFunctionBase("sqrt_arrays");
 }
 
 void MetalSqrtFunction::operator()(const nFloat *inA, nFloat *result)
@@ -199,7 +205,7 @@ MetalSumFunction::MetalSumFunction(std::size_t length)
   : buffer_length_(length)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  sum_arrays_ = base->CreateFunctionBase("sum_arrays", buffer_length_);
+  sum_arrays_ = base->CreateFunctionBase("sum_arrays");
 }
 
 void MetalSumFunction::operator()(const nFloat *inA, nFloat *result)
@@ -245,7 +251,7 @@ MetalSoftmaxFunction::MetalSoftmaxFunction(std::size_t arrayLength)
   : array_length_(arrayLength)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  softmax_ = base->CreateFunctionBase("softmax", arrayLength);
+  softmax_ = base->CreateFunctionBase("softmax");
 }
 
 void MetalSoftmaxFunction::operator()(const float *inputArray, float *resultArray)
@@ -290,7 +296,7 @@ MetalSigmoidFunction::MetalSigmoidFunction(std::size_t arrayLength)
   : array_length_(arrayLength)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  sigmoid_ = base->CreateFunctionBase("sigmoid_array", arrayLength);
+  sigmoid_ = base->CreateFunctionBase("sigmoid_array");
 }
 
 void MetalSigmoidFunction::operator()(const float *inputArray, float *resultArray)
@@ -307,7 +313,9 @@ void MetalSigmoidFunction::operator()(const float *inputArray, float *resultArra
   sigmoid_->SetBuffer(bufferResult, 0, 1);
 
   // 実行
-  sigmoid_->ExecuteKernel();
+  MTL::Size grid_size = MTL::Size(array_length_, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(DefaultThreadPerGroup, 1, 1);
+  sigmoid_->ExecuteKernel(grid_size, thread_group_size);
 
   // 結果をコピー
   bufferResult.CopyToHost(resultArray, array_length_);
@@ -317,7 +325,7 @@ MetalReluFunction::MetalReluFunction(std::size_t arrayLength)
   : array_length_(arrayLength)
 {
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-  relu_ = base->CreateFunctionBase("relu_array", arrayLength);
+  relu_ = base->CreateFunctionBase("relu_array");
 }
 
 void MetalReluFunction::operator()(
@@ -340,9 +348,22 @@ void MetalReluFunction::operator()(
   relu_->SetBuffer(bufferArraySize, 0, 2);
 
   // 実行
-  relu_->ExecuteKernel();
+  MTL::Size grid_size = MTL::Size(array_length_, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(DefaultThreadPerGroup, 1, 1);
+  relu_->ExecuteKernel(grid_size, thread_group_size);
 
   // 結果をコピー
   bufferResult.CopyToHost(resultArray, array_length_);
 }
+
+MetalMatMulFunction::MetalMatMulFunction(std::size_t n, std::size_t m, std::size_t l)
+{
+  n_ = n;
+  m_ = m;
+  l_ = l;
+
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  matmul_ = base->CreateFunctionBase("matmul");
+}
+
 } // namespace nagato::mtl
