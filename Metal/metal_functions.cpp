@@ -26,18 +26,17 @@ MetalAdderFunction::MetalAdderFunction(std::size_t length)
 void MetalAdderFunction::operator()(
   const nFloat *inA,
   const nFloat *inB,
-  nFloat *result)
+  nFloat *result
+)
 {
   // buffer の作成
-  auto bufferA = add_arrays_->CreateBuffer<float>(buffer_length_);
-  auto bufferB = add_arrays_->CreateBuffer<float>(buffer_length_);
-  auto bufferResult = add_arrays_->CreateBuffer<float>(buffer_length_);
+  auto bufferA = add_arrays_->CreateBufferFromHost(inA, buffer_length_);
+  auto bufferB = add_arrays_->CreateBufferFromHost(inB, buffer_length_);
+  auto bufferResult = add_arrays_->CreateBufferFromHost(result, buffer_length_);
   auto bufferLength = add_arrays_->CreateBuffer<uint>(1);
   auto buffer_length = static_cast<uint>(buffer_length_);
 
   // buffer にデータをコピー
-  bufferA.CopyToDevice(inA, buffer_length_);
-  bufferB.CopyToDevice(inB, buffer_length_);
   bufferLength.CopyToDevice(&buffer_length, 1);
 
   // buffer を function にセット
@@ -58,8 +57,6 @@ void MetalAdderFunction::operator()(
   // 関数の実行
   add_arrays_->ExecuteKernel(grid_size, thread_group_size);
 
-  // 結果をコピー
-  bufferResult.CopyToHost(result, buffer_length_);
 }
 
 MetalSubFunction::MetalSubFunction(std::size_t length)
@@ -177,11 +174,8 @@ MetalSqrtFunction::MetalSqrtFunction(std::size_t length)
 void MetalSqrtFunction::operator()(const nFloat *inA, nFloat *result)
 {
   // buffer の作成
-  auto bufferA = sqrt_arrays_->CreateBuffer<float>(buffer_length_);
+  auto bufferA = sqrt_arrays_->CreateBufferFromHost(inA, buffer_length_);
   auto bufferResult = sqrt_arrays_->CreateBuffer<float>(buffer_length_);
-
-  // buffer にデータをコピー
-  bufferA.CopyToDevice(inA, buffer_length_);
 
   // buffer を function にセット
   sqrt_arrays_->SetBuffer(bufferA, 0, 0);
@@ -211,16 +205,13 @@ MetalSumFunction::MetalSumFunction(std::size_t length)
 void MetalSumFunction::operator()(const nFloat *inA, nFloat *result)
 {
   // buffer の作成
-  auto bufferA = sum_arrays_->CreateBuffer<float>(buffer_length_);
+  auto bufferA = sum_arrays_->CreateBufferFromHost(inA, buffer_length_);
   auto bufferResult = sum_arrays_->CreateBuffer<float>(1);
   auto buffer_params = sum_arrays_->CreateBuffer<unsigned int>(2);
 
   // 結果を初期化
   bufferResult[0] = 0.0f;
   buffer_params[0] = static_cast<unsigned int>(this->buffer_length_); // arraySize
-
-  // buffer にデータをコピー
-  bufferA.CopyToDevice(inA, buffer_length_);
 
   // buffer を function にセット
   sum_arrays_->SetBuffer(bufferA, 0, 0);
@@ -257,13 +248,11 @@ MetalSoftmaxFunction::MetalSoftmaxFunction(std::size_t arrayLength)
 void MetalSoftmaxFunction::operator()(const float *inputArray, float *resultArray)
 {
   // バッファの作成
-  auto bufferInput = softmax_->CreateBuffer<float>(array_length_);
+  auto bufferInput = softmax_->CreateBufferFromHost(inputArray, array_length_);
   auto bufferResult = softmax_->CreateBuffer<float>(array_length_);
   auto bufferGlobalSum = softmax_->CreateBuffer<float>(1);
   auto bufferArraySize = softmax_->CreateBuffer<uint>(1);
 
-  // バッファにデータをコピー
-  bufferInput.CopyToDevice(inputArray, array_length_);
   bufferArraySize[0] = static_cast<uint>(array_length_);
 
   // バッファを関数にセット
@@ -329,9 +318,9 @@ MetalReluFunction::MetalReluFunction(std::size_t arrayLength)
 }
 
 void MetalReluFunction::operator()(
-  const float *inputArray, 
+  const float *inputArray,
   float *resultArray
-  )
+)
 {
   // バッファの作成
   auto bufferInput = relu_->CreateBuffer<float>(array_length_);
@@ -366,8 +355,8 @@ MetalMatMulFunction::MetalMatMulFunction(std::size_t n, std::size_t m, std::size
 void MetalMatMulFunction::operator()(const float *inputA, const float *inputB, float *result)
 {
   // バッファの作成
-  auto bufferA = matmul_->CreateBuffer<float>(n_ * m_);
-  auto bufferB = matmul_->CreateBuffer<float>(m_ * l_);
+  auto bufferA = matmul_->CreateBufferFromHost(inputA, n_ * m_);
+  auto bufferB = matmul_->CreateBufferFromHost(inputB, m_ * l_);
   auto bufferResult = matmul_->CreateBuffer<float>(n_ * l_);
   auto bufferN = matmul_->CreateBuffer<uint>(1);
   auto bufferM = matmul_->CreateBuffer<uint>(1);
@@ -377,10 +366,6 @@ void MetalMatMulFunction::operator()(const float *inputA, const float *inputB, f
   bufferN[0] = static_cast<uint>(n_);
   bufferM[0] = static_cast<uint>(m_);
   bufferL[0] = static_cast<uint>(l_);
-
-  // バッファにデータをコピー
-  bufferA.CopyToDevice(inputA, n_ * m_);
-  bufferB.CopyToDevice(inputB, m_ * l_);
 
   // バッファを関数にセット
   matmul_->SetBuffer(bufferA, 0, 0);
@@ -398,5 +383,4 @@ void MetalMatMulFunction::operator()(const float *inputA, const float *inputB, f
   // 結果をコピー
   bufferResult.CopyToHost(result, n_ * l_);
 }
-
 } // namespace nagato::mtl

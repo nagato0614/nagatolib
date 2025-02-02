@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 project(nagatolib)
 
 set(CMAKE_CXX_STANDARD 23)
-
+set(CMAKE_OBJCXX_STANDARD 17)
+set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 
 # Build Options
 option(NAGATO_BUILD_EXAMPLE "Build example" ON)
@@ -85,6 +86,7 @@ function(add_example target_name)
     target_link_libraries(${target_name}
             nagato
     )
+    target_compile_options(${target_name} PRIVATE -fobjc-arc -fblocks)
 endfunction()
 
 # Build Example

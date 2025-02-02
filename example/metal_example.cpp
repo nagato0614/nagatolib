@@ -13,7 +13,7 @@
 #include "metal_common.hpp"
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 1000 * 1000;
+constexpr std::size_t array_length = 2 << 25;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -200,7 +200,7 @@ void sum_example()
 
   // 誤差をチェック
   float diff = std::abs(cpu_sum - gpu_sum);
-  if (diff > 1.0f) // 値の大きさ次第で多少の誤差は出やすいため、判定をある程度緩めに
+  if (diff > 0.5f) // 値の大きさ次第で多少の誤差は出やすいため、判定をある程度緩めに
   {
     std::cerr << "Error: CPU sum=" << cpu_sum
               << " vs GPU sum=" << gpu_sum
@@ -294,7 +294,7 @@ void softmax_example()
   // 誤差をチェック
   for (std::size_t i = 0; i < array_length; i++)
   {
-    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-1)
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
     {
       std::cerr << "Error: softmax result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
@@ -343,11 +343,6 @@ void sigmoid_example()
       std::cerr << "Error: sigmoid result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
     }
-
-    if (i > 10)
-    {
-      break;
-    }
   }
 
   std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
@@ -391,11 +386,6 @@ void relu_example()
     {
       std::cerr << "Error: relu result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
-    }
-
-    if (i > 10)
-    {
-      break;
     }
   }
 
@@ -458,11 +448,6 @@ void matmul_example()
     {
       std::cerr << "Error: matmul result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
-    }
-
-    if (i > 10)
-    {
-      break;
     }
   }
 

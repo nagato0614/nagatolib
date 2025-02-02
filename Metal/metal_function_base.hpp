@@ -60,6 +60,18 @@ class MetalFunctionBase
     return buffer;
   }
 
+  /**
+   * CPU 側のデータポインタを Metal のバッファとして利用し, バッファを作成する.
+   * @param data CPU 側のデータポインタ
+   * @param length データサイズ
+   */
+  template<typename T>
+  [[nodiscard]] MetalBuffer<T> CreateBufferFromHost(const T *data, std::size_t length)
+  {
+    MetalBuffer<T> buffer(device_.get(), data, length);
+    return buffer;
+  }
+
   template<typename T>
   void SetConstant(const T &value, std::size_t length, int index)
   {

@@ -30,6 +30,35 @@ class MetalBuffer
   }
 
   /**
+   * CPU 側のデータポインタを Metal のバッファとして利用し, バッファを作成する.
+   * @param data CPU 側のデータポインタ
+   * @param length データサイズ
+   */
+  explicit MetalBuffer(
+    MTL::Device *device,
+    const T *data,
+    std::size_t length,
+    MTL::ResourceOptions options = MTL::StorageModeShared
+  ) noexcept
+  : buffer_length_(length)
+  {
+    // メモリ解放時のデアロケータを定義
+    // 何もしないことでCPU側で作成したデータを紐づけたときにデータが破棄されないようにする
+    void (^noOpDeallocator)(void*, NS::UInteger) = ^(void* pointer, NS::UInteger length) {
+      // 何もしない (No-op)
+    };
+
+    buffer_ = NS::TransferPtr(
+      device->newBuffer(
+        data,
+        length * sizeof(T),
+        options,
+        noOpDeallocator
+      )
+    );
+  }
+
+  /**
    * コピーコンストラクタ
    * @param other
    */
