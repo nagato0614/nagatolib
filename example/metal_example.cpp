@@ -9,8 +9,6 @@
 #include <iostream>
 #include <random>
 
-#include "metal_base.hpp"
-#include "metal_common.hpp"
 #include "metal_functions.hpp"
 
 constexpr std::size_t array_length = 100;
