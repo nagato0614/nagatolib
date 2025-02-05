@@ -383,4 +383,47 @@ void MetalMatMulFunction::operator()(const float *inputA, const float *inputB, f
   // 結果をコピー
   bufferResult.CopyToHost(result, n_ * l_);
 }
+
+MetalDotProductFunction::MetalDotProductFunction(std::size_t length)
+  : array_length_(length)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  dot_product_ = base->CreateFunctionBase("dot_product");
+}
+
+void MetalDotProductFunction::operator()(const float *inputA, const float *inputB, float *result)
+{
+  // バッファの作成
+  auto bufferA = dot_product_->CreateBufferFromHost(inputA, array_length_);
+  auto bufferB = dot_product_->CreateBufferFromHost(inputB, array_length_);
+  auto bufferResult = dot_product_->CreateBuffer<float>(1);
+  auto bufferLength = dot_product_->CreateBuffer<uint>(1);
+
+  // 定数をセット
+  bufferLength[0] = static_cast<uint>(array_length_);
+
+  // バッファを関数にセット
+  dot_product_->SetBuffer(bufferA, 0, 0);
+  dot_product_->SetBuffer(bufferB, 0, 1);
+  dot_product_->SetBuffer(bufferResult, 0, 2);
+  dot_product_->SetBuffer(bufferLength, 0, 3);
+
+  // スレッドグループサイズとグリッドサイズを設定
+  const uint threadsPerGroup = 256;
+  const uint groupCount = (array_length_ + threadsPerGroup - 1) / threadsPerGroup;
+  uint totalThreads = groupCount * threadsPerGroup;
+
+  MTL::Size grid_size = MTL::Size(totalThreads, 1, 1);
+  MTL::Size thread_group_size = MTL::Size(threadsPerGroup, 1, 1);
+
+  // グループ共有メモリの確保
+  const size_t shared_memory_size = threadsPerGroup * sizeof(float);
+  dot_product_->SetThreadgroupMemoryLength(shared_memory_size, 0);
+
+  // 関数の実行
+  dot_product_->ExecuteKernel(grid_size, thread_group_size);
+
+  // 結果をコピー
+  bufferResult.CopyToHost(result, 1);
+}
 } // namespace nagato::mtl

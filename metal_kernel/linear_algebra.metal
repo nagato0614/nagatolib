@@ -318,3 +318,51 @@ kernel void matmul_array(
     // 結果をCに書き込む
     C[row * L + col] = sum;
 }
+
+/**
+ * ベクトルの内積 (dot product) を求めるカーネル
+ *
+ * A      : 入力ベクトル1
+ * B      : 入力ベクトル2
+ * globalSum : 各スレッドグループで計算された部分和を
+ *             グローバルな内積として加算するための領域 (atomic_float)
+ * length : ベクトルの要素数
+ *
+ * 各スレッドは、自身のglobalIdが有効な場合、A[globalId] * B[globalId] を計算し、
+ * スレッドグループ内でリダクションを行った後、グループ代表がグローバルな内積に加算します.
+ */
+kernel void dot_product(
+    device const float *A                         [[buffer(0)]],
+    device const float *B                         [[buffer(1)]],
+    device atomic_float *globalSum                [[buffer(2)]],
+    constant uint &length                         [[buffer(3)]],
+    threadgroup float* sharedMem                  [[threadgroup(0)]],
+    uint tid                                      [[thread_position_in_threadgroup]],
+    uint groupId                                  [[threadgroup_position_in_grid]],
+    uint threadsPerThreadgroup                    [[threads_per_threadgroup]],
+    uint globalId                                 [[thread_position_in_grid]]
+)
+{
+    float partialSum = 0.0f;
+    // 各スレッドが担当する要素の内積を計算 (グローバルIDが範囲内の場合)
+    if (globalId < length) {
+        partialSum = A[globalId] * B[globalId];
+    }
+    
+    // 共有メモリに部分和を保存
+    sharedMem[tid] = partialSum;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    // スレッドグループ内でのリダクション処理
+    for (uint offset = threadsPerThreadgroup >> 1; offset > 0; offset >>= 1) {
+        if (tid < offset) {
+            sharedMem[tid] += sharedMem[tid + offset];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    // グループ内リダクション結果(部分和)をグローバルな内積に加算
+    if (tid == 0) {
+        atomic_fetch_add_explicit(globalSum, sharedMem[0], memory_order_relaxed);
+    }
+}

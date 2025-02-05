@@ -41,38 +41,38 @@ void sqrt_arrays(const float *a, float *result, std::size_t length)
 
 void softmax_arrays(const float *a, float *result, std::size_t length)
 {
-    if (length == 0) return;
+  if (length == 0) return;
 
-    float max_val = *std::max_element(a, a + length);
+  float max_val = *std::max_element(a, a + length);
 
-    float sum = 0.0f;
-    for (std::size_t i = 0; i < length; i++)  
-    {
-        result[i] = expf(a[i] - max_val) + 1e-30f;  // underflow 防止
-        sum += result[i];
-    }
+  float sum = 0.0f;
+  for (std::size_t i = 0; i < length; i++)
+  {
+    result[i] = expf(a[i] - max_val) + 1e-30f; // underflow 防止
+    sum += result[i];
+  }
 
-    float inv_sum = 1.0f / sum;
-    for (std::size_t i = 0; i < length; i++)
-    {
-        result[i] *= inv_sum;
-    }
+  float inv_sum = 1.0f / sum;
+  for (std::size_t i = 0; i < length; i++)
+  {
+    result[i] *= inv_sum;
+  }
 }
 
 void sigmoid_arrays(const float *a, float *result, std::size_t length)
 {
-    for (std::size_t i = 0; i < length; i++)
-    {
-        result[i] = 1.0f / (1.0f + expf(-a[i]));
-    }
+  for (std::size_t i = 0; i < length; i++)
+  {
+    result[i] = 1.0f / (1.0f + expf(-a[i]));
+  }
 }
 
 void relu_arrays(const float *a, float *result, std::size_t length)
 {
-    for (std::size_t i = 0; i < length; i++)
-    {
-        result[i] = std::max(0.0f, a[i]);
-    }
+  for (std::size_t i = 0; i < length; i++)
+  {
+    result[i] = std::max(0.0f, a[i]);
+  }
 }
 
 void matmul_array(
@@ -84,6 +84,10 @@ void matmul_array(
   std::size_t l
 )
 {
+  // 入力された行列のサイズをチェック
+  if (n == 0 || m == 0 || l == 0) return;
+  if (m != l) return;
+
   for (std::size_t i = 0; i < n; i++)
   {
     for (std::size_t j = 0; j < l; j++)
@@ -101,6 +105,18 @@ void matmul_array(
         result[i * l + j] += a[i * m + k] * b[k * l + j];
       }
     }
+  }
+}
+
+void dot_product(const float *a, const float *b, float *result, std::size_t length)
+{
+  if (length == 0) return;
+
+  *result = 0.0f;
+
+  for (std::size_t i = 0; i < length; i++)
+  {
+    *result += a[i] * b[i];
   }
 }
 
@@ -127,7 +143,6 @@ void add_example()
   const auto elapsed_cpu =
     std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
 
-
   // 計算時間を計測
   const auto start = std::chrono::system_clock::now();
 
@@ -143,7 +158,7 @@ void add_example()
     if (std::abs(result[i] - gpu_result[i]) > 1e-5)
     {
       std::cerr << "Error: result[" << i << "] = " << result[i] << " vs " << gpu_result[i]
-                << std::endl;
+        << std::endl;
     }
   }
 
@@ -181,7 +196,7 @@ void sum_example()
       std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
 
     std::cout << "[CPU] sum=" << cpu_sum
-              << " , time=" << elapsed_cpu << " us" << std::endl;
+      << " , time=" << elapsed_cpu << " us" << std::endl;
   }
 
   nagato::mtl::MetalSumFunction metal_sum_function(array_length);
@@ -196,15 +211,15 @@ void sum_example()
 
   // 結果を表示
   std::cout << "[GPU] sum=" << gpu_sum
-            << " , time=" << elapsed_gpu << " us" << std::endl;
+    << " , time=" << elapsed_gpu << " us" << std::endl;
 
   // 誤差をチェック
   float diff = std::abs(cpu_sum - gpu_sum);
   if (diff > 0.5f) // 値の大きさ次第で多少の誤差は出やすいため、判定をある程度緩めに
   {
     std::cerr << "Error: CPU sum=" << cpu_sum
-              << " vs GPU sum=" << gpu_sum
-              << " (diff=" << diff << ")" << std::endl;
+      << " vs GPU sum=" << gpu_sum
+      << " (diff=" << diff << ")" << std::endl;
   }
   else
   {
@@ -250,7 +265,7 @@ void sqrt_example()
     if (std::abs(result[i] - gpu_result[i]) > 1.f)
     {
       std::cerr << "Error: sqrt result[" << i << "] = " << result[i] << " vs " << gpu_result[i]
-                << std::endl;
+        << std::endl;
     }
   }
 
@@ -268,12 +283,10 @@ void softmax_example()
   auto a = std::make_unique<float[]>(array_length);
   auto cpu_result = std::make_unique<float[]>(array_length);
   auto gpu_result = std::make_unique<float[]>(array_length);
+  std::mt19937 rnd(0);
+  for (std::size_t i = 0; i < array_length; i++)
   {
-    std::random_device rnd;
-    for (std::size_t i = 0; i < array_length; i++)
-    {
-      a[i] = static_cast<float>(rnd());
-    }
+    a[i] = static_cast<float>(rnd());
   }
 
   // CPUでソフトマックスを計算 & 時間計測
@@ -296,8 +309,9 @@ void softmax_example()
   {
     if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
     {
-      std::cerr << "Error: softmax result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
-                << std::endl;
+      std::cerr << "Error: softmax result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[
+          i]
+        << std::endl;
     }
   }
 
@@ -340,8 +354,9 @@ void sigmoid_example()
   {
     if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
     {
-      std::cerr << "Error: sigmoid result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
-                << std::endl;
+      std::cerr << "Error: sigmoid result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[
+          i]
+        << std::endl;
     }
   }
 
@@ -385,7 +400,7 @@ void relu_example()
     if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
     {
       std::cerr << "Error: relu result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
-                << std::endl;
+        << std::endl;
     }
   }
 
@@ -393,10 +408,8 @@ void relu_example()
   std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
 }
 
-
 void matmul_example()
 {
-
   constexpr std::size_t n = 1000;
   constexpr std::size_t m = 1000;
   constexpr std::size_t l = 1000;
@@ -446,9 +459,50 @@ void matmul_example()
   {
     if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
     {
-      std::cerr << "Error: matmul result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
-                << std::endl;
+      std::cerr << "Error: matmul result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[
+          i]
+        << std::endl;
     }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+}
+
+void dot_product_example()
+{
+  // 入力配列をCPU側で用意
+  auto a = std::make_unique<float[]>(array_length);
+  auto b = std::make_unique<float[]>(array_length);
+  float cpu_result = 0.0f;
+  float gpu_result = 0.0f;
+  std::mt19937 mt(0);
+  for (std::size_t i = 0; i < array_length; i++)
+  {
+    // -1 ~ 1 の範囲でランダムな値を生成
+    a[i] = static_cast<float>(mt()) / mt.max() * 2.0f - 1.0f;
+    b[i] = static_cast<float>(mt()) / mt.max() * 2.0f - 1.0f;
+  }
+
+  // CPUでドット積を計算
+  const auto start_cpu = std::chrono::system_clock::now();
+  dot_product(a.get(), b.get(), &cpu_result, array_length);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  // GPUでドット積を計算
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalDotProductFunction metal_dot_product_function(array_length);
+  metal_dot_product_function(a.get(), b.get(), &gpu_result);
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  if (std::abs(cpu_result - gpu_result) > 1e-2)
+  {
+    std::cerr << "Error: dot product result = " << cpu_result << " vs " << gpu_result << std::endl;
   }
 
   std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
@@ -480,6 +534,9 @@ int main()
 
   std::cout << "--- matmul_example ---" << std::endl;
   matmul_example();
+
+  std::cout << "--- dot_product_example ---" << std::endl;
+  dot_product_example();
 
   return 0;
 }

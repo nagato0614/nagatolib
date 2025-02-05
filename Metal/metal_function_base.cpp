@@ -76,6 +76,7 @@ std::size_t MetalFunctionBase::maxTotalThreadsPerThreadgroup() const
 {
   return function_pso_->maxTotalThreadsPerThreadgroup();
 }
+
 void MetalFunctionBase::SetThreadgroupMemoryLength(std::size_t length, int index)
 {
   this->compute_command_encoder_->setThreadgroupMemoryLength(length, index);

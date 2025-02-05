@@ -194,6 +194,17 @@ private:
     std::unique_ptr<MetalFunctionBase> matmul_;
 };
 
+class MetalDotProductFunction
+{
+public:
+    MetalDotProductFunction(std::size_t length);
+    void operator()(const float* inputA, const float* inputB, float* result);
+
+private:
+    std::size_t array_length_;
+    std::unique_ptr<MetalFunctionBase> dot_product_;
+};
+
 } // namespace nagato::mtl
 
 #include "metal_functions_impl.hpp"
