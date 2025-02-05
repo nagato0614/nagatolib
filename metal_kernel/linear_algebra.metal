@@ -17,36 +17,92 @@ kernel void add_arrays(device const float *inA         [[buffer(0)]],
                        device const float *inB         [[buffer(1)]],
                        device float       *result      [[buffer(2)]],
                        constant uint      &buffer_length,
-                        uint              index        [[thread_position_in_grid]])
+                       uint               index        [[thread_position_in_grid]]
+                       )
 {
-  // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
-  // 4ずつ進めて simd_float4 で読み書き
-  for (uint i = 0; i < DataSizePerThread; i += 4) {
-    uint dataIndex = index * DataSizePerThread + i;
+    // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+    // 4ずつ進めて simd_float4 で読み書き
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+          uint dataIndex = index * DataSizePerThread + i;
 
-    // 4要素まとめて処理可能かどうかをチェック
-    if (dataIndex + 3 < buffer_length) {
-      // メモリ上で simd_float4 としてキャストし、まとめて読み書き
-      device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA + dataIndex);
-      device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB + dataIndex);
-      device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result + dataIndex);
+          // 4要素まとめて処理可能かどうかをチェック
+          if (dataIndex + 3 < buffer_length) {
+              // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+              device const simd_float4* aPtr 
+                = reinterpret_cast<device const simd_float4*>(inA + dataIndex);
+              device const simd_float4* bPtr 
+                = reinterpret_cast<device const simd_float4*>(inB + dataIndex);
+              device       simd_float4* rPtr 
+                = reinterpret_cast<device       simd_float4*>(result + dataIndex);
 
-      simd_float4 aVal = *aPtr;
-      simd_float4 bVal = *bPtr;
-      *rPtr = aVal + bVal;
-    }
-    else
-    {
-      // buffer_length が 4 の倍数でない場合の端数処理
-      // 残りの要素を1つずつ処理する
-      for (uint j = 0; j < 4; ++j) {
-        uint idx = dataIndex + j;
-        if (idx < buffer_length) {
-          result[idx] = inA[idx] + inB[idx];
+              simd_float4 aVal = *aPtr;
+              simd_float4 bVal = *bPtr;
+              *rPtr = aVal + bVal;
+          }
+          else
+          {
+              // buffer_length が 4 の倍数でない場合の端数処理
+              // 残りの要素を1つずつ処理する
+              for (uint j = 0; j < 4; ++j) {
+                    uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    result[idx] = inA[idx] + inB[idx];
+                }
+            }
         }
-      }
     }
-  }
+}
+
+/**
+ * 要素ごとの和を求める. バッチ処理対応版
+ * @param inA 入力配列1
+ * @param inB 入力配列2
+ * @param result 出力配列
+ * @param batch_size バッチサイズ
+ * @param index スレッドのインデックス
+ * @return
+ */
+kernel void add_array_batch(device const float *inA             [[buffer(0)]],
+                            device const float *inB             [[buffer(1)]],
+                            device float       *result          [[buffer(2)]],
+                            constant uint      &buffer_length   [[buffer(3)]],
+                            constant uint      &batch_size      [[buffer(4)]],
+                            ushort3            gid              [[thread_position_in_grid]]
+                            )
+{
+    const uint thread_index = gid.x;
+    const uint batch_index = gid.z;
+
+    // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+    // 4ずつ進めて simd_float4 で読み書き
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+
+        // 計算する要素のインデックスを算出. batch size を考慮
+        uint dataIndex = batch_index * buffer_length + thread_index * DataSizePerThread + i;
+
+        // 4要素まとめて処理可能かどうかをチェック
+        if (dataIndex + 3 < buffer_length * batch_size) {
+          // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+            device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA +      dataIndex);
+            device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB +      dataIndex);
+            device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result +   dataIndex);
+
+          simd_float4 aVal = *aPtr;
+          simd_float4 bVal = *bPtr;
+          *rPtr = aVal + bVal;
+        }
+        else
+        {
+            // buffer_length が 4 の倍数でない場合の端数処理
+            // 残りの要素を1つずつ処理する
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    result[idx] = inA[idx] + inB[idx];
+                }
+            }
+        }
+    }
 }
 
 

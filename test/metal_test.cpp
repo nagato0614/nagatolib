@@ -318,11 +318,6 @@ TEST(MetalTest, matmul_array)
       std::cerr << "Error: matmul result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i]
                 << std::endl;
     }
-
-    if (i > 10)
-    {
-      break;
-    }
   }
 }
 

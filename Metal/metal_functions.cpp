@@ -426,4 +426,52 @@ void MetalDotProductFunction::operator()(const float *inputA, const float *input
   // 結果をコピー
   bufferResult.CopyToHost(result, 1);
 }
+
+MetalAddArrayBatchFunction::MetalAddArrayBatchFunction(std::size_t length, std::size_t batch_size)
+  : array_length_(length), batch_size_(batch_size)
+{
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  add_array_batch_ = base->CreateFunctionBase("add_array_batch");
+}
+
+void MetalAddArrayBatchFunction::operator()(const float *inputA, const float *inputB, float *result)
+{
+  const std::size_t buffer_length = array_length_ * batch_size_;
+
+  // バッファの作成
+  auto bufferA = add_array_batch_->CreateBufferFromHost(inputA, buffer_length);
+  auto bufferB = add_array_batch_->CreateBufferFromHost(inputB, buffer_length);
+  auto bufferResult = add_array_batch_->CreateBufferFromHost(result, buffer_length);
+  auto bufferLength = add_array_batch_->CreateBuffer<uint>(1);
+  auto bufferBatchSize = add_array_batch_->CreateBuffer<uint>(1);
+
+  // 定数をセット
+  bufferLength[0] = static_cast<uint>(array_length_);
+  bufferBatchSize[0] = static_cast<uint>(batch_size_);
+
+  // バッファを関数にセット
+  add_array_batch_->SetBuffer(bufferA, 0, 0);
+  add_array_batch_->SetBuffer(bufferB, 0, 1);
+  add_array_batch_->SetBuffer(bufferResult, 0, 2);
+  add_array_batch_->SetBuffer(bufferLength, 0, 3);
+  add_array_batch_->SetBuffer(bufferBatchSize, 0, 4);
+
+  // 実行
+  // 1スレッドが担う「配列要素数」のかたまり分だけ、x方向にスレッドを立てる
+  // バッチサイズはz方向に立てる
+  const uint threads_per_batch = std::ceil(
+      static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
+  );
+  std::cout << "threads_per_batch: " << threads_per_batch << std::endl;
+
+  // z方向 = バッチサイズ (batch_size_)
+  MTL::Size threads_per_grid = MTL::Size(threads_per_batch,
+                                       1,
+                                       batch_size_);
+
+  MTL::Size thread_per_threadgroup = MTL::Size(16, 16, 1);    
+  add_array_batch_->ExecuteKernel(threads_per_grid, thread_per_threadgroup);
+
+}
+
 } // namespace nagato::mtl

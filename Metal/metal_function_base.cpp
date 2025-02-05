@@ -28,9 +28,9 @@ MetalFunctionBase::MetalFunctionBase(
 }
 
 
-void MetalFunctionBase::ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size)
+void MetalFunctionBase::ExecuteKernel(MTL::Size thrad_per_grid, MTL::Size thread_per_threadgroup)
 {
-  compute_command_encoder_->dispatchThreads(grid_size, thread_group_size);
+  compute_command_encoder_->dispatchThreads(thrad_per_grid, thread_per_threadgroup);
 
   compute_command_encoder_->endEncoding();
   command_buffer_->commit();

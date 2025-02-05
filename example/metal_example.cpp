@@ -13,13 +13,25 @@
 #include "metal_common.hpp"
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 2 << 25;
+constexpr std::size_t array_length = 100;
+constexpr std::size_t batch_size = 2 << 10;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
   for (std::size_t i = 0; i < length; i++)
   {
     result[i] = a[i] + b[i];
+  }
+}
+
+void add_array_batch(const float *a, const float *b, float *result, std::size_t length, std::size_t batch_size)
+{
+  for (std::size_t batch_index = 0; batch_index < batch_size; batch_index++)
+  {
+    for (std::size_t i = 0; i < length; i++)
+    {
+      result[batch_index * length + i] = a[batch_index * length + i] + b[batch_index * length + i];
+    }
   }
 }
 
@@ -509,34 +521,87 @@ void dot_product_example()
   std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
 }
 
+void add_array_batch_example()
+{
+
+  std::unique_ptr<float[]> a = std::make_unique<float[]>(array_length * batch_size);
+  std::unique_ptr<float[]> b = std::make_unique<float[]>(array_length * batch_size);
+  std::unique_ptr<float[]> cpu_result = std::make_unique<float[]>(array_length * batch_size);
+  std::unique_ptr<float[]> gpu_result = std::make_unique<float[]>(array_length * batch_size);
+
+  std::mt19937 mt(0);
+  for (std::size_t i = 0; i < array_length * batch_size; i++)
+  {
+    a[i] = static_cast<float>(mt());
+    b[i] = static_cast<float>(mt());
+    cpu_result[i] = 0.f;
+    gpu_result[i] = 0.f;
+  }
+
+  const auto start_cpu = std::chrono::system_clock::now();
+  add_array_batch(a.get(), b.get(), cpu_result.get(), array_length, batch_size);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count(); 
+    
+
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalAddArrayBatchFunction metal_add_array_batch_function(array_length, batch_size);
+  metal_add_array_batch_function(a.get(), b.get(), gpu_result.get());
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  int correct_count = 0;
+  for (std::size_t i = 0; i < array_length * batch_size; i++)
+  {
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    {
+      // std::cerr << "Error: add array batch result[" << i << "] = " << cpu_result[i] << " vs " << gpu_result[i] << std::endl;
+    }
+    else
+    {
+      correct_count++;
+    }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+  std::cout << "Correct count: " << correct_count << " / " << array_length * batch_size << std::endl;
+}
+
 int main()
 {
   // Metal関連の初期化
   nagato::mtl::MLASingleton::GetInstance();
 
-  std::cout << "--- add_example ---" << std::endl;
-  add_example();
+  // std::cout << "--- add_example ---" << std::endl;
+  // add_example();
 
-  std::cout << "--- sum_example ---" << std::endl;
-  sum_example();
+  // std::cout << "--- sum_example ---" << std::endl;
+  // sum_example();
 
-  std::cout << "--- sqrt_example ---" << std::endl;
-  sqrt_example();
+  // std::cout << "--- sqrt_example ---" << std::endl;
+  // sqrt_example();
 
-  std::cout << "--- softmax_example ---" << std::endl;
-  softmax_example();
+  // std::cout << "--- softmax_example ---" << std::endl;
+  // softmax_example();
 
-  std::cout << "--- sigmoid_example ---" << std::endl;
-  sigmoid_example();
+  // std::cout << "--- sigmoid_example ---" << std::endl;
+  // sigmoid_example();
 
-  std::cout << "--- relu_example ---" << std::endl;
-  relu_example();
+  // std::cout << "--- relu_example ---" << std::endl;
+  // relu_example();
 
-  std::cout << "--- matmul_example ---" << std::endl;
-  matmul_example();
+  // std::cout << "--- matmul_example ---" << std::endl;
+  // matmul_example();
 
-  std::cout << "--- dot_product_example ---" << std::endl;
-  dot_product_example();
+  // std::cout << "--- dot_product_example ---" << std::endl;
+  // dot_product_example();
+
+  std::cout << "--- add_array_batch_example ---" << std::endl;
+  add_array_batch_example();
 
   return 0;
 }

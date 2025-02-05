@@ -205,6 +205,17 @@ private:
     std::unique_ptr<MetalFunctionBase> dot_product_;
 };
 
+class MetalAddArrayBatchFunction
+{
+public:
+    MetalAddArrayBatchFunction(std::size_t length, std::size_t batch_size);
+    void operator()(const float* inputA, const float* inputB, float* result);
+
+private:
+    std::size_t array_length_;
+    std::unique_ptr<MetalFunctionBase> add_array_batch_;
+    std::size_t batch_size_;  
+};
 } // namespace nagato::mtl
 
 #include "metal_functions_impl.hpp"

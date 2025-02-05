@@ -83,7 +83,7 @@ class MetalFunctionBase
    */
   void Reset();
 
-  void ExecuteKernel(MTL::Size grid_size, MTL::Size thread_group_size);
+  void ExecuteKernel(MTL::Size threads_per_grid, MTL::Size thread_per_threadgroup);
 
   /**
    * スレッドグループ共有メモリの確保
