@@ -124,6 +124,58 @@ kernel void sub_arrays(device const float *inA,
 }
 
 /**
+ * 要素ごとの差を求める. バッチ処理対応版
+ * @param inA 入力配列1
+ * @param inB 入力配列2
+ * @param result 出力配列
+ * @param batch_size バッチサイズ
+ * @param index スレッドのインデックス
+ * @return
+ */
+kernel void sub_array_batch(device const float *inA,
+                            device const float *inB,
+                            device float *result,
+                            constant uint &buffer_length,
+                            constant uint &batch_size,
+                            ushort3 gid [[thread_position_in_grid]])
+{
+    const uint thread_index = gid.x;
+    const uint batch_index = gid.z;
+
+    // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+    // 4ずつ進めて simd_float4 で読み書き
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+
+        // 計算する要素のインデックスを算出. batch size を考慮
+        uint dataIndex = batch_index * buffer_length + thread_index * DataSizePerThread + i;
+
+        // 4要素まとめて処理可能かどうかをチェック
+        if (dataIndex + 3 < buffer_length * batch_size) {
+          // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+            device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA +      dataIndex);
+            device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB +      dataIndex);
+            device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result +   dataIndex);
+
+          simd_float4 aVal = *aPtr;
+          simd_float4 bVal = *bPtr;
+          *rPtr = aVal - bVal;
+        }
+        else
+        {
+            // buffer_length が 4 の倍数でない場合の端数処理
+            // 残りの要素を1つずつ処理する
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    result[idx] = inA[idx] - inB[idx];
+                }
+            }
+        }
+    }
+}
+
+
+/**
  * 要素ごとの積を求める
  * TODO : スレッドごとにいくつかの要素を処理するようにする
  * @param inA
@@ -138,6 +190,57 @@ kernel void mul_arrays(device const float *inA,
                        uint index [[thread_position_in_grid]])
 {
     result[index] = inA[index] * inB[index];
+}
+
+/**
+ * 要素ごとの積を求める. バッチ処理対応版
+ * @param inA 入力配列1
+ * @param inB 入力配列2
+ * @param result 出力配列
+ * @param batch_size バッチサイズ
+ * @param index スレッドのインデックス
+ * @return
+ */
+kernel void mul_array_batch(device const float *inA,
+                            device const float *inB,
+                            device float *result,
+                            constant uint &buffer_length,
+                            constant uint &batch_size,
+                            ushort3 gid [[thread_position_in_grid]])
+{
+    const uint thread_index = gid.x;
+    const uint batch_index = gid.z;
+
+    // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+    // 4ずつ進めて simd_float4 で読み書き
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+
+        // 計算する要素のインデックスを算出. batch size を考慮
+        uint dataIndex = batch_index * buffer_length + thread_index * DataSizePerThread + i;
+
+        // 4要素まとめて処理可能かどうかをチェック
+        if (dataIndex + 3 < buffer_length * batch_size) {
+          // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+            device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA +      dataIndex);
+            device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB +      dataIndex);
+            device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result +   dataIndex);
+
+          simd_float4 aVal = *aPtr;
+          simd_float4 bVal = *bPtr;
+          *rPtr = aVal * bVal;
+        }
+        else
+        {
+            // buffer_length が 4 の倍数でない場合の端数処理
+            // 残りの要素を1つずつ処理する
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    result[idx] = inA[idx] * inB[idx];
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -156,6 +259,57 @@ kernel void div_arrays(device const float *inA,
                        uint index [[thread_position_in_grid]])
 {
     result[index] = inA[index] / inB[index];
+}
+
+/**
+ * 要素ごとの商を求める. バッチ処理対応版
+ * @param inA 入力配列1
+ * @param inB 入力配列2
+ * @param result 出力配列
+ * @param batch_size バッチサイズ
+ * @param index スレッドのインデックス
+ * @return
+ */
+kernel void div_array_batch(device const float *inA,
+                            device const float *inB,
+                            device float *result,
+                            constant uint &buffer_length,
+                            constant uint &batch_size,
+                            ushort3 gid [[thread_position_in_grid]])
+{
+    const uint thread_index = gid.x;
+    const uint batch_index = gid.z;
+
+    // 1スレッドあたり DataSizePerThread 個の要素を処理する想定
+    // 4ずつ進めて simd_float4 で読み書き
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+
+        // 計算する要素のインデックスを算出. batch size を考慮
+        uint dataIndex = batch_index * buffer_length + thread_index * DataSizePerThread + i;
+
+        // 4要素まとめて処理可能かどうかをチェック
+        if (dataIndex + 3 < buffer_length * batch_size) {
+          // メモリ上で simd_float4 としてキャストし、まとめて読み書き
+            device const simd_float4* aPtr = reinterpret_cast<device const simd_float4*>(inA +      dataIndex);
+            device const simd_float4* bPtr = reinterpret_cast<device const simd_float4*>(inB +      dataIndex);
+            device       simd_float4* rPtr = reinterpret_cast<device       simd_float4*>(result +   dataIndex);
+
+          simd_float4 aVal = *aPtr;
+          simd_float4 bVal = *bPtr;
+          *rPtr = aVal / bVal;
+        }
+        else
+        {
+            // buffer_length が 4 の倍数でない場合の端数処理
+            // 残りの要素を1つずつ処理する
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    result[idx] = inA[idx] / inB[idx];
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -201,10 +355,10 @@ kernel void sum_arrays(
      * たとえば threadsPerThreadgroup = 8 だとして、それぞれに部分和が入っていると仮定すると:
      *
      * 共有メモリ:
-     *          index:   0    1    2    3    4    5    6    7
+     *          index:   0     1    2    3    4    5    6    7
      *             -------------------------------------
      * 初期値             v0   v1   v2   v3   v4   v5   v6   v7   (各tidの部分和)
-     * 1回目 (offset=4) v0+v4 v1+v5 v2+v6 v3+v7   (4~7は上書きされるが使わない)
+     * 1回目 (offset=4)  v0+v4 v1+v5 v2+v6 v3+v7   (4~7は上書きされるが使わない)
      * 2回目 (offset=2) (v0+v4)+(v2+v6)  (v1+v5)+(v3+v7)
      * 3回目 (offset=1) 全体の合計  ...
      *

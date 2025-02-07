@@ -3,6 +3,7 @@
 //
 
 #include "metal_functions.hpp"
+#include <chrono>
 
 namespace nagato::mtl
 {
@@ -56,7 +57,6 @@ void MetalAdderFunction::operator()(
 
   // 関数の実行
   add_arrays_->ExecuteKernel(grid_size, thread_group_size);
-
 }
 
 MetalSubFunction::MetalSubFunction(std::size_t length)
@@ -460,18 +460,159 @@ void MetalAddArrayBatchFunction::operator()(const float *inputA, const float *in
   // 1スレッドが担う「配列要素数」のかたまり分だけ、x方向にスレッドを立てる
   // バッチサイズはz方向に立てる
   const uint threads_per_batch = std::ceil(
-      static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
+    static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
   );
   std::cout << "threads_per_batch: " << threads_per_batch << std::endl;
 
   // z方向 = バッチサイズ (batch_size_)
   MTL::Size threads_per_grid = MTL::Size(threads_per_batch,
-                                       1,
-                                       batch_size_);
+                                         1,
+                                         batch_size_);
 
-  MTL::Size thread_per_threadgroup = MTL::Size(16, 16, 1);    
+  MTL::Size thread_per_threadgroup = MTL::Size(16, 16, 1);
   add_array_batch_->ExecuteKernel(threads_per_grid, thread_per_threadgroup);
-
 }
 
+MetalArithmeticFunction::MetalArithmeticFunction(std::size_t length, std::size_t batch_size)
+  : array_length_(length),
+    batch_size_(batch_size),
+    input_a_(nullptr),
+    input_b_(nullptr),
+    result_(nullptr)
+{
+}
+void MetalArithmeticFunction::setInputA(const float *inputA)
+{
+  this->input_a_ = inputA;
+}
+void MetalArithmeticFunction::setInputB(const float *inputB)
+{
+  this->input_b_ = inputB;
+}
+void MetalArithmeticFunction::setResult(float *result)
+{
+  this->result_ = result;
+}
+
+void MetalArithmeticFunction::execute(ArithmeticType arithmetic_type)
+{
+  switch (arithmetic_type)
+  {
+    case ArithmeticType::Add:
+    case ArithmeticType::Sub:
+    case ArithmeticType::Mul:
+    case ArithmeticType::Div:
+      this->executeTwoValueOp(arithmetic_type);
+      break;
+
+    // 以下, 未実装
+    case ArithmeticType::Sqrt:
+    case ArithmeticType::Sum:
+    case ArithmeticType::Softmax:
+    case ArithmeticType::Sigmoid:
+    case ArithmeticType::Relu:
+    case ArithmeticType::DotProduct:
+    case ArithmeticType::None:
+      break;
+  }
+}
+
+void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
+{
+  // 四則演算以外は例外を創出する
+  if (
+    arithmetic_type != ArithmeticType::Add &&
+    arithmetic_type != ArithmeticType::Sub &&
+    arithmetic_type != ArithmeticType::Mul &&
+    arithmetic_type != ArithmeticType::Div
+    )
+  {
+    throw std::invalid_argument("Not Found Arithmetic Type");
+  }
+
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+
+  const std::string kernel_function_name = getKernelFunctionName(arithmetic_type);
+  arithmetic_ = base->CreateFunctionBase(kernel_function_name);
+  const std::size_t buffer_length = array_length_ * batch_size_;
+
+  // データが割り当てられているか確認
+  if (this->input_a_ == nullptr)
+  {
+    throw std::invalid_argument("input_a_ is nullptr");
+  }
+  if (this->input_b_ == nullptr)
+  {
+    throw std::invalid_argument("input_b_ is nullptr");
+  }
+  if (this->result_ == nullptr)
+  {
+    throw std::invalid_argument("result_ is nullptr");
+  }
+
+  // バッファの作成
+  auto bufferA = arithmetic_->CreateBufferFromHost(this->input_a_, buffer_length);
+  auto bufferB = arithmetic_->CreateBufferFromHost(this->input_b_, buffer_length);
+  auto bufferResult = arithmetic_->CreateBufferFromHost(this->result_, buffer_length);
+  auto bufferLength = arithmetic_->CreateBuffer<uint>(1);
+  auto bufferBatchSize = arithmetic_->CreateBuffer<uint>(1);
+
+  // 定数をセット
+  bufferLength[0] = static_cast<uint>(array_length_);
+  bufferBatchSize[0] = static_cast<uint>(batch_size_);
+
+  // バッファを関数にセット
+  arithmetic_->SetBuffer(bufferA, 0, 0);
+  arithmetic_->SetBuffer(bufferB, 0, 1);
+  arithmetic_->SetBuffer(bufferResult, 0, 2);
+  arithmetic_->SetBuffer(bufferLength, 0, 3);
+  arithmetic_->SetBuffer(bufferBatchSize, 0, 4);
+
+  // 実行
+  const uint threads_per_batch = std::ceil(
+    static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
+  );
+  const auto grid_size = MTL::Size(threads_per_batch, 1, batch_size_);
+  const auto thread_per_threadgroup = MTL::Size(16, 16, 1);
+
+  // 時間計測
+  arithmetic_->ExecuteKernel(grid_size, thread_per_threadgroup);
+}
+
+std::string MetalArithmeticFunction::getKernelFunctionName(ArithmeticType arithmetic_type)
+{
+  std::string ret = InvalidKernelFunctionName;
+  switch (arithmetic_type)
+  {
+    case ArithmeticType::Add:
+      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Add)];
+      break;
+    case ArithmeticType::Sub:
+      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Sub)];
+      break;
+    case ArithmeticType::Mul:
+      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Mul)];
+      break;
+    case ArithmeticType::Div:
+      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Div)];
+      break;
+
+    // 以下, 未実装
+    case ArithmeticType::Sqrt:
+    case ArithmeticType::Sum:
+    case ArithmeticType::Softmax:
+    case ArithmeticType::Sigmoid:
+    case ArithmeticType::Relu:
+    case ArithmeticType::DotProduct:
+    case ArithmeticType::None:
+      break;
+  }
+
+  if (ret == InvalidKernelFunctionName)
+  {
+    throw std::invalid_argument("Not Found Kernel Function Name");
+  }
+
+  return ret;
+}
 } // namespace nagato::mtl

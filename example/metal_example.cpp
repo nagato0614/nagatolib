@@ -11,7 +11,7 @@
 
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 100;
+constexpr std::size_t array_length = 10000;
 constexpr std::size_t batch_size = 2 << 10;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
@@ -544,8 +544,11 @@ void add_array_batch_example()
     
 
   const auto start_gpu = std::chrono::system_clock::now();
-  nagato::mtl::MetalAddArrayBatchFunction metal_add_array_batch_function(array_length, batch_size);
-  metal_add_array_batch_function(a.get(), b.get(), gpu_result.get());
+  nagato::mtl::MetalArithmeticFunction metal_arithmetic_function(array_length, batch_size);
+  metal_arithmetic_function.setInputA(a.get());
+  metal_arithmetic_function.setInputB(b.get());
+  metal_arithmetic_function.setResult(gpu_result.get());
+  metal_arithmetic_function.execute(nagato::mtl::ArithmeticType::Add);
   const auto end_gpu = std::chrono::system_clock::now();
   const auto elapsed_gpu =
     std::chrono::duration_cast<std::chrono::microseconds>(end_gpu - start_gpu).count();
