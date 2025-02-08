@@ -389,6 +389,37 @@ kernel void sqrt_arrays(device const float *in,
     out[index] = sqrt(in[index]);
 }
 
+kernel void sqrt_array_batch(device const float *in,
+                             device float *out,
+                             constant uint &buffer_length,
+                             constant uint &batch_size,
+                             ushort3 gid [[thread_position_in_grid]])
+{
+    const uint thread_index = gid.x;
+    const uint batch_index = gid.z;
+
+    for (uint i = 0; i < DataSizePerThread; i += 4) {
+        uint dataIndex = batch_index * buffer_length + thread_index * DataSizePerThread + i;
+        
+        if (dataIndex + 3 < buffer_length * batch_size) {
+            device const simd_float4* inPtr = reinterpret_cast<device const simd_float4*>(in + dataIndex);
+            device       simd_float4* outPtr = reinterpret_cast<device       simd_float4*>(out + dataIndex);
+
+            simd_float4 x = *inPtr;
+            *outPtr = sqrt(x);
+        }
+        else
+        {
+            for (uint j = 0; j < 4; ++j) {
+                uint idx = dataIndex + j;
+                if (idx < buffer_length) {
+                    out[idx] = sqrt(in[idx]);
+                }
+            }
+        }
+    }
+}
+
 /**
  * Softmax 関数を計算するカーネル
  * cpu実装の方が早い

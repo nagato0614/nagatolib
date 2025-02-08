@@ -12,9 +12,45 @@ auto &MLASingleton::GetMetalBase()
   return metal_base_;
 }
 
+std::unique_ptr<MetalFunctionBase> &MLASingleton::GetFunction(const std::string &function_name)
+{
+  try
+  {
+    auto &functions_ = GetInstance().functions_;
+    auto &function = functions_.at(function_name);
+
+    // 初期化しておく
+    function->Reset();
+
+    return function;
+  } catch (const std::out_of_range &e)
+  {
+    throw std::runtime_error("Function not found: " + function_name);
+  }
+}
+
 MLASingleton::MLASingleton()
 {
   metal_base_ = std::make_unique<MetalBase>("../metal_kernel/linear_algebra.metal");
+
+  this->GenerateAllKernelFunctions();
+}
+
+void MLASingleton::GenerateAllKernelFunctions()
+{
+  for (const auto &kernel_name : KernelFunctionNames)
+  {
+    // 登録されていない関数はスキップ
+    if (kernel_name == InvalidKernelFunctionName)
+    {
+      continue;
+    }
+    auto &base = GetMetalBase();
+    auto function = base->CreateFunctionBase(kernel_name);
+
+    // 関数を登録
+    this->functions_[kernel_name] = std::move(function);
+  }
 }
 
 MetalAdderFunction::MetalAdderFunction(std::size_t length)
@@ -507,6 +543,8 @@ void MetalArithmeticFunction::execute(ArithmeticType arithmetic_type)
 
     // 以下, 未実装
     case ArithmeticType::Sqrt:
+      this->executeOneValueOp(arithmetic_type);
+      break;
     case ArithmeticType::Sum:
     case ArithmeticType::Softmax:
     case ArithmeticType::Sigmoid:
@@ -525,15 +563,14 @@ void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
     arithmetic_type != ArithmeticType::Sub &&
     arithmetic_type != ArithmeticType::Mul &&
     arithmetic_type != ArithmeticType::Div
-    )
+  )
   {
     throw std::invalid_argument("Not Found Arithmetic Type");
   }
 
   auto &base = MLASingleton::GetInstance().GetMetalBase();
-
   const std::string kernel_function_name = getKernelFunctionName(arithmetic_type);
-  arithmetic_ = base->CreateFunctionBase(kernel_function_name);
+  auto &arithmetic_ = MLASingleton::GetInstance().GetFunction(kernel_function_name);
   const std::size_t buffer_length = array_length_ * batch_size_;
 
   // データが割り当てられているか確認
@@ -579,26 +616,81 @@ void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
   arithmetic_->ExecuteKernel(grid_size, thread_per_threadgroup);
 }
 
+void MetalArithmeticFunction::executeOneValueOp(ArithmeticType arithmetic_type)
+{
+  // Sum, Sigmoid, Relu のみ対応
+  if (
+    arithmetic_type != ArithmeticType::Sigmoid &&
+    arithmetic_type != ArithmeticType::Relu &&
+    arithmetic_type != ArithmeticType::Sqrt
+  )
+  {
+    throw std::invalid_argument("Not Found Arithmetic Type");
+  }
+
+  auto &base = MLASingleton::GetInstance().GetMetalBase();
+  const std::string kernel_function_name = getKernelFunctionName(arithmetic_type);
+  auto &arithmetic_ = MLASingleton::GetInstance().GetFunction(kernel_function_name);
+  const std::size_t buffer_length = array_length_ * batch_size_;
+
+  // データが割り当てられているか確認
+  if (this->input_a_ == nullptr)
+  {
+    throw std::invalid_argument("input_a_ is nullptr");
+  }
+  if (this->result_ == nullptr)
+  {
+    throw std::invalid_argument("result_ is nullptr");
+  }
+
+  // バッファの作成
+  auto bufferA = arithmetic_->CreateBufferFromHost(this->input_a_, buffer_length);
+  auto bufferResult = arithmetic_->CreateBufferFromHost(this->result_, buffer_length);
+  auto bufferLength = arithmetic_->CreateBuffer<uint>(1);
+  auto bufferBatchSize = arithmetic_->CreateBuffer<uint>(1);
+
+  // 定数をセット
+  bufferLength[0] = static_cast<uint>(array_length_);
+  bufferBatchSize[0] = static_cast<uint>(batch_size_);
+
+  // バッファを関数にセット
+  arithmetic_->SetBuffer(bufferA, 0, 0);
+  arithmetic_->SetBuffer(bufferResult, 0, 1);
+  arithmetic_->SetBuffer(bufferLength, 0, 2);
+  arithmetic_->SetBuffer(bufferBatchSize, 0, 3);
+
+  // 実行
+  const uint threads_per_batch = std::ceil(
+    static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
+  );
+  const auto grid_size = MTL::Size(threads_per_batch, 1, batch_size_);
+  const auto thread_per_threadgroup = MTL::Size(16, 16, 1);
+
+  arithmetic_->ExecuteKernel(grid_size, thread_per_threadgroup);
+}
+
 std::string MetalArithmeticFunction::getKernelFunctionName(ArithmeticType arithmetic_type)
 {
   std::string ret = InvalidKernelFunctionName;
   switch (arithmetic_type)
   {
     case ArithmeticType::Add:
-      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Add)];
+      ret = KernelFunctionNames[static_cast<std::size_t>(ArithmeticType::Add)];
       break;
     case ArithmeticType::Sub:
-      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Sub)];
+      ret = KernelFunctionNames[static_cast<std::size_t>(ArithmeticType::Sub)];
       break;
     case ArithmeticType::Mul:
-      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Mul)];
+      ret = KernelFunctionNames[static_cast<std::size_t>(ArithmeticType::Mul)];
       break;
     case ArithmeticType::Div:
-      ret = KernelFunctionName[static_cast<std::size_t>(ArithmeticType::Div)];
+      ret = KernelFunctionNames[static_cast<std::size_t>(ArithmeticType::Div)];
       break;
 
     // 以下, 未実装
     case ArithmeticType::Sqrt:
+      ret = KernelFunctionNames[static_cast<std::size_t>(ArithmeticType::Sqrt)];
+      break;
     case ArithmeticType::Sum:
     case ArithmeticType::Softmax:
     case ArithmeticType::Sigmoid:

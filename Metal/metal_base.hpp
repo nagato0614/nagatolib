@@ -38,7 +38,7 @@ class MetalBase
 
 
 
-  [[nodiscard]] std::unique_ptr<MetalFunctionBase> CreateFunctionBase(std::string kernel_function_name);
+  [[nodiscard]] std::unique_ptr<MetalFunctionBase> CreateFunctionBase(const std::string &kernel_function_name);
 
  private:
   std::string kernel_file_name_;

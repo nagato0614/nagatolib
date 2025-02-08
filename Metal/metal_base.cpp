@@ -54,7 +54,7 @@ MetalBase::~MetalBase()
 }
 
 std::unique_ptr<MetalFunctionBase> MetalBase::CreateFunctionBase(
-  std::string kernel_function_name
+  const std::string &kernel_function_name
   )
 {
   NS::Error *error = nullptr;

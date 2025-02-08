@@ -4,12 +4,45 @@
 
 #ifndef NAGATOLIB_METAL_METAL_FUNCTIONS_HPP_
 #define NAGATOLIB_METAL_METAL_FUNCTIONS_HPP_
+
+#include <map>
+
 #include "metal_base.hpp"
 #include "metal_common.hpp"
 
 namespace nagato::mtl
 {
 constexpr size_t DefaultThreadPerGroup = 256;
+enum class ArithmeticType : std::size_t
+{
+  Add = 0,
+  Sub = 1,
+  Mul = 2,
+  Div = 3,
+  Sqrt = 4,
+  Sum = 5,
+  Softmax = 6,
+  Sigmoid = 7,
+  Relu = 8,
+  DotProduct = 9,
+  None = 10,
+};
+const std::string InvalidKernelFunctionName = "None";
+
+const std::string KernelFunctionNames[] = {
+  "add_array_batch",
+  "sub_array_batch",
+  "mul_array_batch",
+  "div_array_batch",
+  "sqrt_array_batch",
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+  InvalidKernelFunctionName,
+};
 
 class MLASingleton
 {
@@ -21,12 +54,16 @@ class MLASingleton
     }
 
     auto &GetMetalBase();
+    std::unique_ptr<MetalFunctionBase> &GetFunction(const std::string &function_name);
 
   private:
     MLASingleton();
     ~MLASingleton() = default;
 
+    void GenerateAllKernelFunctions();
+
     std::unique_ptr<MetalBase> metal_base_;
+    std::map<std::string, std::unique_ptr<MetalFunctionBase> > functions_;
 };
 
 /**
@@ -214,37 +251,6 @@ class MetalAddArrayBatchFunction
     std::size_t batch_size_;
 };
 
-enum class ArithmeticType : std::size_t
-{
-  Add = 0,
-  Sub = 1,
-  Mul = 2,
-  Div = 3,
-  Sqrt = 4,
-  Sum = 5,
-  Softmax = 6,
-  Sigmoid = 7,
-  Relu = 8,
-  DotProduct = 9,
-  None = 10,
-};
-const std::string InvalidKernelFunctionName = "None";
-
-const std::string KernelFunctionName[] = {
-  "add_array_batch",
-  "sub_array_batch",
-  "mul_array_batch",
-  "div_array_batch",
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-  InvalidKernelFunctionName,
-};
-
 /**
  * @brief MetalArithmeticFunction
  *
@@ -292,20 +298,25 @@ class MetalArithmeticFunction
 
   private:
     /**
-     * ２つの値を元に演算を実行する.
+     * @brief ２つのテンソルを元に演算を実行する.
      * 使用できない演算が指定された場合は例外を送出する.
-     *
+     * 使用可能な演算は, Add, Sub, Mul, Div のみ.
      * @param arithmetic_type 実行したいカネールの種類
      */
     void executeTwoValueOp(ArithmeticType arithmetic_type);
 
-
+    /**
+     * @brief １つのテンソルを元に演算を実行する. 結果はテンソルのサイズと同じ.
+     * 使用できない演算が指定された場合は例外を送出する.
+     * 使用可能な演算は, Sigmoid, Relu, Sqrt のみ.
+     * @param arithmetic_type 実行したいカネールの種類
+     */
+    void executeOneValueOp(ArithmeticType arithmetic_type);
 
     std::string getKernelFunctionName(ArithmeticType arithmetic_type);
 
     std::size_t array_length_;
     std::size_t batch_size_;
-    std::unique_ptr<MetalFunctionBase> arithmetic_;
     const float *input_a_;
     const float *input_b_;
     float *result_;

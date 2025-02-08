@@ -11,8 +11,8 @@
 
 #include "metal_functions.hpp"
 
-constexpr std::size_t array_length = 10000;
-constexpr std::size_t batch_size = 2 << 10;
+constexpr std::size_t array_length = 1000 * 1000;
+constexpr std::size_t batch_size = 1000;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -22,7 +22,11 @@ void add_arrays(const float *a, const float *b, float *result, std::size_t lengt
   }
 }
 
-void add_array_batch(const float *a, const float *b, float *result, std::size_t length, std::size_t batch_size)
+void add_array_batch(const float *a,
+                     const float *b,
+                     float *result,
+                     std::size_t length,
+                     std::size_t batch_size)
 {
   for (std::size_t batch_index = 0; batch_index < batch_size; batch_index++)
   {
@@ -46,6 +50,17 @@ void sqrt_arrays(const float *a, float *result, std::size_t length)
   for (std::size_t i = 0; i < length; i++)
   {
     result[i] = std::sqrt(a[i]);
+  }
+}
+
+void sqrt_array_batch(const float *a, float *result, std::size_t length, std::size_t batch_size)
+{
+  for (std::size_t batch_index = 0; batch_index < batch_size; batch_index++)
+  {
+    for (std::size_t i = 0; i < length; i++)
+    {
+      result[batch_index * length + i] = std::sqrt(a[batch_index * length + i]);
+    }
   }
 }
 
@@ -521,7 +536,6 @@ void dot_product_example()
 
 void add_array_batch_example()
 {
-
   std::unique_ptr<float[]> a = std::make_unique<float[]>(array_length * batch_size);
   std::unique_ptr<float[]> b = std::make_unique<float[]>(array_length * batch_size);
   std::unique_ptr<float[]> cpu_result = std::make_unique<float[]>(array_length * batch_size);
@@ -540,8 +554,7 @@ void add_array_batch_example()
   add_array_batch(a.get(), b.get(), cpu_result.get(), array_length, batch_size);
   const auto end_cpu = std::chrono::system_clock::now();
   const auto elapsed_cpu =
-    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count(); 
-    
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
 
   const auto start_gpu = std::chrono::system_clock::now();
   nagato::mtl::MetalArithmeticFunction metal_arithmetic_function(array_length, batch_size);
@@ -569,7 +582,58 @@ void add_array_batch_example()
 
   std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
   std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
-  std::cout << "Correct count: " << correct_count << " / " << array_length * batch_size << std::endl;
+  std::cout << "Correct count: " << correct_count << " / " << array_length * batch_size <<
+    std::endl;
+}
+
+void sqrt_array_batch_example()
+{
+  std::unique_ptr<float[]> a = std::make_unique<float[]>(array_length * batch_size);
+  std::unique_ptr<float[]> cpu_result = std::make_unique<float[]>(array_length * batch_size);
+  std::unique_ptr<float[]> gpu_result = std::make_unique<float[]>(array_length * batch_size);
+
+  std::mt19937 mt(0);
+  for (std::size_t i = 0; i < array_length * batch_size; i++)
+  {
+    a[i] = static_cast<float>(mt());
+    cpu_result[i] = 0.f;
+    gpu_result[i] = 0.f;
+  }
+
+  const auto start_cpu = std::chrono::system_clock::now();
+  sqrt_array_batch(a.get(), cpu_result.get(), array_length, batch_size);
+  const auto end_cpu = std::chrono::system_clock::now();
+  const auto elapsed_cpu =
+    std::chrono::duration_cast<std::chrono::microseconds>(end_cpu - start_cpu).count();
+
+  const auto start_gpu = std::chrono::system_clock::now();
+  nagato::mtl::MetalArithmeticFunction metal_arithmetic_function(array_length, batch_size);
+  metal_arithmetic_function.setInputA(a.get());
+  metal_arithmetic_function.setResult(gpu_result.get());
+  metal_arithmetic_function.execute(nagato::mtl::ArithmeticType::Sqrt);
+  const auto end_gpu = std::chrono::system_clock::now();
+  const auto elapsed_gpu = std::chrono::duration_cast<std::chrono::microseconds>(
+    end_gpu - start_gpu).count();
+
+  // 誤差をチェック
+  int correct_count = 0;
+  for (std::size_t i = 0; i < array_length * batch_size; i++)
+  {
+    if (std::abs(cpu_result[i] - gpu_result[i]) > 1e-2)
+    {
+      std::cerr << "Error: sqrt array batch result[" << i << "] = " << cpu_result[i] << " vs " <<
+        gpu_result[i] << std::endl;
+    }
+    else
+    {
+      correct_count++;
+    }
+  }
+
+  std::cout << "Elapsed time with CPU : " << elapsed_cpu << " us" << std::endl;
+  std::cout << "Elapsed time with GPU : " << elapsed_gpu << " us" << std::endl;
+  std::cout << "Correct count: " << correct_count << " / " << array_length * batch_size <<
+    std::endl;
 }
 
 int main()
@@ -601,8 +665,14 @@ int main()
   // std::cout << "--- dot_product_example ---" << std::endl;
   // dot_product_example();
 
-  std::cout << "--- add_array_batch_example ---" << std::endl;
-  add_array_batch_example();
+  for (int i = 0; i < 10; i++)
+  {
+    std::cout << "--- add_array_batch_example ---" << std::endl;
+    add_array_batch_example();
+
+    std::cout << "--- sqrt_array_batch_example ---" << std::endl;
+    sqrt_array_batch_example();
+  }
 
   return 0;
 }
