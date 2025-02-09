@@ -8,11 +8,14 @@
 
 #include <iostream>
 #include <random>
+#include <timer.hpp>
 
 #include "metal_functions.hpp"
 
+constexpr std::size_t Kilo = 1000;
+constexpr std::size_t Mega = Kilo * Kilo;
 constexpr std::size_t array_length = 1000 * 1000;
-constexpr std::size_t batch_size = 1000;
+constexpr std::size_t batch_size = 10;
 
 void add_arrays(const float *a, const float *b, float *result, std::size_t length)
 {
@@ -641,37 +644,41 @@ int main()
   // Metal関連の初期化
   nagato::mtl::MLASingleton::GetInstance();
 
-  // std::cout << "--- add_example ---" << std::endl;
-  // add_example();
+  std::cout << "--- add_example ---" << std::endl;
+  add_example();
 
-  // std::cout << "--- sum_example ---" << std::endl;
-  // sum_example();
+  std::cout << "--- sum_example ---" << std::endl;
+  sum_example();
 
-  // std::cout << "--- sqrt_example ---" << std::endl;
-  // sqrt_example();
+  std::cout << "--- sqrt_example ---" << std::endl;
+  sqrt_example();
 
-  // std::cout << "--- softmax_example ---" << std::endl;
-  // softmax_example();
+  std::cout << "--- softmax_example ---" << std::endl;
+  softmax_example();
 
-  // std::cout << "--- sigmoid_example ---" << std::endl;
-  // sigmoid_example();
+  std::cout << "--- sigmoid_example ---" << std::endl;
+  sigmoid_example();
 
-  // std::cout << "--- relu_example ---" << std::endl;
-  // relu_example();
+  std::cout << "--- relu_example ---" << std::endl;
+  relu_example();
 
-  // std::cout << "--- matmul_example ---" << std::endl;
-  // matmul_example();
+  std::cout << "--- matmul_example ---" << std::endl;
+  matmul_example();
 
-  // std::cout << "--- dot_product_example ---" << std::endl;
-  // dot_product_example();
+  std::cout << "--- dot_product_example ---" << std::endl;
+  dot_product_example();
 
-  for (int i = 0; i < 10; i++)
+  std::cout << "--- add_array_batch_example ---" << std::endl;
+  add_array_batch_example();
+
+  std::cout << "--- sqrt_array_batch_example ---" << std::endl;
+  sqrt_array_batch_example();
+
+  // すべてのタイム計測を表示
+  const auto &timers = Timer::GetInstance().GetTimes();
+  for (const auto &timer : timers)
   {
-    std::cout << "--- add_array_batch_example ---" << std::endl;
-    add_array_batch_example();
-
-    std::cout << "--- sqrt_array_batch_example ---" << std::endl;
-    sqrt_array_batch_example();
+    std::cout << timer.first << " : " << timer.second << " us" << std::endl;
   }
 
   return 0;

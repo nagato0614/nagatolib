@@ -561,6 +561,42 @@ kernel void matmul_array(
 }
 
 /**
+ * A: NxM 行列 (row-major)
+ * B: MxL 行列 (row-major)
+ * C: NxL 行列 (row-major)
+ * batch_size: バッチサイズ
+ * N, M, L: 行列サイズ
+ * gid: グローバル座標 (x=列, y=行)
+ */
+kernel void matmul_array_batch(
+    device const float *A [[buffer(0)]],
+    device const float *B [[buffer(1)]],
+    device float       *C [[buffer(2)]],
+    constant uint &N       [[buffer(3)]],
+    constant uint &M       [[buffer(4)]],
+    constant uint &L       [[buffer(5)]],
+    constant uint &batch_size [[buffer(6)]],
+    ushort3 gid [[thread_position_in_grid]]
+)
+{
+    uint col = gid.x;
+    uint row = gid.y;
+    uint batch_index = gid.z;
+
+    if (col >= L || row >= N || batch_index >= batch_size) {
+        return;
+    }
+
+    float sum = 0.0f;
+    for (uint k = 0; k < M; k++) {
+        sum += A[batch_index * N * M + row * M + k] * B[batch_index * M * L + k * L + col];
+    }
+
+    C[batch_index * N * L + row * L + col] = sum;
+}
+
+
+/**
  * ベクトルの内積 (dot product) を求めるカーネル
  *
  * A      : 入力ベクトル1

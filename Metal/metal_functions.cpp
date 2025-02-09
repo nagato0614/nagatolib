@@ -3,6 +3,7 @@
 //
 
 #include "metal_functions.hpp"
+#include "timer.hpp"
 #include <chrono>
 
 namespace nagato::mtl
@@ -567,11 +568,17 @@ void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
   {
     throw std::invalid_argument("Not Found Arithmetic Type");
   }
+  const std::string gen_instance_timer_name = std::string(__func__) + "_" + std::to_string(static_cast<int>(arithmetic_type)) + "_instance";
+  const std::string gen_buffer_timer_name = std::string(__func__) + "_" + std::to_string(static_cast<int>(arithmetic_type)) + "_buffer";
+  const std::string execute_timer_name = std::string(__func__) + "_" + std::to_string(static_cast<int>(arithmetic_type)) + "_execute";
 
+  // 時間計測
+  Timer::GetInstance().Start(gen_instance_timer_name);
   auto &base = MLASingleton::GetInstance().GetMetalBase();
   const std::string kernel_function_name = getKernelFunctionName(arithmetic_type);
   auto &arithmetic_ = MLASingleton::GetInstance().GetFunction(kernel_function_name);
   const std::size_t buffer_length = array_length_ * batch_size_;
+  Timer::GetInstance().Stop(gen_instance_timer_name);
 
   // データが割り当てられているか確認
   if (this->input_a_ == nullptr)
@@ -588,6 +595,7 @@ void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
   }
 
   // バッファの作成
+  Timer::GetInstance().Start(gen_buffer_timer_name);
   auto bufferA = arithmetic_->CreateBufferFromHost(this->input_a_, buffer_length);
   auto bufferB = arithmetic_->CreateBufferFromHost(this->input_b_, buffer_length);
   auto bufferResult = arithmetic_->CreateBufferFromHost(this->result_, buffer_length);
@@ -604,16 +612,19 @@ void MetalArithmeticFunction::executeTwoValueOp(ArithmeticType arithmetic_type)
   arithmetic_->SetBuffer(bufferResult, 0, 2);
   arithmetic_->SetBuffer(bufferLength, 0, 3);
   arithmetic_->SetBuffer(bufferBatchSize, 0, 4);
+  Timer::GetInstance().Stop(gen_buffer_timer_name);
 
   // 実行
+  Timer::GetInstance().Start(execute_timer_name);
   const uint threads_per_batch = std::ceil(
     static_cast<double>(array_length_) / static_cast<double>(DataSizePerThread)
   );
   const auto grid_size = MTL::Size(threads_per_batch, 1, batch_size_);
-  const auto thread_per_threadgroup = MTL::Size(16, 16, 1);
+  const auto thread_per_threadgroup = MTL::Size(32, 32, 1);
 
   // 時間計測
   arithmetic_->ExecuteKernel(grid_size, thread_per_threadgroup);
+  Timer::GetInstance().Stop(execute_timer_name);
 }
 
 void MetalArithmeticFunction::executeOneValueOp(ArithmeticType arithmetic_type)
