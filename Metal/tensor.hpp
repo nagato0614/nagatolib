@@ -6,8 +6,10 @@
 #define TENSOR_HPP
 
 
-
-class tensor {
+/**
+*
+*/
+class Tensor {
 
 };
 
