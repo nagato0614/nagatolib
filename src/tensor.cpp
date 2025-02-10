@@ -194,33 +194,26 @@ Tensor Tensor::Dot(const Tensor &a, const Tensor &b)
 
 Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
 {
-  // 入力データの形状が等しいことをチェック
-  if (a.shape() != b.shape())
-  {
-    throw std::invalid_argument("input tensor must have the same shape");
-  }
-
-  std::cout << "a.shape().size(): " << a.shape().size() << std::endl;
-  std::cout << "b.shape().size(): " << b.shape().size() << std::endl;
-
   // 入力が2次元の場合
   if (a.shape().size() == 2 && b.shape().size() == 2)
   {
-    // すべての形状が等しいことをチェック
-    for (std::size_t i = 0; i < a.shape().size(); ++i)
-    {
-      if (a.shape()[i] != b.shape()[i])
-      {
-        throw std::invalid_argument("input tensor must have the same shape");
-      }
-    }
 
-    Tensor result(a.shape());
+    // 入力データの形状をチェック
+    if (a.shape()[1] != b.shape()[0])
+    {
+      throw std::invalid_argument("input tensor must have the same shape");
+    }
+    
+    // 出力データの形状を計算 
+    shape_type result_shape = {a.shape()[0], b.shape()[1]};
+    Tensor result(result_shape);
+
+    // 行列積を計算する
     for (std::size_t i = 0; i < a.shape()[0]; ++i)
     {
-      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      for (std::size_t j = 0; j < b.shape()[1]; ++j)
       {
-        for (std::size_t k = 0; k < a.shape()[1]; ++k)
+        for (std::size_t k = 0; k < b.shape()[0]; ++k)
         {
           result(i, j) += a(i, k) * b(k, j);
         }
@@ -235,23 +228,29 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
     (b.shape().size() == 3)
   )
   {
-    // すべての形状が等しいことをチェック
-    for (std::size_t i = 0; i < a.shape().size(); ++i)
+    // 入力データの形状をチェック
+    if (a.shape()[0] != b.shape()[0])
     {
-      if (a.shape()[i] != b.shape()[i])
-      {
-        throw std::invalid_argument("input tensor must have the same shape");
-      }
+      throw std::invalid_argument("batch size must be the same");
     }
 
-    Tensor result(a.shape());
-    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    if (a.shape()[2] != b.shape()[1])
     {
-      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      throw std::invalid_argument("input tensor must have the same shape");
+    }
+
+    // 出力データの形状を計算
+    shape_type result_shape = {a.shape()[0], a.shape()[1], b.shape()[2]};
+    Tensor result(result_shape);
+
+    // 行列積を計算する
+    for (std::size_t i = 0; i < result_shape[0]; ++i) // バッチサイズ
+    {
+      for (std::size_t j = 0; j < result_shape[1]; ++j) 
       {
-        for (std::size_t k = 0; k < a.shape()[2]; ++k)
+        for (std::size_t k = 0; k < result_shape[2]; ++k) 
         {
-          for (std::size_t l = 0; l < a.shape()[2]; ++l)
+          for (std::size_t l = 0; l < b.shape()[1]; ++l)
           {
             result(i, j, k) += a(i, j, l) * b(i, l, k);
           }
@@ -313,4 +312,83 @@ Tensor Tensor::Sum(const Tensor &a)
 
   return result;
 }
+
+Tensor Tensor::Sigmoid(const Tensor &a)
+{
+  Tensor result(a.shape());
+  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  {
+    result(i) = 1 / (1 + std::exp(-a(i)));
+  }
+  return result;
+}
+
+Tensor Tensor::ReLU(const Tensor &a)
+{
+  Tensor result(a.shape());
+  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  {
+    result(i) = std::max(0.0f, a(i));
+  }
+  return result;
+}
+
+Tensor Tensor::Exp(const Tensor &a)
+{
+  Tensor result(a.shape());
+  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  {
+    result(i) = std::exp(a(i));
+  }
+  return result;
+}
+
+Tensor Tensor::Softmax(const Tensor &a)
+{
+ // 結果のテンソルを作成
+  shape_type shape = a.shape();
+  std::size_t shape_size = a.shape().size();
+
+  if (shape_size > 2)
+  {
+    throw std::invalid_argument("tensor must be less than 3 dimensional");
+  }
+
+
+  Tensor exp_a = Tensor::Exp(a);
+  
+  if (shape_size == 1)
+  {
+    Tensor result(a.shape());
+    float sum = 0;
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      sum += exp_a(i);
+    }
+
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      result(i) = exp_a(i) / sum;
+    }
+  }
+  else if (shape_size == 2)
+  {
+    // 総和を求める
+    Tensor sum = Tensor::Sum(exp_a);
+    Tensor result(a.shape());
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      {
+        result(i, j) = exp_a(i, j) / sum(i);
+      }
+    }
+    return result;
+  }
+  else
+  {
+    throw std::invalid_argument("tensor must be less than 3 dimensional");
+  }
+}
+
 } // namespace nagato

@@ -95,6 +95,7 @@ if (NAGATO_BUILD_EXAMPLE)
     add_example(random_example)
     add_example(thread_example)
     add_example(matrix_example)
+    add_example(tensor_example)
 endif ()
 
 # Build Tests

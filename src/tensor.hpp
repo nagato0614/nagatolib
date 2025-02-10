@@ -123,7 +123,7 @@ public:
 
   /**
    * @brief 行列の積を計算する
-   * @note ブロードキャストは行わない. 2次元の場合は行列同士の積, 3次元はバッチ行列同士の積を計算する
+   * @note ブロードキャストは行わない. 2次元の場合は行列同士の積, 3次元はバッチ行列同士の積を計算する. 
    * @param a テンソル
    * @param b テンソル
    * @return 行列の積
@@ -136,6 +136,35 @@ public:
    * @return 総和
    */
   static Tensor Sum(const Tensor &a);
+
+  /**
+   * @brief シグモイド関数を計算する
+   * @param a テンソル
+   * @return シグモイド関数
+   */
+  static Tensor Sigmoid(const Tensor &a);
+
+  /**
+   * @brief ReLU関数を計算する
+   * @param a テンソル
+   * @return ReLU関数
+   */
+  static Tensor ReLU(const Tensor &a);
+
+  /**
+   * @brief 指数関数を計算する
+   * @param a テンソル
+   * @return 指数関数
+   */
+  static Tensor Exp(const Tensor &a);
+
+  /**
+   * @brief Softmax関数を計算する
+   * @note テンソルはベクトルとして扱う, 2次元テンソルの場合は行ごとにSoftmaxを計算する. ブロードキャストは行わない. 3次元以上のテンソルはサポートしない
+   * @param a テンソル
+   * @return Softmax関数
+   */
+  static Tensor Softmax(const Tensor &a);
 
 private:
 
