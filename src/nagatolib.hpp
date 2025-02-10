@@ -11,6 +11,8 @@
 #include "matrix.hpp"
 #include "matrix_n.hpp"
 #include "thread.hpp"
+#include "tensor.hpp"
+#include "../Metal/timer.hpp"
 
 namespace nagato {
 // Vector

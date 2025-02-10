@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <random>
-#include <timer.hpp>
+#include <../Metal/timer.hpp>
 
 #include "metal_functions.hpp"
 
