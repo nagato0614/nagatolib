@@ -184,6 +184,12 @@ public:
    */
   static void IsSameShape(const Tensor &a, const Tensor &b);
 
+  /**
+   * @brief 乱数を生成する
+   * @param shape 形状
+   * @return 乱数
+   */
+  static Tensor Random(const shape_type &shape);
 private:
 
 /**
@@ -228,6 +234,9 @@ private:
 
   /// テンソルのデータ
   storage_type storage_;
+
+  /// 乱数のシード
+  std::size_t seed_;
 };
 
 

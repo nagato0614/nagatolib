@@ -5,6 +5,7 @@
 #include "tensor.hpp"
 #include <iostream>
 #include <numeric>
+#include <random>
 
 namespace nagato
 {
@@ -433,5 +434,19 @@ void Tensor::PrintShape(const Tensor &a)
     std::cout << i << ", ";
   }
   std::cout << std::endl;
+}
+
+
+Tensor Tensor::Random(const shape_type &shape)
+{
+  Tensor result(shape);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<value_type> dis(-1.0, 1.0);
+  for (std::size_t i = 0; i < result.storage().size(); ++i)
+  {
+    result.storage()[i] = dis(gen);
+  }
+  return result;
 }
 } // namespace nagato
