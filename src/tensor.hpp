@@ -157,6 +157,13 @@ public:
   static Tensor Exp(const Tensor &a);
 
   /**
+   * @brief 対数関数を計算する
+   * @param a テンソル
+   * @return 対数関数
+   */
+  static Tensor Log(const Tensor &a);
+
+  /**
    * @brief Softmax関数を計算する
    * @note テンソルはベクトルとして扱う, 2次元テンソルの場合は行ごとにSoftmaxを計算する. ブロードキャストは行わない. 3次元以上のテンソルはサポートしない
    * @param a テンソル
@@ -190,6 +197,13 @@ public:
    * @return 乱数
    */
   static Tensor Random(const shape_type &shape);
+
+  /**
+   * @brief 単項演算子のオーバーロード
+   * @note テンソルの要素ごとに演算を行う
+   */
+  Tensor operator-() const;
+
 private:
 
 /**
@@ -238,7 +252,6 @@ private:
   /// 乱数のシード
   std::size_t seed_;
 };
-
 
 /**
  * @brief テンソルの加算

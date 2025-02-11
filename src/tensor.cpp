@@ -412,9 +412,20 @@ Tensor Tensor::Exp(const Tensor &a)
   return result;
 }
 
+Tensor Tensor::Log(const Tensor &a)
+{
+  Tensor result(a.shape());
+  std::transform(
+    a.storage().begin(),
+    a.storage().end(),
+    result.storage().begin(),
+    [](const Tensor::value_type &x) { return std::log(x); }
+  );
+  return result;
+}
+
 Tensor Tensor::Softmax(const Tensor &a)
 {
-  // 結果のテンソルを作成
   const std::size_t shape_size = a.shape().size();
 
   if (shape_size > 2)
@@ -523,4 +534,17 @@ Tensor Tensor::Random(const shape_type &shape)
   }
   return result;
 }
+
+Tensor Tensor::operator-() const
+{
+  Tensor result(shape_);
+  std::transform(
+    storage_.begin(), 
+    storage_.end(), 
+    result.storage().begin(), 
+    [](const value_type &x) { return -x; }
+    );
+  return result;
+}
+
 } // namespace nagato

@@ -78,6 +78,16 @@ Tensor MeanSquaredError(const Tensor &y, const Tensor &t)
   return sum;
 }
 
+// バッチ対応の交差エントロピー誤差
+Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
+{
+  constexpr float delta = 1e-7;
+  Tensor::IsSameShape(y, t);
+  const Tensor result = t * Tensor::Log(y + delta);
+  return -Tensor::Sum(result);
+}
+
+
 int main()
 {
   // ２乗誤差のテスト
@@ -113,4 +123,8 @@ int main()
 
   const Tensor result = MeanSquaredError(y, ans);
   Tensor::Print(result);
+
+  // 交差エントロピー誤差のテスト
+  const Tensor cross_result = CrossEntropyError(y, ans);
+  Tensor::Print(cross_result);
 }
