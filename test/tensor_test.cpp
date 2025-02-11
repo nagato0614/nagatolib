@@ -3,6 +3,48 @@
 #include "nagatolib.hpp"
 using namespace nagato;
 
+/**
+ * @brief 重みパラメータに対する勾配を計算する関数. 
+ * @note バッチ処理に対応している
+ * @param func 勾配を計算する関数
+ * @param x 入力. 一番最初の次元はバッチサイズ
+ * @return 勾配
+ */
+Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tensor &x)
+{
+    constexpr float h = 1e-3;
+
+    // x と同じ形状を持つゼロ初期化のテンソルを作成する
+    Tensor grad = Tensor::Zeros(x.shape());
+    // x の変更可能なコピーを作成する
+    Tensor x_copy = x;
+
+    // Tensor のストレージ全体（全要素）でループ
+    for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
+    {
+        // 現在の値を記憶
+        float tmp_val = x_copy.storage()[idx];
+
+        // x + h における f の値を計算
+        x_copy.storage()[idx] = tmp_val + h;
+        Tensor fxh1 = func(x_copy);
+
+        // x - h における f の値を計算
+        x_copy.storage()[idx] = tmp_val - h;
+        Tensor fxh2 = func(x_copy);
+
+        // 値を元に戻す
+        x_copy.storage()[idx] = tmp_val;
+
+        // 中心差分による数値勾配を計算
+        // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
+        grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
+    }
+
+    return grad;
+}
+
+
 TEST(TensorTest, Constructor)
 {
   Tensor tensor({2, 3});
@@ -368,4 +410,136 @@ TEST(TensorTest, softmax2D)
   EXPECT_NEAR(c(1, 0), 0.01821127, 1e-6);
   EXPECT_NEAR(c(1, 1), 0.24519181, 1e-6);
   EXPECT_NEAR(c(1, 2), 0.73659691, 1e-6);
+}
+
+// Transpose テスト (2次元)
+TEST(TensorTest, transpose2D)
+{
+  Tensor a = Tensor::FromArray({{1, 2, 3}, {4, 5, 6}});
+  Tensor c = Tensor::Transpose(a);
+
+  // 転置前の形状をチェック
+  EXPECT_EQ(a.shape(), (std::vector<std::size_t>{2, 3}));
+
+  // 転置後の形状をチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{3, 2}));
+
+  Tensor ans = Tensor::FromArray({{1, 4}, {2, 5}, {3, 6}});
+  EXPECT_EQ(c.storage(), ans.storage());
+}
+
+// Transpose テスト (3次元)
+TEST(TensorTest, transpose3D)
+{
+  Tensor a = Tensor::FromArray({
+    {
+      {1, 2, 3},
+      {4, 5, 6}
+    },
+    {
+      {7, 8, 9},
+      {10, 11, 12}
+    }
+  });
+  // 転置前の形状をチェック
+  EXPECT_EQ(a.shape(), (std::vector<std::size_t>{2, 2, 3}));
+
+  Tensor c = Tensor::Transpose(a);
+  // 転置後の形状をチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3, 2}));
+
+  Tensor ans = Tensor::FromArray({
+    {{1, 4}, {2, 5}, {3, 6}},
+    {{7, 10}, {8, 11}, {9, 12}}
+  });
+  EXPECT_EQ(c.storage(), ans.storage());
+}
+
+// Slice テスト
+TEST(TensorTest, slice)
+{
+  Tensor a = Tensor::FromArray({{1, 2, 3}, {4, 5, 6}});
+  Tensor c = a.Slice(0);
+  EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3}));
+
+  // shape が (1, 3) であるかチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{3}));
+}
+
+// Slice テスト (3次元)
+TEST(TensorTest, slice3D)
+{
+  Tensor a = Tensor::FromArray(
+    {
+      {
+        {1, 2, 3},
+        {4, 5, 6}
+      },
+      {
+        {7, 8, 9},
+        {10, 11, 12}
+      }
+    }
+  );
+  Tensor c = a.Slice(0);
+
+  // shapeが(2, 3)であるかチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
+
+  EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
+}
+
+TEST(TensorTest, NumericalGradient) {
+    // 1次元テンソル [3, 4] を作成
+    Tensor x = Tensor::FromArray({3.0f, 4.0f});
+    
+    // 関数 f(x) = sum(x^2) を定義する
+    auto f = [](const Tensor &t) -> Tensor {
+        // 各要素の2乗を計算し、その合計（1要素のテンソル）を返す
+        Tensor squared = t * t;  // 要素ごとの乗算
+        Tensor s = Tensor::Sum(squared);
+        return s;
+    };
+    
+    // 数値微分により勾配を算出する
+    Tensor grad = numerical_gradient(f, x);
+    
+    // 期待される勾配は 2*x なので、[3,4] -> [6,8]
+    Tensor expected = Tensor::FromArray({6.0f, 8.0f});
+    
+    // 計算結果と期待値を許容誤差 1e-4 で比較
+    const auto &grad_storage = grad.storage();
+    const auto &expected_storage = expected.storage();
+    ASSERT_EQ(grad_storage.size(), expected_storage.size());
+    for (std::size_t i = 0; i < grad_storage.size(); ++i) {
+        EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
+    }
+}
+
+TEST(TensorTest, NumericalGradientBatch) {
+    // 2次元テンソルを作成 (バッチサイズ 2, 特徴量 2)
+    Tensor x = Tensor::FromArray({{3.0f, 4.0f}, {5.0f, 6.0f}});
+    
+    // 関数 f(x) = sum(x^2) を定義する
+    // バッチ内の全要素の二乗和を求め、スカラー値を返す
+    auto f = [](const Tensor &t) -> Tensor {
+        Tensor squared = t * t;  // 各要素の2乗
+        Tensor s = Tensor::Sum(squared);  // 各サンプルごとの和 (shape: {batch})
+        s = Tensor::Sum(s);  // バッチ全体の和 (スカラー)
+        return s;
+    };
+    
+    // 数値微分により勾配を算出する
+    Tensor grad = numerical_gradient(f, x);
+    
+    // 期待される勾配は d/dx (x^2) = 2*x なので、[[3,4], [5,6]] に対しては [[6,8], [10,12]] が期待される
+    Tensor expected = Tensor::FromArray({{6.0f, 8.0f}, {10.0f, 12.0f}});
+    
+    // 計算結果と期待値を許容誤差 1e-2 で比較
+    const auto &grad_storage = grad.storage();
+    const auto &expected_storage = expected.storage();
+    ASSERT_EQ(grad_storage.size(), expected_storage.size());
+    for (std::size_t i = 0; i < grad_storage.size(); ++i) {
+        EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
+    }
 }

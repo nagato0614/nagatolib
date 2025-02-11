@@ -85,6 +85,13 @@ public:
   Tensor Reshape(const shape_type &new_shape);
 
   /**
+   * @brief テンソルの指定した次元を取り出す.
+   * @param axis 取り出す次元
+   * @return 取り出したテンソル
+   */
+  Tensor Slice(const std::size_t &axis) const;
+
+  /**
    * @brief ゼロテンソルを作成する
    * @param shape 形状
    * @return ゼロテンソル
@@ -202,6 +209,13 @@ public:
   static Tensor Random(const shape_type &shape);
 
   /**
+   * @brief 正規分布に従って乱数を生成する
+   * @param shape 形状
+   * @return 乱数
+   */
+  static Tensor RandomNormal(const shape_type &shape);
+
+  /**
    * @brief 配列からテンソルを作成する
    * @note 配列のサイズが1の場合, 1次元テンソルとして作成する
    * @param array 配列
@@ -230,6 +244,18 @@ public:
    * @return 適用したテンソル
    */
   static Tensor Transform(const Tensor &a, const std::function<value_type(value_type)> &func);
+
+  /**
+   * @brief テンソルの転置を行う.
+   * 次元数によって転置の方法が異なる
+   *  - 1次元テンソル : 転置せず例外を送出する
+   *  - 2次元テンソル : 転置する
+   *  - 3次元テンソル : バッチ軸はそのままで, それ以外の軸を転置する
+   *  - 4次元テンソル以降 : 転置せず例外を送出する
+   * @param a テンソル
+   * @return 転置したテンソル
+   */
+  static Tensor Transpose(const Tensor &a);
 
   /**
    * @brief 単項演算子のオーバーロード

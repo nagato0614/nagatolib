@@ -583,6 +583,21 @@ Tensor Tensor::Random(const shape_type &shape)
   return result;
 }
 
+Tensor Tensor::RandomNormal(const shape_type &shape)
+{
+  Tensor result(shape);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::normal_distribution<value_type> dis(0.0, 1.0);
+  std::transform(
+    result.storage().begin(),
+    result.storage().end(),
+    result.storage().begin(),
+    [&dis, &gen](const value_type &x) { return dis(gen); }
+  );
+  return result;
+}
+
 Tensor Tensor::operator-() const
 {
   Tensor result(shape_);
@@ -624,6 +639,7 @@ Tensor Tensor::FromArray(const std::vector<std::vector<value_type>> &array)
 
 Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>> &array)
 {
+  // 3次元テンソルとして初期化
   Tensor result({array.size(), array[0].size(), array[0][0].size()});
 
   // すべての行が同じサイズであることをチェック
@@ -633,7 +649,6 @@ Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>>
     {
       throw std::invalid_argument("all rows must have the same size");
     }
-
     // すべての列が同じサイズであることをチェック
     for (const auto &col : row)
     {
@@ -644,11 +659,19 @@ Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>>
     }
   }
 
+  // 各次元のサイズ
+  std::size_t d1 = array[0].size();
+  std::size_t d2 = array[0][0].size();
+
   for (std::size_t i = 0; i < array.size(); ++i)
   {
-    for (std::size_t j = 0; j < array[i].size(); ++j)
+    for (std::size_t j = 0; j < d1; ++j)
     {
-      std::copy(array[i][j].begin(), array[i][j].end(), result.storage().begin() + i * array[i].size() + j * array[i][j].size());
+      // 正しいオフセット: 第1次元 i に対して d1*d2、さらに第2次元 j に対して d2
+      std::copy(
+        array[i][j].begin(), 
+        array[i][j].end(), 
+        result.storage().begin() + i * (d1 * d2) + j * d2);
     }
   }
   return result;
@@ -660,5 +683,86 @@ Tensor Tensor::Transform(const Tensor &a, const std::function<value_type(value_t
   std::transform(a.storage().begin(), a.storage().end(), result.storage().begin(), func);
   return result;
 }
+
+Tensor Tensor::Transpose(const Tensor &a)
+{
+  // 2, 3 以外の軸数に時は転置しない
+  if (a.shape().size() != 2 && a.shape().size() != 3)
+  {
+    throw std::invalid_argument("tensor must be 2 or 3 dimensional");
+  }
+
+
+  
+  if (a.shape().size() == 2)
+  {
+    // 転置後の形状を計算
+    shape_type shape = {a.shape()[1], a.shape()[0]};
+
+    // 転置後のテンソルを作成
+    Tensor result(shape);
+
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      {
+        result(j, i) = a(i, j);
+      }
+    }
+
+    return result;
+  }
+  else if (a.shape().size() == 3)
+  {
+    // 転置後の形状を計算
+    shape_type shape = {a.shape()[0], a.shape()[2], a.shape()[1]};
+
+    // 転置後のテンソルを作成
+    Tensor result(shape);
+
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      {
+        for (std::size_t k = 0; k < a.shape()[2]; ++k)
+        {
+          result(i, k, j) = a(i, j, k);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  throw std::invalid_argument("tensor must be 2 or 3 dimensional");
+}
+
+Tensor Tensor::Slice(const std::size_t &axis) const
+{
+  // 指定した軸が範囲内にあることを確認する
+  if (0 < axis && axis < shape_[0])
+  {
+    throw std::invalid_argument("axis is out of range");
+  }
+  
+  // 分割したテンソルのshape を計算する
+  shape_type shape(shape_.begin() + 1, shape_.end());
+
+  // 分割したテンソルを作成する
+  Tensor result(shape);
+
+  // 分割したテンソルを作成する
+  const std::size_t start_index = axis * strides_[0];
+  const std::size_t end_index = start_index + strides_[0];
+
+  std::copy(
+    storage_.begin() + start_index, 
+    storage_.begin() + end_index, 
+    result.storage().begin()
+    );
+
+  return result;
+}
+
 
 } // namespace nagato

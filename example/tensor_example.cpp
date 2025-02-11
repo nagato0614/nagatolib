@@ -1,4 +1,5 @@
 #include "nagatolib.hpp"
+#include <memory>
 
 using namespace nagato;
 void two_layer_network()
@@ -88,6 +89,18 @@ Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
 }
 
 /**
+ * @brief レイヤーの基底クラス
+ */
+class Layer
+{
+  public:
+    virtual Tensor forward(const Tensor &x) = 0;
+    virtual Tensor forward(const Tensor &x, const Tensor &y) = 0;
+    virtual Tensor backward(const Tensor &dout) = 0;
+    virtual ~Layer() = default;
+};
+
+/**
  * @brief 乗算を取り扱うレイヤー
  */
 class MulLayer
@@ -138,7 +151,7 @@ class AddLayer
 /**
  * @brief LeRU レイヤー
  */
-class ReLU
+class ReLU : public Layer
 {
   public:
     ReLU()
@@ -149,6 +162,11 @@ class ReLU
     Tensor forward(const Tensor &x)
     {
       return Tensor::Transform(x, mask);
+    }
+
+    Tensor forward(const Tensor &x, const Tensor &y)
+    {
+      throw std::invalid_argument("ReLU layer does not support two input tensors");
     }
 
     Tensor backward(const Tensor &dout)
@@ -163,7 +181,7 @@ class ReLU
 /**
  * @brief シグモイドレイヤー
  */
-class Sigmoid
+class Sigmoid : public Layer
 {
   public:
     Sigmoid() = default;
@@ -174,6 +192,11 @@ class Sigmoid
       return out;
     }
 
+    Tensor forward(const Tensor &x, const Tensor &y)
+    {
+      throw std::invalid_argument("Sigmoid layer does not support two input tensors");
+    }
+
     Tensor backward(const Tensor &dout)
     {
       return dout * (1.0 - out) * out;
@@ -181,6 +204,167 @@ class Sigmoid
 
   private:
     Tensor out;
+};
+
+/**
+ * @brief Affine レイヤー
+ */
+class Affine : public Layer
+{
+  public:
+    Affine(const Tensor &W, const Tensor &b) : W(W), b(b)
+    {
+    }
+
+    Tensor forward(const Tensor &x)
+    {
+      this->x = x;
+      return Tensor::Matmul(x, W) + b;
+    }
+
+    Tensor forward(const Tensor &x, const Tensor &y)
+    {
+      throw std::invalid_argument("Affine layer does not support two input tensors");
+    }
+
+    Tensor backward(const Tensor &dout)
+    {
+      Tensor dx = Tensor::Matmul(dout, Tensor::Transpose(W));
+      this->dW = Tensor::Matmul(Tensor::Transpose(x), dout);
+      this->db = Tensor::Sum(dout);
+      return dx;
+    }
+
+  private:
+    Tensor W;
+    Tensor b;
+    Tensor x;
+    Tensor dW;
+    Tensor db;
+};
+
+/**
+ * @brief Softmax-with-Loss レイヤー
+ */
+class SoftmaxWithLoss : public Layer
+{
+  public:
+    SoftmaxWithLoss() = default;
+
+    Tensor forward(const Tensor &x)
+    {
+      throw std::invalid_argument("SoftmaxWithLoss layer does not support one input tensor");
+    }
+
+    Tensor forward(const Tensor &x, const Tensor &t)
+    {
+      this->t = t;
+      Tensor y = Tensor::Softmax(x);
+      this->loss = CrossEntropyError(y, t);
+      return this->loss;
+    }
+
+    Tensor backward(const Tensor &dout)
+    {
+      Tensor dx = (y - t) / this->t.shape()[0];
+      return dx;
+    }
+
+  private:
+    Tensor y;
+    Tensor t;
+    Tensor loss;
+};
+
+/**
+ * @brief 重みパラメータに対する勾配を計算する関数. 
+ * @note バッチ処理に対応している
+ * @param func 勾配を計算する関数
+ * @param x 入力. 一番最初の次元はバッチサイズ
+ * @return 勾配
+ */
+Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tensor &x)
+{
+    constexpr float h = 1e-3;
+
+    // x と同じ形状を持つゼロ初期化のテンソルを作成する
+    Tensor grad = Tensor::Zeros(x.shape());
+    // x の変更可能なコピーを作成する
+    Tensor x_copy = x;
+
+    // Tensor のストレージ全体（全要素）でループ
+    for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
+    {
+        // 現在の値を記憶
+        float tmp_val = x_copy.storage()[idx];
+
+        // x + h における f の値を計算
+        x_copy.storage()[idx] = tmp_val + h;
+        Tensor fxh1 = func(x_copy);
+
+        // x - h における f の値を計算
+        x_copy.storage()[idx] = tmp_val - h;
+        Tensor fxh2 = func(x_copy);
+
+        // 値を元に戻す
+        x_copy.storage()[idx] = tmp_val;
+
+        // 中心差分による数値勾配を計算
+        // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
+        grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
+    }
+
+    return grad;
+}
+
+/**
+ * @brief 2層ニューラルネットワーク
+ */
+class TwoLayerNet
+{
+  public:
+    TwoLayerNet(
+      const std::size_t input_size,
+      const std::size_t hidden_size,
+      const std::size_t output_size,
+      const float weight_init_std = 0.01
+    )
+    {
+      this->params = std::map<std::string, Tensor>();
+      this->layers = std::map<std::string, std::unique_ptr<Layer> >();
+
+      // 重みの初期化
+      this->params["W1"] = Tensor::RandomNormal({input_size, hidden_size}) * weight_init_std;
+      this->params["b1"] = Tensor::RandomNormal({1, hidden_size}) * weight_init_std;
+      this->params["W2"] = Tensor::RandomNormal({hidden_size, output_size}) * weight_init_std;
+      this->params["b2"] = Tensor::RandomNormal({1, output_size}) * weight_init_std;
+
+      // レイヤーの生成
+      this->layers["Affine1"] = std::make_unique<Affine>(this->params["W1"], this->params["b1"]);
+      this->layers["ReLU"] = std::make_unique<ReLU>();
+      this->layers["Affine2"] = std::make_unique<Affine>(this->params["W2"], this->params["b2"]);
+    }
+
+    Tensor predict(const Tensor &x)
+    {
+      Tensor result = x; // ローカル変数にコピー
+      for (auto &layer : this->layers)
+      {
+        result = layer.second->forward(result);
+      }
+      return result;
+    }
+
+    Tensor loss(const Tensor &x, const Tensor &t)
+    {
+      Tensor y = this->predict(x);
+      return this->last_layer.forward(y, t);
+    }
+
+  private:
+    std::map<std::string, Tensor> params;
+    std::map<std::string, std::unique_ptr<Layer> > layers;
+    SoftmaxWithLoss last_layer;
 };
 
 int main()
