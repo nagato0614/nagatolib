@@ -96,12 +96,12 @@ Tensor Tensor::Eye(const shape_type &shape)
 
 void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
 {
-    // ２つのテンソルの形状が等しいことをチェック
+  // ２つのテンソルの形状が等しいことをチェック
   if (a.shape() != b.shape())
   {
     throw std::invalid_argument("tensor must have the same shape");
   }
-  else 
+  else
   {
     // すべての次元が等しいことをチェック
     for (std::size_t i = 0; i < a.shape().size(); ++i)
@@ -220,13 +220,12 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
   // 行列と行列の積
   if (a.shape().size() == 2 && b.shape().size() == 2)
   {
-
     // 入力データの形状をチェック
     if (a.shape()[1] != b.shape()[0])
     {
       throw std::invalid_argument("input tensor must have the same shape");
     }
-    
+
     // 出力データの形状を計算 
     shape_type result_shape = {a.shape()[0], b.shape()[1]};
     Tensor result(result_shape);
@@ -269,9 +268,9 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
     // 行列積を計算する
     for (std::size_t i = 0; i < result_shape[0]; ++i) // バッチサイズ
     {
-      for (std::size_t j = 0; j < result_shape[1]; ++j) 
+      for (std::size_t j = 0; j < result_shape[1]; ++j)
       {
-        for (std::size_t k = 0; k < result_shape[2]; ++k) 
+        for (std::size_t k = 0; k < result_shape[2]; ++k)
         {
           for (std::size_t l = 0; l < b.shape()[1]; ++l)
           {
@@ -359,27 +358,27 @@ Tensor Tensor::ReLU(const Tensor &a)
 Tensor Tensor::Exp(const Tensor &a)
 {
   Tensor result(a.shape());
-  for (std::size_t i = 0; i < a.shape()[0]; ++i)
-  {
-    result(i) = std::exp(a(i));
-  }
+  std::transform(
+    a.storage().begin(),
+    a.storage().end(),
+    result.storage().begin(),
+    [](const float x) { return std::exp(x); }
+  );
   return result;
 }
 
 Tensor Tensor::Softmax(const Tensor &a)
 {
- // 結果のテンソルを作成
-  shape_type shape = a.shape();
-  std::size_t shape_size = a.shape().size();
+  // 結果のテンソルを作成
+  const std::size_t shape_size = a.shape().size();
 
   if (shape_size > 2)
   {
     throw std::invalid_argument("tensor must be less than 3 dimensional");
   }
 
+  Tensor exp_a = Exp(a);
 
-  Tensor exp_a = Tensor::Exp(a);
-  
   if (shape_size == 1)
   {
     Tensor result(a.shape());
@@ -393,8 +392,10 @@ Tensor Tensor::Softmax(const Tensor &a)
     {
       result(i) = exp_a(i) / sum;
     }
+    return result;
   }
-  else if (shape_size == 2)
+
+  if (shape_size == 2)
   {
     // 総和を求める
     Tensor sum = Tensor::Sum(exp_a);
@@ -408,10 +409,8 @@ Tensor Tensor::Softmax(const Tensor &a)
     }
     return result;
   }
-  else
-  {
-    throw std::invalid_argument("tensor must be less than 3 dimensional");
-  }
+
+  throw std::invalid_argument("tensor must be less than 3 dimensional");
 }
 
 void Tensor::Print(const Tensor &a)

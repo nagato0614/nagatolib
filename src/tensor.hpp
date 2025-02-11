@@ -170,8 +170,18 @@ public:
    */
   static void Print(const Tensor &a);
 
+  /**
+   * @brief テンソルの形状を表示する
+   * @param a テンソル
+   */
   static void PrintShape(const Tensor &a);
 
+  /**
+   * @brief ２つのテンソルの形状が等しいかどうかをチェックする
+   * @note 形状が等しくない場合, 例外を送出する
+   * @param a テンソル
+   * @param b テンソル
+   */
   static void IsSameShape(const Tensor &a, const Tensor &b);
 
 private:

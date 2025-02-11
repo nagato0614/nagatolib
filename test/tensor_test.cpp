@@ -331,3 +331,41 @@ TEST(TensorTest, sum3D)
   Tensor c = Tensor::Sum(a);
   EXPECT_EQ(c.storage(), (std::vector<float>{2, 2, 2, 2}));
 }
+
+// Softmax テスト (1次元)
+TEST(TensorTest, softmax)
+{
+  Tensor a = Tensor::Zeros({3});
+  a(0) = 0.3;
+  a(1) = 2.9;
+  a(2) = 4.0;
+
+  Tensor c = Tensor::Softmax(a);
+
+  // 誤差を考慮して許容範囲を設定
+  EXPECT_NEAR(c.storage()[0], 0.01821127, 1e-6);
+  EXPECT_NEAR(c.storage()[1], 0.24519181, 1e-6);
+  EXPECT_NEAR(c.storage()[2], 0.73659691, 1e-6);
+}
+
+// Softmax テスト (2次元)
+TEST(TensorTest, softmax2D)
+{
+  Tensor a = Tensor::Zeros({2, 3});
+  a(0, 0) = 0.3;
+  a(0, 1) = 2.9;
+  a(0, 2) = 4.0;
+  a(1, 0) = 0.3;
+  a(1, 1) = 2.9;
+  a(1, 2) = 4.0;
+
+  Tensor c = Tensor::Softmax(a);
+
+  // 誤差を考慮して許容範囲を設定
+  EXPECT_NEAR(c(0, 0), 0.01821127, 1e-6);
+  EXPECT_NEAR(c(0, 1), 0.24519181, 1e-6);
+  EXPECT_NEAR(c(0, 2), 0.73659691, 1e-6);
+  EXPECT_NEAR(c(1, 0), 0.01821127, 1e-6);
+  EXPECT_NEAR(c(1, 1), 0.24519181, 1e-6);
+  EXPECT_NEAR(c(1, 2), 0.73659691, 1e-6);
+}
