@@ -6,6 +6,7 @@
 #define TENSOR_HPP
 
 #include <cassert>
+#include <functional>
 #include <optional>
 #include <vector>
 #include <algorithm>
@@ -17,12 +18,14 @@ namespace nagato{
  * numpy の ndarray に相当するクラス
  */
 class Tensor {
+public:
  using value_type = float;
  using shape_type = std::vector<std::size_t>;
  using strides_type = std::vector<std::size_t>;
  using storage_type = std::vector<value_type>;
 
-public:
+  Tensor();
+
   Tensor(const shape_type &shape);
 
   /**
@@ -199,11 +202,40 @@ public:
   static Tensor Random(const shape_type &shape);
 
   /**
+   * @brief 配列からテンソルを作成する
+   * @note 配列のサイズが1の場合, 1次元テンソルとして作成する
+   * @param array 配列
+   * @return テンソル
+   */
+  static Tensor FromArray(const std::vector<value_type> &array);
+
+  /**
+   * @brief 配列からテンソルを作成する. 2次元テンソルとして作成する
+   * @param array 配列
+   * @return テンソル
+   */
+  static Tensor FromArray(const std::vector<std::vector<value_type>> &array);
+
+  /**
+   * @brief 配列からテンソルを作成する. 3次元テンソルとして作成する
+   * @param array 配列
+   * @return テンソル
+   */
+  static Tensor FromArray(const std::vector<std::vector<std::vector<value_type>>> &array);
+
+  /**
+   * @brief テンソルの要素ごとに関数を適用する
+   * @param a テンソル
+   * @param func 関数
+   * @return 適用したテンソル
+   */
+  static Tensor Transform(const Tensor &a, const std::function<value_type(value_type)> &func);
+
+  /**
    * @brief 単項演算子のオーバーロード
    * @note テンソルの要素ごとに演算を行う
    */
   Tensor operator-() const;
-
 private:
 
 /**
@@ -248,9 +280,6 @@ private:
 
   /// テンソルのデータ
   storage_type storage_;
-
-  /// 乱数のシード
-  std::size_t seed_;
 };
 
 /**
@@ -268,6 +297,13 @@ Tensor operator+(const Tensor &a, const Tensor &b);
  * @return 加算結果
  */
 Tensor operator+(const Tensor &a, const float &b);
+/**
+ * @brief テンソルの加算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 加算結果
+ */
+Tensor operator+(const float &a, const Tensor &b);
 
 /**
  * @brief テンソルの減算
@@ -286,6 +322,13 @@ Tensor operator-(const Tensor &a, const Tensor &b);
 Tensor operator-(const Tensor &a, const float &b);
 
 /**
+ * @brief テンソルの減算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 減算結果
+ */
+Tensor operator-(const float &a, const Tensor &b);
+/**
  * @brief テンソルの乗算
  * @param a テンソル
  * @param b テンソル
@@ -300,6 +343,14 @@ Tensor operator*(const Tensor &a, const Tensor &b);
  * @return 乗算結果
  */
 Tensor operator*(const Tensor &a, const float &b);
+
+/**
+ * @brief テンソルの乗算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 乗算結果
+ */
+Tensor operator*(const float &a, const Tensor &b);
 
 /**
  * @brief テンソルの除算
@@ -317,6 +368,14 @@ Tensor operator/(const Tensor &a, const Tensor &b);
  * @return 除算結果
  */
 Tensor operator/(const Tensor &a, const float &b);  
+
+/**
+ * @brief テンソルの除算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 除算結果
+ */
+Tensor operator/(const float &a, const Tensor &b);
 }  // namespace nagato
 
 #endif // TENSOR_HPP

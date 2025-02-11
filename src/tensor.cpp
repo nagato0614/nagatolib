@@ -9,6 +9,14 @@
 
 namespace nagato
 {
+
+Tensor::Tensor()
+  : shape_(),
+    strides_(),
+    storage_()
+{
+}
+
 Tensor::Tensor(const shape_type &shape)
   : shape_(shape),
     strides_(shape.size(), 1)
@@ -137,6 +145,16 @@ Tensor operator+(const Tensor &a, const float &b)
   return result;
 }
 
+Tensor operator+(const float &a, const Tensor &b)
+{
+  Tensor result(b.shape());
+  std::transform(b.storage().begin(),
+                 b.storage().end(),
+                 result.storage().begin(),
+                 [a](const float x) { return a + x; });
+  return result;
+}
+
 Tensor operator-(const Tensor &a, const Tensor &b)
 {
   Tensor::IsSameShape(a, b);
@@ -157,6 +175,16 @@ Tensor operator-(const Tensor &a, const float &b)
                  a.storage().end(),
                  result.storage().begin(),
                  [b](const float x) { return x - b; });
+  return result;
+}
+
+Tensor operator-(const float &a, const Tensor &b)
+{
+  Tensor result(b.shape());
+  std::transform(b.storage().begin(),
+                 b.storage().end(),
+                 result.storage().begin(),
+                 [a](const float x) { return a - x; });
   return result;
 }
 
@@ -183,6 +211,16 @@ Tensor operator*(const Tensor &a, const float &b)
   return result;
 }
 
+Tensor operator*(const float &a, const Tensor &b)
+{
+  Tensor result(b.shape());
+  std::transform(b.storage().begin(),
+                 b.storage().end(),
+                 result.storage().begin(),
+                 [a](const float x) { return a * x; });
+  return result;
+}
+
 Tensor operator/(const Tensor &a, const Tensor &b)
 {
   Tensor::IsSameShape(a, b);
@@ -203,6 +241,16 @@ Tensor operator/(const Tensor &a, const float &b)
                  a.storage().end(),
                  result.storage().begin(),
                  [b](const float x) { return x / b; });
+  return result;
+}
+
+Tensor operator/(const float &a, const Tensor &b)
+{
+  Tensor result(b.shape());
+  std::transform(b.storage().begin(),
+                 b.storage().end(),
+                 result.storage().begin(),
+                 [a](const float x) { return a / x; });
   return result;
 }
 
@@ -544,6 +592,72 @@ Tensor Tensor::operator-() const
     result.storage().begin(), 
     [](const value_type &x) { return -x; }
     );
+  return result;
+}
+
+Tensor Tensor::FromArray(const std::vector<value_type> &array)
+{
+  Tensor result({array.size()});
+  std::copy(array.begin(), array.end(), result.storage().begin());
+  return result;
+}
+
+Tensor Tensor::FromArray(const std::vector<std::vector<value_type>> &array)
+{
+  Tensor result({array.size(), array[0].size()});
+
+  // すべての行が同じサイズであることをチェック
+  for (const auto &row : array)
+  {
+    if (row.size() != array[0].size())
+    {
+      throw std::invalid_argument("all rows must have the same size");
+    }
+  }
+
+  for (std::size_t i = 0; i < array.size(); ++i)
+  {
+    std::copy(array[i].begin(), array[i].end(), result.storage().begin() + i * array[i].size());
+  }
+  return result;
+}
+
+Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>> &array)
+{
+  Tensor result({array.size(), array[0].size(), array[0][0].size()});
+
+  // すべての行が同じサイズであることをチェック
+  for (const auto &row : array)
+  {
+    if (row.size() != array[0].size())
+    {
+      throw std::invalid_argument("all rows must have the same size");
+    }
+
+    // すべての列が同じサイズであることをチェック
+    for (const auto &col : row)
+    {
+      if (col.size() != array[0][0].size())
+      {
+        throw std::invalid_argument("all columns must have the same size");
+      }
+    }
+  }
+
+  for (std::size_t i = 0; i < array.size(); ++i)
+  {
+    for (std::size_t j = 0; j < array[i].size(); ++j)
+    {
+      std::copy(array[i][j].begin(), array[i][j].end(), result.storage().begin() + i * array[i].size() + j * array[i][j].size());
+    }
+  }
+  return result;
+}
+
+Tensor Tensor::Transform(const Tensor &a, const std::function<value_type(value_type)> &func)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(), a.storage().end(), result.storage().begin(), func);
   return result;
 }
 

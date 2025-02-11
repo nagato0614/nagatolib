@@ -87,44 +87,132 @@ Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
   return -Tensor::Sum(result);
 }
 
+/**
+ * @brief 乗算を取り扱うレイヤー
+ */
+class MulLayer
+{
+  public:
+    MulLayer() = default;
+
+    Tensor forward(const Tensor &x, const Tensor &y)
+    {
+      this->x = x;
+      this->y = y;
+      return x * y;
+    }
+
+    std::pair<Tensor, Tensor> backward(const Tensor &dout)
+    {
+      const Tensor dx = dout * y;
+      const Tensor dy = dout * x;
+      return std::make_pair(dx, dy);
+    }
+
+  private:
+    Tensor x;
+    Tensor y;
+};
+
+/**
+ * @brief 加算を取り扱うレイヤー  
+ */
+class AddLayer
+{
+  public:
+    AddLayer() = default;
+
+    Tensor forward(const Tensor &x, const Tensor &y)
+    {
+      return x + y;
+    }
+
+    std::pair<Tensor, Tensor> backward(const Tensor &dout)
+    {
+      const Tensor dx = dout * 1.f;
+      const Tensor dy = dout * 1.f;
+      return std::make_pair(dx, dy);
+    }
+};
+
+/**
+ * @brief LeRU レイヤー
+ */
+class ReLU
+{
+  public:
+    ReLU()
+    {
+      mask = [](const Tensor::value_type &x) { return x > 0 ? x : 0; };
+    }
+
+    Tensor forward(const Tensor &x)
+    {
+      return Tensor::Transform(x, mask);
+    }
+
+    Tensor backward(const Tensor &dout)
+    {
+      return Tensor::Transform(dout, mask);
+    }
+
+  private:
+    std::function<Tensor::value_type(Tensor::value_type)> mask;
+};
+
+/**
+ * @brief シグモイドレイヤー
+ */
+class Sigmoid
+{
+  public:
+    Sigmoid() = default;
+
+    Tensor forward(const Tensor &x)
+    {
+      out = 1.0 / (1.0 + Tensor::Exp(-x));
+      return out;
+    }
+
+    Tensor backward(const Tensor &dout)
+    {
+      return dout * (1.0 - out) * out;
+    }
+
+  private:
+    Tensor out;
+};
 
 int main()
 {
-  // ２乗誤差のテスト
-  Tensor ans = Tensor::Zeros({2, 10});
-  ans(0, 2) = 1.0;
-  ans(1, 2) = 1.0;
-  Tensor y = Tensor::Zeros({2, 10});
-  // 0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0
-  y(0, 0) = 0.1;
-  y(0, 1) = 0.05;
-  y(0, 2) = 0.6;
-  y(0, 3) = 0.0;
-  y(0, 4) = 0.05;
-  y(0, 5) = 0.1;
-  y(0, 6) = 0.0;
-  y(0, 7) = 0.1;
-  y(0, 8) = 0.0;
-  y(0, 9) = 0.0;
-  // 0.1, 0.05, 0.1, 0.0, 0.05, 0.1, 0.0, 0.6, 0.0, 0.0
-  y(1, 0) = 0.1;
-  y(1, 1) = 0.05;
-  y(1, 2) = 0.1;
-  y(1, 3) = 0.0;
-  y(1, 4) = 0.05;
-  y(1, 5) = 0.1;
-  y(1, 6) = 0.0;
-  y(1, 7) = 0.6;
-  y(1, 8) = 0.0;
-  y(1, 9) = 0.0;
+  // 乗算レイヤーのテスト
 
-  Tensor::Print(ans);
-  Tensor::Print(y);
+  Tensor apple = Tensor::FromArray({100});
+  Tensor apple_num = Tensor::FromArray({2});
+  Tensor orange = Tensor::FromArray({150});
+  Tensor orange_num = Tensor::FromArray({3});
+  Tensor tax = Tensor::FromArray({1.1});
 
-  const Tensor result = MeanSquaredError(y, ans);
-  Tensor::Print(result);
+  MulLayer mul_apple_layer;
+  MulLayer mul_orange_layer;
+  MulLayer mul_tax_layer;
+  AddLayer add_orange_layer;
 
-  // 交差エントロピー誤差のテスト
-  const Tensor cross_result = CrossEntropyError(y, ans);
-  Tensor::Print(cross_result);
+  Tensor apple_price = mul_apple_layer.forward(apple, apple_num);
+  Tensor orange_price = mul_orange_layer.forward(orange, orange_num);
+  Tensor all_price = add_orange_layer.forward(apple_price, orange_price);
+  Tensor price = mul_tax_layer.forward(all_price, tax);
+
+  Tensor dprice = Tensor::FromArray({1});
+  auto [dall_price, dtax] = mul_tax_layer.backward(dprice);
+  auto [dapple_price, dorange_price] = add_orange_layer.backward(dall_price);
+  auto [dapple, dapple_num] = mul_apple_layer.backward(dapple_price);
+  auto [dorange, dorange_num] = mul_orange_layer.backward(dorange_price);
+
+  Tensor::Print(price);
+  Tensor::Print(dapple_num);
+  Tensor::Print(dapple);
+  Tensor::Print(dorange);
+  Tensor::Print(dorange_num);
+  Tensor::Print(dtax);
 }
