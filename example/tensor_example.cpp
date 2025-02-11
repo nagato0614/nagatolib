@@ -1,7 +1,8 @@
 #include "nagatolib.hpp"
 
-int main() {
-  using namespace nagato;
+using namespace nagato;
+void two_layer_network()
+{
   Tensor X = Tensor::Ones({1, 2});
   X(0, 0) = 1.0;
   X(0, 1) = 0.5;
@@ -55,7 +56,7 @@ int main() {
   Tensor::Print(Z2);
 
   Tensor W3 = Tensor::Ones({2, 2});
-  W3(0, 0) = 0.1; 
+  W3(0, 0) = 0.1;
   W3(0, 1) = 0.3;
   W3(1, 0) = 0.2;
   W3(1, 1) = 0.4;
@@ -66,5 +67,50 @@ int main() {
 
   Tensor A3 = Tensor::Matmul(Z2, W3) + B3;
   Tensor::Print(A3);
-  
- }
+}
+
+Tensor MeanSquaredError(const Tensor &y, const Tensor &t)
+{
+  Tensor::IsSameShape(y, t);
+  const Tensor diff = y - t;
+  const Tensor square = diff * diff;
+  const Tensor sum = Tensor::Sum(square) * 0.5;
+  return sum;
+}
+
+int main()
+{
+  // ２乗誤差のテスト
+  Tensor ans = Tensor::Zeros({2, 10});
+  ans(0, 2) = 1.0;
+  ans(1, 2) = 1.0;
+  Tensor y = Tensor::Zeros({2, 10});
+  // 0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0
+  y(0, 0) = 0.1;
+  y(0, 1) = 0.05;
+  y(0, 2) = 0.6;
+  y(0, 3) = 0.0;
+  y(0, 4) = 0.05;
+  y(0, 5) = 0.1;
+  y(0, 6) = 0.0;
+  y(0, 7) = 0.1;
+  y(0, 8) = 0.0;
+  y(0, 9) = 0.0;
+  // 0.1, 0.05, 0.1, 0.0, 0.05, 0.1, 0.0, 0.6, 0.0, 0.0
+  y(1, 0) = 0.1;
+  y(1, 1) = 0.05;
+  y(1, 2) = 0.1;
+  y(1, 3) = 0.0;
+  y(1, 4) = 0.05;
+  y(1, 5) = 0.1;
+  y(1, 6) = 0.0;
+  y(1, 7) = 0.6;
+  y(1, 8) = 0.0;
+  y(1, 9) = 0.0;
+
+  Tensor::Print(ans);
+  Tensor::Print(y);
+
+  const Tensor result = MeanSquaredError(y, ans);
+  Tensor::Print(result);
+}

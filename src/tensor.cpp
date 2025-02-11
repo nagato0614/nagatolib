@@ -117,10 +117,8 @@ void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
 
 Tensor operator+(const Tensor &a, const Tensor &b)
 {
-  Tensor result(a.shape());
-
   Tensor::IsSameShape(a, b);
-
+  Tensor result(a.shape());
   std::transform(a.storage().begin(),
                  a.storage().end(),
                  b.storage().begin(),
@@ -129,8 +127,20 @@ Tensor operator+(const Tensor &a, const Tensor &b)
   return result;
 }
 
+Tensor operator+(const Tensor &a, const float &b)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(),
+                 a.storage().end(),
+                 result.storage().begin(),
+                 [b](const float x) { return x + b; });
+  return result;
+}
+
 Tensor operator-(const Tensor &a, const Tensor &b)
 {
+  Tensor::IsSameShape(a, b);
+
   Tensor result(a.shape());
   std::transform(a.storage().begin(),
                  a.storage().end(),
@@ -140,8 +150,20 @@ Tensor operator-(const Tensor &a, const Tensor &b)
   return result;
 }
 
+Tensor operator-(const Tensor &a, const float &b)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(),
+                 a.storage().end(),
+                 result.storage().begin(),
+                 [b](const float x) { return x - b; });
+  return result;
+}
+
 Tensor operator*(const Tensor &a, const Tensor &b)
 {
+  Tensor::IsSameShape(a, b);
+
   Tensor result(a.shape());
   std::transform(a.storage().begin(),
                  a.storage().end(),
@@ -151,14 +173,36 @@ Tensor operator*(const Tensor &a, const Tensor &b)
   return result;
 }
 
+Tensor operator*(const Tensor &a, const float &b)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(),
+                 a.storage().end(),
+                 result.storage().begin(),
+                 [b](const float x) { return x * b; });
+  return result;
+}
+
 Tensor operator/(const Tensor &a, const Tensor &b)
 {
+  Tensor::IsSameShape(a, b);
+
   Tensor result(a.shape());
   std::transform(a.storage().begin(),
                  a.storage().end(),
                  b.storage().begin(),
                  result.storage().begin(),
                  std::divides<float>());
+  return result;
+}
+
+Tensor operator/(const Tensor &a, const float &b)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(),
+                 a.storage().end(),
+                 result.storage().begin(),
+                 [b](const float x) { return x / b; });
   return result;
 }
 
@@ -416,14 +460,44 @@ Tensor Tensor::Softmax(const Tensor &a)
 
 void Tensor::Print(const Tensor &a)
 {
-  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  if (a.shape().size() == 1)
   {
-    for (std::size_t j = 0; j < a.shape()[1]; ++j)
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
     {
-      std::cout << a(i, j) << ", ";
+      std::cout << a(i) << ", ";
     }
     std::cout << std::endl;
   }
+  if (a.shape().size() == 2)
+  {
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      {
+        std::cout << a(i, j) << ", ";
+      }
+      std::cout << std::endl;
+    }
+  }
+  if (a.shape().size() == 3)
+  {
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      for (std::size_t j = 0; j < a.shape()[1]; ++j)
+      {
+        for (std::size_t k = 0; k < a.shape()[2]; ++k)
+        {
+          std::cout << a(i, j, k) << ", ";
+        }
+      }
+    }
+  }
+
+  if (a.shape().size() >= 4)
+  {
+    throw std::invalid_argument("tensor must be less than 4 dimensional");
+  }
+
   std::cout << std::endl;
 }
 

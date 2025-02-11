@@ -249,12 +249,28 @@ private:
 Tensor operator+(const Tensor &a, const Tensor &b);
 
 /**
+ * @brief テンソルの加算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 加算結果
+ */
+Tensor operator+(const Tensor &a, const float &b);
+
+/**
  * @brief テンソルの減算
  * @param a テンソル
  * @param b テンソル
  * @return 減算結果
  */
 Tensor operator-(const Tensor &a, const Tensor &b);
+
+/**
+ * @brief テンソルの減算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 減算結果
+ */
+Tensor operator-(const Tensor &a, const float &b);
 
 /**
  * @brief テンソルの乗算
@@ -265,6 +281,14 @@ Tensor operator-(const Tensor &a, const Tensor &b);
 Tensor operator*(const Tensor &a, const Tensor &b);
 
 /**
+ * @brief テンソルの乗算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 乗算結果
+ */
+Tensor operator*(const Tensor &a, const float &b);
+
+/**
  * @brief テンソルの除算
  * @note 0 で除算した場合, 0 になる
  * @param a テンソル
@@ -273,6 +297,13 @@ Tensor operator*(const Tensor &a, const Tensor &b);
  */
 Tensor operator/(const Tensor &a, const Tensor &b);
 
+/**
+ * @brief テンソルの除算
+ * @param a テンソル
+ * @param b スカラー
+ * @return 除算結果
+ */
+Tensor operator/(const Tensor &a, const float &b);  
 }  // namespace nagato
 
 #endif // TENSOR_HPP
