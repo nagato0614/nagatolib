@@ -58,8 +58,6 @@ public:
   const value_type &operator()(Indices... indices) const {
     // 与えられたidndeces が shape_ と同じサイズであるかチェック
     if (sizeof...(Indices) != shape_.size()) {
-      std::cout << "index size: " << sizeof...(Indices) << std::endl;
-      std::cout << "shape size: " << shape_.size() << std::endl;
       throw std::invalid_argument("index size must be equal to shape size");
     }
 
@@ -122,7 +120,7 @@ public:
   static Tensor Dot(const Tensor &a, const Tensor &b);
 
   /**
-   * @brief 行列の積を計算する
+   * @brief 行列の積を計算する. 行列とベクトルの積も計算する.
    * @note ブロードキャストは行わない. 2次元の場合は行列同士の積, 3次元はバッチ行列同士の積を計算する. 
    * @param a テンソル
    * @param b テンソル
@@ -165,6 +163,16 @@ public:
    * @return Softmax関数
    */
   static Tensor Softmax(const Tensor &a);
+
+  /**
+   * @brief テンソルを表示する
+   * @param a テンソル
+   */
+  static void Print(const Tensor &a);
+
+  static void PrintShape(const Tensor &a);
+
+  static void IsSameShape(const Tensor &a, const Tensor &b);
 
 private:
 

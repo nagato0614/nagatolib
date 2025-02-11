@@ -94,9 +94,32 @@ Tensor Tensor::Eye(const shape_type &shape)
   return tensor;
 }
 
+void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
+{
+    // ２つのテンソルの形状が等しいことをチェック
+  if (a.shape() != b.shape())
+  {
+    throw std::invalid_argument("tensor must have the same shape");
+  }
+  else 
+  {
+    // すべての次元が等しいことをチェック
+    for (std::size_t i = 0; i < a.shape().size(); ++i)
+    {
+      if (a.shape()[i] != b.shape()[i])
+      {
+        throw std::invalid_argument("tensor must have the same shape");
+      }
+    }
+  }
+}
+
 Tensor operator+(const Tensor &a, const Tensor &b)
 {
   Tensor result(a.shape());
+
+  Tensor::IsSameShape(a, b);
+
   std::transform(a.storage().begin(),
                  a.storage().end(),
                  b.storage().begin(),
@@ -194,7 +217,7 @@ Tensor Tensor::Dot(const Tensor &a, const Tensor &b)
 
 Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
 {
-  // 入力が2次元の場合
+  // 行列と行列の積
   if (a.shape().size() == 2 && b.shape().size() == 2)
   {
 
@@ -222,7 +245,7 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
     return result;
   }
 
-  // 入力が3次元の場合
+  // バッチ行列とバッチ行列の積
   if (
     (a.shape().size() == 3) &&
     (b.shape().size() == 3)
@@ -316,9 +339,9 @@ Tensor Tensor::Sum(const Tensor &a)
 Tensor Tensor::Sigmoid(const Tensor &a)
 {
   Tensor result(a.shape());
-  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  for (std::size_t i = 0; i < result.storage().size(); ++i)
   {
-    result(i) = 1 / (1 + std::exp(-a(i)));
+    result.storage()[i] = 1.f / (1 + std::exp(-a.storage()[i]) + 1e-7);
   }
   return result;
 }
@@ -391,4 +414,25 @@ Tensor Tensor::Softmax(const Tensor &a)
   }
 }
 
+void Tensor::Print(const Tensor &a)
+{
+  for (std::size_t i = 0; i < a.shape()[0]; ++i)
+  {
+    for (std::size_t j = 0; j < a.shape()[1]; ++j)
+    {
+      std::cout << a(i, j) << ", ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << std::endl;
+}
+
+void Tensor::PrintShape(const Tensor &a)
+{
+  for (unsigned long i : a.shape())
+  {
+    std::cout << i << ", ";
+  }
+  std::cout << std::endl;
+}
 } // namespace nagato
