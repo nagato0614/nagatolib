@@ -98,6 +98,19 @@ class Layer
     virtual Tensor forward(const Tensor &x, const Tensor &y) = 0;
     virtual Tensor backward(const Tensor &dout) = 0;
     virtual ~Layer() = default;
+    Tensor get_dW() const
+    {
+      return this->dW;
+    }
+
+    Tensor get_db() const
+    {
+      return this->db;
+    }
+
+  protected:
+    Tensor dW;
+    Tensor db;
 };
 
 /**
@@ -128,7 +141,7 @@ class MulLayer
 };
 
 /**
- * @brief 加算を取り扱うレイヤー  
+ * @brief 加算を取り扱うレイヤー
  */
 class AddLayer
 {
@@ -231,7 +244,7 @@ class Affine : public Layer
     {
       Tensor dx = Tensor::Matmul(dout, Tensor::Transpose(W));
       this->dW = Tensor::Matmul(Tensor::Transpose(x), dout);
-      this->db = Tensor::Sum(dout);
+      this->db = Tensor::Sum(dout, 0);
       return dx;
     }
 
@@ -239,8 +252,6 @@ class Affine : public Layer
     Tensor W;
     Tensor b;
     Tensor x;
-    Tensor dW;
-    Tensor db;
 };
 
 /**
@@ -259,7 +270,7 @@ class SoftmaxWithLoss : public Layer
     Tensor forward(const Tensor &x, const Tensor &t)
     {
       this->t = t;
-      Tensor y = Tensor::Softmax(x);
+      this->y = Tensor::Softmax(x);
       this->loss = CrossEntropyError(y, t);
       return this->loss;
     }
@@ -277,44 +288,53 @@ class SoftmaxWithLoss : public Layer
 };
 
 /**
- * @brief 重みパラメータに対する勾配を計算する関数. 
+ * @brief 重みパラメータに対する勾配を計算する関数.
  * @note バッチ処理に対応している
  * @param func 勾配を計算する関数
  * @param x 入力. 一番最初の次元はバッチサイズ
  * @return 勾配
  */
-Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tensor &x)
+Tensor numerical_gradient_(std::function<Tensor(const Tensor &)> func, const Tensor &x)
 {
-    constexpr float h = 1e-3;
+  constexpr float h = 1e-3;
 
-    // x と同じ形状を持つゼロ初期化のテンソルを作成する
-    Tensor grad = Tensor::Zeros(x.shape());
-    // x の変更可能なコピーを作成する
-    Tensor x_copy = x;
+  // x と同じ形状を持つゼロ初期化のテンソルを作成する
+  Tensor grad = Tensor::Zeros(x.shape());
+  // x の変更可能なコピーを作成する
+  Tensor x_copy = x;
 
-    // Tensor のストレージ全体（全要素）でループ
-    for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
+  // Tensor のストレージ全体（全要素）でループ
+  for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
+  {
+    // 残りの処理データを10つごとに表示
+    if (idx % 10 == 0)
     {
-        // 現在の値を記憶
-        float tmp_val = x_copy.storage()[idx];
-
-        // x + h における f の値を計算
-        x_copy.storage()[idx] = tmp_val + h;
-        Tensor fxh1 = func(x_copy);
-
-        // x - h における f の値を計算
-        x_copy.storage()[idx] = tmp_val - h;
-        Tensor fxh2 = func(x_copy);
-
-        // 値を元に戻す
-        x_copy.storage()[idx] = tmp_val;
-
-        // 中心差分による数値勾配を計算
-        // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
-        grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
+      std::cout << "\r";
+      std::cout << idx << " / " << x_copy.storage().size();
+      std::cout.flush();
     }
 
-    return grad;
+    // 現在の値を記憶
+    float tmp_val = x_copy.storage()[idx];
+
+    // x + h における f の値を計算
+    x_copy.storage()[idx] = tmp_val + h;
+    Tensor fxh1 = func(x_copy);
+
+    // x - h における f の値を計算
+    x_copy.storage()[idx] = tmp_val - h;
+    Tensor fxh2 = func(x_copy);
+
+    // 値を元に戻す
+    x_copy.storage()[idx] = tmp_val;
+
+    // 中心差分による数値勾配を計算
+    // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
+    grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
+  }
+  std::cout << std::endl;
+
+  return grad;
 }
 
 /**
@@ -330,19 +350,25 @@ class TwoLayerNet
       const float weight_init_std = 0.01
     )
     {
-      this->params = std::map<std::string, Tensor>();
-      this->layers = std::map<std::string, std::unique_ptr<Layer> >();
+      this->params = std::vector<std::pair<std::string, Tensor> >();
+      this->layers = std::vector<std::pair<std::string, std::unique_ptr<Layer> > >();
 
       // 重みの初期化
-      this->params["W1"] = Tensor::RandomNormal({input_size, hidden_size}) * weight_init_std;
-      this->params["b1"] = Tensor::RandomNormal({1, hidden_size}) * weight_init_std;
-      this->params["W2"] = Tensor::RandomNormal({hidden_size, output_size}) * weight_init_std;
-      this->params["b2"] = Tensor::RandomNormal({1, output_size}) * weight_init_std;
+      this->params.emplace_back("W1",
+                                Tensor::RandomNormal({input_size, hidden_size}) * weight_init_std);
+      this->params.emplace_back("b1", Tensor::RandomNormal({1, hidden_size}) * weight_init_std);
+      this->params.emplace_back("W2",
+                                Tensor::RandomNormal({hidden_size, output_size}) * weight_init_std);
+      this->params.emplace_back("b2", Tensor::RandomNormal({1, output_size}) * weight_init_std);
 
       // レイヤーの生成
-      this->layers["Affine1"] = std::make_unique<Affine>(this->params["W1"], this->params["b1"]);
-      this->layers["ReLU"] = std::make_unique<ReLU>();
-      this->layers["Affine2"] = std::make_unique<Affine>(this->params["W2"], this->params["b2"]);
+      this->layers.emplace_back("Affine1",
+                                std::make_unique<Affine>(this->params[0].second,
+                                                         this->params[1].second));
+      this->layers.emplace_back("ReLU", std::make_unique<ReLU>());
+      this->layers.emplace_back("Affine2",
+                                std::make_unique<Affine>(this->params[2].second,
+                                                         this->params[3].second));
     }
 
     Tensor predict(const Tensor &x)
@@ -361,42 +387,113 @@ class TwoLayerNet
       return this->last_layer.forward(y, t);
     }
 
+    float accuracy(const Tensor &x, const Tensor &t)
+    {
+      Tensor y = this->predict(x);
+      Tensor result = y.Argmax();
+      Tensor ans = t.Argmax();
+      Tensor equal = result == ans;
+      return Tensor::Sum(equal)(0) / x.shape()[0];
+    }
+
+    std::vector<std::pair<std::string, Tensor> > numerical_gradient(
+      const Tensor &x,
+      const Tensor &t)
+    {
+      auto loss_W = [this, x, t](const Tensor &W)
+      {
+        return this->loss(x, t);
+      };
+
+      std::vector<std::pair<std::string, Tensor> > grads;
+      for (auto &param : this->params)
+      {
+        grads.emplace_back(param.first, numerical_gradient_(loss_W, param.second));
+      }
+      return grads;
+    }
+
+    std::vector<std::pair<std::string, Tensor> > gradient(const Tensor &x, const Tensor &t)
+    {
+      // forward
+      this->loss(x, t);
+
+      // backward
+      constexpr float dout = 1;
+      Tensor dout_tensor = Tensor::FromArray({dout});
+      Tensor dx = this->last_layer.backward(dout_tensor);
+      // 逆順でレイヤーを処理する
+      for (int i = this->layers.size() - 1; i >= 0; --i)
+      {
+        dx = this->layers[i].second->backward(dx);
+      }
+
+      // 設定
+      std::vector<std::pair<std::string, Tensor> > grads;
+      grads.emplace_back("W1", this->layers[0].second->get_dW());
+      grads.emplace_back("b1", this->layers[0].second->get_db());
+      grads.emplace_back("W2", this->layers[2].second->get_dW());
+      grads.emplace_back("b2", this->layers[2].second->get_db());
+      return grads;
+    }
+
   private:
-    std::map<std::string, Tensor> params;
-    std::map<std::string, std::unique_ptr<Layer> > layers;
+    std::vector<std::pair<std::string, Tensor> > params;
+    std::vector<std::pair<std::string, std::unique_ptr<Layer> > > layers;
     SoftmaxWithLoss last_layer;
 };
 
+Tensor OneHot(const Tensor &x, const std::size_t &num_classes)
+{
+  Tensor one_hot = Tensor::Zeros({x.shape()[0], num_classes});
+  for (std::size_t i = 0; i < x.shape()[0]; ++i)
+  {
+    one_hot(i, x(i, 0)) = 1.0;
+  }
+  return one_hot;
+}
+
 int main()
 {
-  // 乗算レイヤーのテスト
+  // Mnist のデータセットをcsvから読み込む
+  Tensor train_data = Tensor::FromCSV("../train_data.csv");
+  Tensor train_label = Tensor::FromCSV("../train_label.csv");
+  Tensor::PrintShape(train_data);
+  Tensor::PrintShape(train_label);
 
-  Tensor apple = Tensor::FromArray({100});
-  Tensor apple_num = Tensor::FromArray({2});
-  Tensor orange = Tensor::FromArray({150});
-  Tensor orange_num = Tensor::FromArray({3});
-  Tensor tax = Tensor::FromArray({1.1});
+  // 1次元だけ取り出す
+  Tensor x_train_1d = train_data.Slice(0);
+  Tensor train_label_one_hot = OneHot(train_label, 10);
 
-  MulLayer mul_apple_layer;
-  MulLayer mul_orange_layer;
-  MulLayer mul_tax_layer;
-  AddLayer add_orange_layer;
+  // shape を (28, 28) に変更する
+  x_train_1d = x_train_1d.Reshape({28, 28});
 
-  Tensor apple_price = mul_apple_layer.forward(apple, apple_num);
-  Tensor orange_price = mul_orange_layer.forward(orange, orange_num);
-  Tensor all_price = add_orange_layer.forward(apple_price, orange_price);
-  Tensor price = mul_tax_layer.forward(all_price, tax);
+  // 128 以上のデータは@, それ以外は. で表示する
+  for (std::size_t i = 0; i < 28; ++i)
+  {
+    for (std::size_t j = 0; j < 28; ++j)
+    {
+      if (x_train_1d(i, j) >= 128)
+      {
+        std::cout << "@ ";
+      }
+      else
+      {
+        std::cout << ". ";
+      }
+    }
+    std::cout << std::endl;
+  }
+  Tensor::Print(train_label_one_hot.Slice(0));
 
-  Tensor dprice = Tensor::FromArray({1});
-  auto [dall_price, dtax] = mul_tax_layer.backward(dprice);
-  auto [dapple_price, dorange_price] = add_orange_layer.backward(dall_price);
-  auto [dapple, dapple_num] = mul_apple_layer.backward(dapple_price);
-  auto [dorange, dorange_num] = mul_orange_layer.backward(dorange_price);
+  // ニューラルネットワークの生成
+  TwoLayerNet net(784, 50, 10);
 
-  Tensor::Print(price);
-  Tensor::Print(dapple_num);
-  Tensor::Print(dapple);
-  Tensor::Print(dorange);
-  Tensor::Print(dorange_num);
-  Tensor::Print(dtax);
+  constexpr std::size_t iter_num = 10000;
+  constexpr std::size_t batch_size = 100;
+  constexpr float learning_rate = 0.1;
+
+  for (std::size_t i = 0; i < iter_num; ++i)
+  {
+  }
 }

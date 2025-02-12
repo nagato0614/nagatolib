@@ -92,6 +92,20 @@ public:
   Tensor Slice(const std::size_t &axis) const;
 
   /**
+   * @brief 指定した範囲のデータを取り出す
+   * @param start 開始インデックス
+   * @param end 終了インデックス. 終了インデックスのデータを含む
+   * @return 取り出したテンソル
+   */
+  Tensor Slice(const std::size_t &start, const std::size_t &end) const;
+
+  /**
+   * @brief テンソルの最大値のインデックスを返す
+   * @return 最大値のインデックス
+   */
+  Tensor Argmax() const;
+
+  /**
    * @brief ゼロテンソルを作成する
    * @param shape 形状
    * @return ゼロテンソル
@@ -144,6 +158,14 @@ public:
    * @return 総和
    */
   static Tensor Sum(const Tensor &a);
+
+  /**
+   * @brief テンソルの総和を求める. shape_ の指定した軸を軸として総和を求める. 4次元以上のテンソルはサポートしない
+   * @param a テンソル
+   * @param axis 軸
+   * @return 総和
+   */
+  static Tensor Sum(const Tensor &a, const std::size_t &axis);
 
   /**
    * @brief シグモイド関数を計算する
@@ -200,6 +222,14 @@ public:
    * @param b テンソル
    */
   static void IsSameShape(const Tensor &a, const Tensor &b);
+
+  /**
+   * @brief ブロードキャスト可能かどうかをチェックする
+   * @param a テンソル
+   * @param b テンソル
+   * @return ブロードキャスト可能な軸を返す. ブロードキャスト不可能な場合は-1を返す
+   */
+  static int IsBroadcastable(const Tensor &a, const Tensor &b);
 
   /**
    * @brief 乱数を生成する
@@ -262,13 +292,48 @@ public:
    * @note テンソルの要素ごとに演算を行う
    */
   Tensor operator-() const;
+
+  /**
+   * @brief ２つのテンソルの値が等しいことを確認する
+   * @param a テンソル
+   * @param b テンソル
+   */
+  static bool Equal(const Tensor &a, const Tensor &b);
+
+  /**
+   * @brief テンソルをCSVファイルから読み込む
+   * @param filename ファイル名
+   * @return テンソル
+   */
+  static Tensor FromCSV(const std::string &filename);
+
+  /**
+   * @brief テンソルの平均を求める
+   * @param a テンソル
+   * @return 平均
+   */
+  static Tensor Mean(const Tensor &a);
+
+  /**
+   * @brief テンソルの絶対値を求める
+   * @param a テンソル
+   * @return 絶対値
+   */
+  static Tensor Abs(const Tensor &a);
+
+  /**
+   * @brief 複数のテンソルを組み合わせて一つのテンソルにする
+   * @param tensors テンソル
+   * @return 組み合わせたテンソル
+   */
+  static Tensor Concat(const std::vector<Tensor> &tensors);
 private:
 
-/**
- * @brief 現在設定されている形状をチェック
- * @return 形状が設定されているかどうか. 正しい場合は真となる
- * @note 形状が設定されていない場合, 形状を設定する必要がある
- */
+  /**
+   * @brief 現在設定されている形状をチェック
+   * @return 形状が設定されているかどうか. 正しい場合は真となる
+   * @note 形状が設定されていない場合, 形状を設定する必要がある
+   */
   bool has_shape() const;
 
   /**
@@ -307,6 +372,16 @@ private:
   /// テンソルのデータ
   storage_type storage_;
 };
+
+/**
+ * @brief ブロードキャスト可能な二項演算を適用する
+ * @param a テンソル
+ * @param b テンソル
+ * @param op 二項演算
+ * @return 適用したテンソル
+ */
+template <typename BinaryOp>
+Tensor ApplyBroadcastBinaryOp(const Tensor &a, const Tensor &b, BinaryOp op);
 
 /**
  * @brief テンソルの加算
@@ -402,6 +477,17 @@ Tensor operator/(const Tensor &a, const float &b);
  * @return 除算結果
  */
 Tensor operator/(const float &a, const Tensor &b);
+
+
+/**
+ * @brief テンソルの等号演算子. 等しい場合は1.0, 等しくない場合は0.0を返す
+ * @param a テンソル
+ * @param b テンソル
+ * @return 等号演算結果
+ */
+Tensor operator==(const Tensor &a, const Tensor &b);
+
+
 }  // namespace nagato
 
 #endif // TENSOR_HPP

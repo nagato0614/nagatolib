@@ -6,10 +6,11 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <fstream>
+#include <sstream>
 
 namespace nagato
 {
-
 Tensor::Tensor()
   : shape_(),
     strides_(),
@@ -108,6 +109,11 @@ void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
   // ２つのテンソルの形状が等しいことをチェック
   if (a.shape() != b.shape())
   {
+    for (std::size_t i = 0; i < a.shape().size(); ++i)
+    {
+      std::cerr << "a.shape()[i]: " << a.shape()[i] << ", b.shape()[i]: " << b.shape()[i] <<
+        std::endl;
+    }
     throw std::invalid_argument("tensor must have the same shape");
   }
   else
@@ -125,14 +131,7 @@ void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
 
 Tensor operator+(const Tensor &a, const Tensor &b)
 {
-  Tensor::IsSameShape(a, b);
-  Tensor result(a.shape());
-  std::transform(a.storage().begin(),
-                 a.storage().end(),
-                 b.storage().begin(),
-                 result.storage().begin(),
-                 std::plus<float>());
-  return result;
+    return ApplyBroadcastBinaryOp(a, b, std::plus<Tensor::value_type>());
 }
 
 Tensor operator+(const Tensor &a, const float &b)
@@ -157,15 +156,7 @@ Tensor operator+(const float &a, const Tensor &b)
 
 Tensor operator-(const Tensor &a, const Tensor &b)
 {
-  Tensor::IsSameShape(a, b);
-
-  Tensor result(a.shape());
-  std::transform(a.storage().begin(),
-                 a.storage().end(),
-                 b.storage().begin(),
-                 result.storage().begin(),
-                 std::minus<float>());
-  return result;
+    return ApplyBroadcastBinaryOp(a, b, std::minus<Tensor::value_type>());
 }
 
 Tensor operator-(const Tensor &a, const float &b)
@@ -190,15 +181,7 @@ Tensor operator-(const float &a, const Tensor &b)
 
 Tensor operator*(const Tensor &a, const Tensor &b)
 {
-  Tensor::IsSameShape(a, b);
-
-  Tensor result(a.shape());
-  std::transform(a.storage().begin(),
-                 a.storage().end(),
-                 b.storage().begin(),
-                 result.storage().begin(),
-                 std::multiplies<float>());
-  return result;
+    return ApplyBroadcastBinaryOp(a, b, std::multiplies<Tensor::value_type>());
 }
 
 Tensor operator*(const Tensor &a, const float &b)
@@ -223,15 +206,7 @@ Tensor operator*(const float &a, const Tensor &b)
 
 Tensor operator/(const Tensor &a, const Tensor &b)
 {
-  Tensor::IsSameShape(a, b);
-
-  Tensor result(a.shape());
-  std::transform(a.storage().begin(),
-                 a.storage().end(),
-                 b.storage().begin(),
-                 result.storage().begin(),
-                 std::divides<float>());
-  return result;
+    return ApplyBroadcastBinaryOp(a, b, std::divides<Tensor::value_type>());
 }
 
 Tensor operator/(const Tensor &a, const float &b)
@@ -277,7 +252,26 @@ Tensor Tensor::Dot(const Tensor &a, const Tensor &b)
   // 入力データの形状が等しいことをチェック
   if (a.shape() != b.shape())
   {
-    throw std::invalid_argument("input tensor must have the same shape");
+    for (std::size_t i = 0; i < a.shape().size(); ++i)
+    {
+      if (i < a.shape().size())
+      {
+        std::cerr << a.shape()[i] << ", ";
+      }
+      else
+      {
+        std::cerr << a.shape()[i] << std::endl;
+      }
+
+      if (i < b.shape().size())
+      {
+        std::cerr << b.shape()[i] << ", ";
+      }
+      else
+      {
+        std::cerr << b.shape()[i] << std::endl;
+      }
+    }
   }
 
   // ともに１次元のテンソルの場合
@@ -316,10 +310,19 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
     // 入力データの形状をチェック
     if (a.shape()[1] != b.shape()[0])
     {
+      for (const unsigned long i : a.shape())
+      {
+        std::cerr << i << ", ";
+      }
+      std::cerr << std::endl;
+      for (const unsigned long i : b.shape())
+      {
+        std::cerr << i << ", ";
+      }
+      std::cerr << std::endl;
       throw std::invalid_argument("input tensor must have the same shape");
     }
-
-    // 出力データの形状を計算 
+    // 出力データの形状を計算
     shape_type result_shape = {a.shape()[0], b.shape()[1]};
     Tensor result(result_shape);
 
@@ -351,6 +354,10 @@ Tensor Tensor::Matmul(const Tensor &a, const Tensor &b)
 
     if (a.shape()[2] != b.shape()[1])
     {
+      std::cerr << "a.shape()[0]: " << a.shape()[0] << ", a.shape()[1]: " << a.shape()[1] <<
+        std::endl;
+      std::cerr << "b.shape()[0]: " << b.shape()[0] << ", b.shape()[1]: " << b.shape()[1] <<
+        std::endl;
       throw std::invalid_argument("input tensor must have the same shape");
     }
 
@@ -426,6 +433,73 @@ Tensor Tensor::Sum(const Tensor &a)
   }
 
   return result;
+}
+
+Tensor Tensor::Sum(const Tensor &a, const std::size_t &axis)
+{
+    // 4次元以上のテンソルはサポートしない
+    if (a.shape().size() >= 4)
+    {
+        throw std::invalid_argument("4次元以上のテンソルはSumでサポートされていません");
+    }
+
+    // 指定した軸が範囲内にあることを確認する
+    if (axis >= a.shape().size())
+    {
+        throw std::invalid_argument("axis is out of range");
+    }
+
+    const auto &a_shape = a.shape();
+    // 指定した軸を除いた新しいshapeを作成する
+    std::vector<std::size_t> new_shape;
+    for (std::size_t i = 0; i < a_shape.size(); ++i)
+    {
+        if (i == axis)
+        {
+            continue;
+        }
+        new_shape.push_back(a_shape[i]);
+    }
+    // new_shapeが空の場合はスカラーとみなし、shapeを{1}とする
+    if (new_shape.empty())
+    {
+        new_shape.push_back(1);
+    }
+
+    // 結果のテンソルをゼロ初期化で作成する
+    Tensor result = Tensor::Zeros(new_shape);
+
+    // 軸に沿って総和を求めるため、前後のブロックサイズを計算する
+    std::size_t pre = 1;
+    for (std::size_t i = 0; i < axis; ++i)
+    {
+        pre *= a_shape[i];
+    }
+    std::size_t d = a_shape[axis];
+    std::size_t post = 1;
+    for (std::size_t i = axis + 1; i < a_shape.size(); ++i)
+    {
+        post *= a_shape[i];
+    }
+
+    // テンソル内部はrow-majorと仮定し、
+    // 元のテンソルを(pre, d, post)とみなしてd方向に沿って総和を計算する
+    for (std::size_t i = 0; i < pre; ++i)
+    {
+        for (std::size_t j = 0; j < post; ++j)
+        {
+            float sum = 0;
+            for (std::size_t k = 0; k < d; ++k)
+            {
+                std::size_t index = i * (d * post) + k * post + j;
+                sum += a.storage()[index];
+            }
+            std::size_t result_index = i * post + j;
+            result.storage()[result_index] = sum;
+        }
+    }
+
+    return result;
 }
 
 Tensor Tensor::Sigmoid(const Tensor &a)
@@ -569,7 +643,6 @@ void Tensor::PrintShape(const Tensor &a)
   std::cout << std::endl;
 }
 
-
 Tensor Tensor::Random(const shape_type &shape)
 {
   Tensor result(shape);
@@ -602,11 +675,11 @@ Tensor Tensor::operator-() const
 {
   Tensor result(shape_);
   std::transform(
-    storage_.begin(), 
-    storage_.end(), 
-    result.storage().begin(), 
+    storage_.begin(),
+    storage_.end(),
+    result.storage().begin(),
     [](const value_type &x) { return -x; }
-    );
+  );
   return result;
 }
 
@@ -617,7 +690,7 @@ Tensor Tensor::FromArray(const std::vector<value_type> &array)
   return result;
 }
 
-Tensor Tensor::FromArray(const std::vector<std::vector<value_type>> &array)
+Tensor Tensor::FromArray(const std::vector<std::vector<value_type> > &array)
 {
   Tensor result({array.size(), array[0].size()});
 
@@ -637,7 +710,7 @@ Tensor Tensor::FromArray(const std::vector<std::vector<value_type>> &array)
   return result;
 }
 
-Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>> &array)
+Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type> > > &array)
 {
   // 3次元テンソルとして初期化
   Tensor result({array.size(), array[0].size(), array[0][0].size()});
@@ -669,8 +742,8 @@ Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type>>>
     {
       // 正しいオフセット: 第1次元 i に対して d1*d2、さらに第2次元 j に対して d2
       std::copy(
-        array[i][j].begin(), 
-        array[i][j].end(), 
+        array[i][j].begin(),
+        array[i][j].end(),
         result.storage().begin() + i * (d1 * d2) + j * d2);
     }
   }
@@ -692,8 +765,6 @@ Tensor Tensor::Transpose(const Tensor &a)
     throw std::invalid_argument("tensor must be 2 or 3 dimensional");
   }
 
-
-  
   if (a.shape().size() == 2)
   {
     // 転置後の形状を計算
@@ -740,11 +811,11 @@ Tensor Tensor::Transpose(const Tensor &a)
 Tensor Tensor::Slice(const std::size_t &axis) const
 {
   // 指定した軸が範囲内にあることを確認する
-  if (0 < axis && axis < shape_[0])
+  if (axis < 0 || shape_[0] <= axis)
   {
     throw std::invalid_argument("axis is out of range");
   }
-  
+
   // 分割したテンソルのshape を計算する
   shape_type shape(shape_.begin() + 1, shape_.end());
 
@@ -756,13 +827,278 @@ Tensor Tensor::Slice(const std::size_t &axis) const
   const std::size_t end_index = start_index + strides_[0];
 
   std::copy(
-    storage_.begin() + start_index, 
-    storage_.begin() + end_index, 
+    storage_.begin() + start_index,
+    storage_.begin() + end_index,
     result.storage().begin()
-    );
+  );
 
   return result;
 }
 
+Tensor Tensor::Slice(const std::size_t &start, const std::size_t &end) const
+{
+  // 指定した範囲が範囲内にあることを確認する
+  if (start < 0 || end > shape_[0])
+  {
+    throw std::invalid_argument("start and end must be within the range of the tensor");
+  }
 
+  // end が start より大きいことを確認する
+  if (end <= start)
+  {
+    throw std::invalid_argument("end must be greater than start");
+  }
+
+  // 分割したテンソルのshape を計算する
+  shape_type shape(this->shape_);
+  const std::size_t size = end - start + 1;
+  shape[0] = size;
+
+  // 分割したテンソルを作成する
+  Tensor result(shape);
+
+  // 分割したテンソルを作成する
+  const std::size_t start_index = start * strides_[0];
+  const std::size_t end_index = start_index + size * strides_[0];
+  std::copy(
+    storage_.begin() + start_index,
+    storage_.begin() + end_index,
+    result.storage().begin());
+
+  return result;
+}
+
+Tensor Tensor::Argmax() const
+{
+  // 1次元のテンソルの場合
+  if (shape_.size() == 1)
+  {
+    Tensor result({1});
+    result(0) = std::distance(
+      storage_.begin(),
+      std::max_element(storage_.begin(), storage_.end()));
+    return result;
+  }
+
+  // 2次元のテンソルの場合
+  if (shape_.size() == 2)
+  {
+    Tensor result({shape_[0]});
+    for (std::size_t i = 0; i < shape_[0]; ++i)
+    {
+      Tensor slice = this->Slice(i);
+      result(i) = slice.Argmax()(0);
+    }
+    return result;
+  }
+
+  throw std::invalid_argument("tensor must be 1 or 2 dimensional");
+}
+
+bool Tensor::Equal(const Tensor &a, const Tensor &b)
+{
+  if (a.shape() != b.shape())
+  {
+    return false;
+  }
+
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
+    if (a.storage()[i] != b.storage()[i])
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+Tensor operator==(const Tensor &a, const Tensor &b)
+{
+  Tensor result(a.shape());
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
+    result.storage()[i] = a.storage()[i] == b.storage()[i] ? 1.0 : 0.0;
+  }
+  return result;
+}
+
+Tensor Tensor::FromCSV(const std::string &filename)
+{
+  std::ifstream file(filename);
+  if (!file.is_open())
+  {
+    throw std::runtime_error("ファイルを開くことができませんでした: " + filename);
+  }
+  std::string line;
+  std::vector<std::vector<float> > data;
+  while (std::getline(file, line))
+  {
+    std::vector<float> row;
+    std::stringstream ss(line);
+    std::string cell;
+    while (std::getline(ss, cell, ','))
+    {
+      row.push_back(std::stof(cell));
+    }
+    data.push_back(row);
+  }
+  return FromArray(data);
+}
+
+Tensor Tensor::Mean(const Tensor &a)
+{
+  // ベクトルの場合
+  if (a.shape().size() == 1)
+  {
+    Tensor result({1});
+    result(0) = std::accumulate(a.storage().begin(), a.storage().end(), 0.0f) / a.shape()[0];
+    return result;
+  }
+
+  // 行列の場合
+  if (a.shape().size() == 2)
+  {
+    Tensor result({a.shape()[0]});
+    for (std::size_t i = 0; i < a.shape()[0]; ++i)
+    {
+      // 行をベクトルとして取り出して計算する
+      Tensor slice = a.Slice(i);
+      result(i) = Tensor::Mean(slice)(0);
+    }
+    return result;
+  }
+
+  throw std::invalid_argument("tensor must be 1 or 2 dimensional");
+}
+
+Tensor Tensor::Abs(const Tensor &a)
+{
+  Tensor result(a.shape());
+  std::transform(a.storage().begin(),
+                 a.storage().end(),
+                 result.storage().begin(),
+                 [](float x) { return std::abs(x); });
+  return result;
+}
+
+int Tensor::IsBroadcastable(const Tensor &a, const Tensor &b)
+{
+  // それぞれのテンソルの shape（次元数を格納した vector）を取得
+  const auto &shapeA = a.shape();
+  const auto &shapeB = b.shape();
+  std::size_t rankA = shapeA.size();
+  std::size_t rankB = shapeB.size();
+
+  // ブロードキャストは末尾の次元から判定するので、最大ランクに合わせる
+  std::size_t maxRank = std::max(rankA, rankB);
+
+  // 末尾から各次元のサイズを取り出して比較する
+  for (std::size_t i = 0; i < maxRank; ++i)
+  {
+    // i=0 では最後の次元、i=1 ではそのひとつ前の次元…となる
+    std::size_t dimA = (i < rankA) ? shapeA[rankA - 1 - i] : 1;
+    std::size_t dimB = (i < rankB) ? shapeB[rankB - 1 - i] : 1;
+
+    // どちらの次元も同じか、またはどちらかが1であればブロードキャスト可能
+    if (dimA != dimB && dimA != 1 && dimB != 1)
+    {
+      return 0;
+    }
+  }
+  return true;
+}
+
+template <typename BinaryOp>
+Tensor ApplyBroadcastBinaryOp(const Tensor &a, const Tensor &b, BinaryOp op) {
+  // まず、2つのテンソルがブロードキャスト可能かチェックする
+  if (!Tensor::IsBroadcastable(a, b)) {
+    throw std::invalid_argument("Tensors are not broadcastable");
+  }
+
+  // もし形状が完全に一致していれば、単純な要素ごとのループで処理する
+  if (a.shape() == b.shape()) {
+    Tensor result(a.shape());
+    const auto &a_storage = a.storage();
+    const auto &b_storage = b.storage();
+    auto &result_storage = result.storage();
+    for (std::size_t i = 0; i < a_storage.size(); ++i) {
+      result_storage[i] = op(a_storage[i], b_storage[i]);
+    }
+    return result;
+  }
+
+  // 形状が一致しない場合、ブロードキャスト処理を行う
+
+  // 元のshapeを取得
+  const auto &shapeA = a.shape();
+  const auto &shapeB = b.shape();
+  std::size_t rankA = shapeA.size();
+  std::size_t rankB = shapeB.size();
+  std::size_t maxRank = std::max(rankA, rankB);
+
+  // 先頭側に1を補完してパディングしたshapeを作成
+  std::vector<std::size_t> paddedA(maxRank, 1);
+  std::vector<std::size_t> paddedB(maxRank, 1);
+  for (std::size_t i = 0; i < rankA; ++i) {
+    paddedA[maxRank - rankA + i] = shapeA[i];
+  }
+  for (std::size_t i = 0; i < rankB; ++i) {
+    paddedB[maxRank - rankB + i] = shapeB[i];
+  }
+
+  // 各軸ごとに拡張後のサイズは、paddedA と paddedB の大きい方となる
+  std::vector<std::size_t> broadcastShape(maxRank);
+  for (std::size_t i = 0; i < maxRank; ++i) {
+    broadcastShape[i] = std::max(paddedA[i], paddedB[i]);
+  }
+  Tensor result(broadcastShape);
+
+  // 拡張後の総要素数を計算
+  std::size_t total = 1;
+  for (auto dim : broadcastShape) {
+    total *= dim;
+  }
+
+  // 補完後のshapeからストライドを計算するラムダ（row-major順）
+  auto computeStrides = [](const std::vector<std::size_t> &shape) -> std::vector<std::size_t> {
+    std::vector<std::size_t> strides(shape.size());
+    if (!shape.empty()) {
+      strides[shape.size() - 1] = 1;
+      for (int i = static_cast<int>(shape.size()) - 2; i >= 0; --i) {
+        strides[i] = strides[i + 1] * shape[i + 1];
+      }
+    }
+    return strides;
+  };
+
+  std::vector<std::size_t> stridesA = computeStrides(paddedA);
+  std::vector<std::size_t> stridesB = computeStrides(paddedB);
+
+  // flat index を multi-index に変換するラムダ
+  auto flatToMultiIndex = [&](std::size_t flatIndex,
+                              const std::vector<std::size_t> &shape) -> std::vector<std::size_t> {
+    std::vector<std::size_t> indices(shape.size(), 0);
+    for (int i = static_cast<int>(shape.size()) - 1; i >= 0; --i) {
+      indices[i] = flatIndex % shape[i];
+      flatIndex /= shape[i];
+    }
+    return indices;
+  };
+
+  // 各要素に対して、ブロードキャストに従ったインデックス変換を行い、opを適用する
+  for (std::size_t idx = 0; idx < total; ++idx) {
+    std::vector<std::size_t> multiIndex = flatToMultiIndex(idx, broadcastShape);
+    std::size_t indexA = 0;
+    std::size_t indexB = 0;
+    for (std::size_t i = 0; i < maxRank; ++i) {
+      // 対象の次元が1の場合、常に0番目の要素を参照する
+      std::size_t idxA = (paddedA[i] == 1 ? 0 : multiIndex[i]);
+      std::size_t idxB = (paddedB[i] == 1 ? 0 : multiIndex[i]);
+      indexA += idxA * stridesA[i];
+      indexB += idxB * stridesB[i];
+    }
+    result.storage()[idx] = op(a.storage()[indexA], b.storage()[indexB]);
+  }
+  return result;
+}
 } // namespace nagato

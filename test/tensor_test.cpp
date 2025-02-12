@@ -12,38 +12,37 @@ using namespace nagato;
  */
 Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tensor &x)
 {
-    constexpr float h = 1e-3;
+  constexpr float h = 1e-3;
 
-    // x と同じ形状を持つゼロ初期化のテンソルを作成する
-    Tensor grad = Tensor::Zeros(x.shape());
-    // x の変更可能なコピーを作成する
-    Tensor x_copy = x;
+  // x と同じ形状を持つゼロ初期化のテンソルを作成する
+  Tensor grad = Tensor::Zeros(x.shape());
+  // x の変更可能なコピーを作成する
+  Tensor x_copy = x;
 
-    // Tensor のストレージ全体（全要素）でループ
-    for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
-    {
-        // 現在の値を記憶
-        float tmp_val = x_copy.storage()[idx];
+  // Tensor のストレージ全体（全要素）でループ
+  for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
+  {
+    // 現在の値を記憶
+    float tmp_val = x_copy.storage()[idx];
 
-        // x + h における f の値を計算
-        x_copy.storage()[idx] = tmp_val + h;
-        Tensor fxh1 = func(x_copy);
+    // x + h における f の値を計算
+    x_copy.storage()[idx] = tmp_val + h;
+    Tensor fxh1 = func(x_copy);
 
-        // x - h における f の値を計算
-        x_copy.storage()[idx] = tmp_val - h;
-        Tensor fxh2 = func(x_copy);
+    // x - h における f の値を計算
+    x_copy.storage()[idx] = tmp_val - h;
+    Tensor fxh2 = func(x_copy);
 
-        // 値を元に戻す
-        x_copy.storage()[idx] = tmp_val;
+    // 値を元に戻す
+    x_copy.storage()[idx] = tmp_val;
 
-        // 中心差分による数値勾配を計算
-        // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
-        grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
-    }
+    // 中心差分による数値勾配を計算
+    // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
+    grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
+  }
 
-    return grad;
+  return grad;
 }
-
 
 TEST(TensorTest, Constructor)
 {
@@ -489,57 +488,121 @@ TEST(TensorTest, slice3D)
   EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
 }
 
-TEST(TensorTest, NumericalGradient) {
-    // 1次元テンソル [3, 4] を作成
-    Tensor x = Tensor::FromArray({3.0f, 4.0f});
-    
-    // 関数 f(x) = sum(x^2) を定義する
-    auto f = [](const Tensor &t) -> Tensor {
-        // 各要素の2乗を計算し、その合計（1要素のテンソル）を返す
-        Tensor squared = t * t;  // 要素ごとの乗算
-        Tensor s = Tensor::Sum(squared);
-        return s;
-    };
-    
-    // 数値微分により勾配を算出する
-    Tensor grad = numerical_gradient(f, x);
-    
-    // 期待される勾配は 2*x なので、[3,4] -> [6,8]
-    Tensor expected = Tensor::FromArray({6.0f, 8.0f});
-    
-    // 計算結果と期待値を許容誤差 1e-4 で比較
-    const auto &grad_storage = grad.storage();
-    const auto &expected_storage = expected.storage();
-    ASSERT_EQ(grad_storage.size(), expected_storage.size());
-    for (std::size_t i = 0; i < grad_storage.size(); ++i) {
-        EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
-    }
+// 指定範囲を一括して取得する Slice テスト
+TEST(TensorTest, sliceRange)
+{
+  Tensor a = Tensor::FromArray({
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9},
+    {10, 11, 12}
+  });
+  Tensor c = a.Slice(1, 3);
+
+  // shape が (2, 3) であるかチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
+
+  // 期待される値をチェック
+  EXPECT_EQ(c.storage(), (std::vector<float>{4, 5, 6, 7, 8, 9}));
 }
 
-TEST(TensorTest, NumericalGradientBatch) {
-    // 2次元テンソルを作成 (バッチサイズ 2, 特徴量 2)
-    Tensor x = Tensor::FromArray({{3.0f, 4.0f}, {5.0f, 6.0f}});
-    
-    // 関数 f(x) = sum(x^2) を定義する
-    // バッチ内の全要素の二乗和を求め、スカラー値を返す
-    auto f = [](const Tensor &t) -> Tensor {
-        Tensor squared = t * t;  // 各要素の2乗
-        Tensor s = Tensor::Sum(squared);  // 各サンプルごとの和 (shape: {batch})
-        s = Tensor::Sum(s);  // バッチ全体の和 (スカラー)
-        return s;
-    };
-    
-    // 数値微分により勾配を算出する
-    Tensor grad = numerical_gradient(f, x);
-    
-    // 期待される勾配は d/dx (x^2) = 2*x なので、[[3,4], [5,6]] に対しては [[6,8], [10,12]] が期待される
-    Tensor expected = Tensor::FromArray({{6.0f, 8.0f}, {10.0f, 12.0f}});
-    
-    // 計算結果と期待値を許容誤差 1e-2 で比較
-    const auto &grad_storage = grad.storage();
-    const auto &expected_storage = expected.storage();
-    ASSERT_EQ(grad_storage.size(), expected_storage.size());
-    for (std::size_t i = 0; i < grad_storage.size(); ++i) {
-        EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
+// 指定範囲を一括して取得する Slice テスト (3次元)
+TEST(TensorTest, sliceRange3D)
+{
+  Tensor a = Tensor::FromArray({
+    {
+      {1, 2, 3},
+      {4, 5, 6},
+      {7, 8, 9}
+    },
+    {
+      {10, 11, 12},
+      {13, 14, 15},
+      {16, 17, 18}
+    },
+    {
+      {19, 20, 21},
+      {22, 23, 24},
+      {25, 26, 27}
+    },
+    {
+      {28, 29, 30},
+      {31, 32, 33},
+      {34, 35, 36}
     }
+  });
+  Tensor c = a.Slice(1, 2);
+
+  // shape が (2, 3) であるかチェック
+  EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3, 3}));
+
+  std::vector<float> expected;
+  for (int i = 10; i < 28; i++)
+  {
+    expected.push_back(i);
+  }
+
+  // 期待される値をチェック
+  EXPECT_EQ(c.storage(), expected);
+}
+
+TEST(TensorTest, NumericalGradient)
+{
+  // 1次元テンソル [3, 4] を作成
+  Tensor x = Tensor::FromArray({3.0f, 4.0f});
+
+  // 関数 f(x) = sum(x^2) を定義する
+  auto f = [](const Tensor &t) -> Tensor
+  {
+    // 各要素の2乗を計算し、その合計（1要素のテンソル）を返す
+    Tensor squared = t * t; // 要素ごとの乗算
+    Tensor s = Tensor::Sum(squared);
+    return s;
+  };
+
+  // 数値微分により勾配を算出する
+  Tensor grad = numerical_gradient(f, x);
+
+  // 期待される勾配は 2*x なので、[3,4] -> [6,8]
+  Tensor expected = Tensor::FromArray({6.0f, 8.0f});
+
+  // 計算結果と期待値を許容誤差 1e-4 で比較
+  const auto &grad_storage = grad.storage();
+  const auto &expected_storage = expected.storage();
+  ASSERT_EQ(grad_storage.size(), expected_storage.size());
+  for (std::size_t i = 0; i < grad_storage.size(); ++i)
+  {
+    EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
+  }
+}
+
+TEST(TensorTest, NumericalGradientBatch)
+{
+  // 2次元テンソルを作成 (バッチサイズ 2, 特徴量 2)
+  Tensor x = Tensor::FromArray({{3.0f, 4.0f}, {5.0f, 6.0f}});
+
+  // 関数 f(x) = sum(x^2) を定義する
+  // バッチ内の全要素の二乗和を求め、スカラー値を返す
+  auto f = [](const Tensor &t) -> Tensor
+  {
+    Tensor squared = t * t; // 各要素の2乗
+    Tensor s = Tensor::Sum(squared); // 各サンプルごとの和 (shape: {batch})
+    s = Tensor::Sum(s); // バッチ全体の和 (スカラー)
+    return s;
+  };
+
+  // 数値微分により勾配を算出する
+  Tensor grad = numerical_gradient(f, x);
+
+  // 期待される勾配は d/dx (x^2) = 2*x なので、[[3,4], [5,6]] に対しては [[6,8], [10,12]] が期待される
+  Tensor expected = Tensor::FromArray({{6.0f, 8.0f}, {10.0f, 12.0f}});
+
+  // 計算結果と期待値を許容誤差 1e-2 で比較
+  const auto &grad_storage = grad.storage();
+  const auto &expected_storage = expected.storage();
+  ASSERT_EQ(grad_storage.size(), expected_storage.size());
+  for (std::size_t i = 0; i < grad_storage.size(); ++i)
+  {
+    EXPECT_NEAR(grad_storage[i], expected_storage[i], 1e-1f);
+  }
 }

@@ -86,7 +86,8 @@ function(add_example target_name)
     target_link_libraries(${target_name}
             nagato
     )
-    target_compile_options(${target_name} PRIVATE -fobjc-arc -fblocks)
+    target_compile_options(${target_name} PRIVATE -fobjc-arc -fblocks -Xpreprocessor -fopenmp
+            -lomp)
 endfunction()
 
 # Build Example
