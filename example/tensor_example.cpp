@@ -1,7 +1,9 @@
 #include "nagatolib.hpp"
 #include <memory>
+#include "network.hpp"
 
 using namespace nagato;
+
 void two_layer_network()
 {
   Tensor X = Tensor::Ones({1, 2});
@@ -70,430 +72,107 @@ void two_layer_network()
   Tensor::Print(A3);
 }
 
-Tensor MeanSquaredError(const Tensor &y, const Tensor &t)
-{
-  Tensor::IsSameShape(y, t);
-  const Tensor diff = y - t;
-  const Tensor square = diff * diff;
-  const Tensor sum = Tensor::Sum(square) * 0.5;
-  return sum;
-}
-
-// バッチ対応の交差エントロピー誤差
-Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
-{
-  constexpr float delta = 1e-7;
-  Tensor::IsSameShape(y, t);
-  const Tensor result = t * Tensor::Log(y + delta);
-  return -Tensor::Sum(result);
-}
-
-/**
- * @brief レイヤーの基底クラス
- */
-class Layer
-{
-  public:
-    virtual Tensor forward(const Tensor &x) = 0;
-    virtual Tensor forward(const Tensor &x, const Tensor &y) = 0;
-    virtual Tensor backward(const Tensor &dout) = 0;
-    virtual ~Layer() = default;
-    Tensor get_dW() const
-    {
-      return this->dW;
-    }
-
-    Tensor get_db() const
-    {
-      return this->db;
-    }
-
-  protected:
-    Tensor dW;
-    Tensor db;
-};
-
-/**
- * @brief 乗算を取り扱うレイヤー
- */
-class MulLayer
-{
-  public:
-    MulLayer() = default;
-
-    Tensor forward(const Tensor &x, const Tensor &y)
-    {
-      this->x = x;
-      this->y = y;
-      return x * y;
-    }
-
-    std::pair<Tensor, Tensor> backward(const Tensor &dout)
-    {
-      const Tensor dx = dout * y;
-      const Tensor dy = dout * x;
-      return std::make_pair(dx, dy);
-    }
-
-  private:
-    Tensor x;
-    Tensor y;
-};
-
-/**
- * @brief 加算を取り扱うレイヤー
- */
-class AddLayer
-{
-  public:
-    AddLayer() = default;
-
-    Tensor forward(const Tensor &x, const Tensor &y)
-    {
-      return x + y;
-    }
-
-    std::pair<Tensor, Tensor> backward(const Tensor &dout)
-    {
-      const Tensor dx = dout * 1.f;
-      const Tensor dy = dout * 1.f;
-      return std::make_pair(dx, dy);
-    }
-};
-
-/**
- * @brief LeRU レイヤー
- */
-class ReLU : public Layer
-{
-  public:
-    ReLU()
-    {
-      mask = [](const Tensor::value_type &x) { return x > 0 ? x : 0; };
-    }
-
-    Tensor forward(const Tensor &x)
-    {
-      return Tensor::Transform(x, mask);
-    }
-
-    Tensor forward(const Tensor &x, const Tensor &y)
-    {
-      throw std::invalid_argument("ReLU layer does not support two input tensors");
-    }
-
-    Tensor backward(const Tensor &dout)
-    {
-      return Tensor::Transform(dout, mask);
-    }
-
-  private:
-    std::function<Tensor::value_type(Tensor::value_type)> mask;
-};
-
-/**
- * @brief シグモイドレイヤー
- */
-class Sigmoid : public Layer
-{
-  public:
-    Sigmoid() = default;
-
-    Tensor forward(const Tensor &x)
-    {
-      out = 1.0 / (1.0 + Tensor::Exp(-x));
-      return out;
-    }
-
-    Tensor forward(const Tensor &x, const Tensor &y)
-    {
-      throw std::invalid_argument("Sigmoid layer does not support two input tensors");
-    }
-
-    Tensor backward(const Tensor &dout)
-    {
-      return dout * (1.0 - out) * out;
-    }
-
-  private:
-    Tensor out;
-};
-
-/**
- * @brief Affine レイヤー
- */
-class Affine : public Layer
-{
-  public:
-    Affine(const Tensor &W, const Tensor &b) : W(W), b(b)
-    {
-    }
-
-    Tensor forward(const Tensor &x)
-    {
-      this->x = x;
-      return Tensor::Matmul(x, W) + b;
-    }
-
-    Tensor forward(const Tensor &x, const Tensor &y)
-    {
-      throw std::invalid_argument("Affine layer does not support two input tensors");
-    }
-
-    Tensor backward(const Tensor &dout)
-    {
-      Tensor dx = Tensor::Matmul(dout, Tensor::Transpose(W));
-      this->dW = Tensor::Matmul(Tensor::Transpose(x), dout);
-      this->db = Tensor::Sum(dout, 0);
-      return dx;
-    }
-
-  private:
-    Tensor W;
-    Tensor b;
-    Tensor x;
-};
-
-/**
- * @brief Softmax-with-Loss レイヤー
- */
-class SoftmaxWithLoss : public Layer
-{
-  public:
-    SoftmaxWithLoss() = default;
-
-    Tensor forward(const Tensor &x)
-    {
-      throw std::invalid_argument("SoftmaxWithLoss layer does not support one input tensor");
-    }
-
-    Tensor forward(const Tensor &x, const Tensor &t)
-    {
-      this->t = t;
-      this->y = Tensor::Softmax(x);
-      this->loss = CrossEntropyError(y, t);
-      return this->loss;
-    }
-
-    Tensor backward(const Tensor &dout)
-    {
-      Tensor dx = (y - t) / this->t.shape()[0];
-      return dx;
-    }
-
-  private:
-    Tensor y;
-    Tensor t;
-    Tensor loss;
-};
-
-/**
- * @brief 重みパラメータに対する勾配を計算する関数.
- * @note バッチ処理に対応している
- * @param func 勾配を計算する関数
- * @param x 入力. 一番最初の次元はバッチサイズ
- * @return 勾配
- */
-Tensor numerical_gradient_(std::function<Tensor(const Tensor &)> func, const Tensor &x)
-{
-  constexpr float h = 1e-3;
-
-  // x と同じ形状を持つゼロ初期化のテンソルを作成する
-  Tensor grad = Tensor::Zeros(x.shape());
-  // x の変更可能なコピーを作成する
-  Tensor x_copy = x;
-
-  // Tensor のストレージ全体（全要素）でループ
-  for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
-  {
-    // 残りの処理データを10つごとに表示
-    if (idx % 10 == 0)
-    {
-      std::cout << "\r";
-      std::cout << idx << " / " << x_copy.storage().size();
-      std::cout.flush();
-    }
-
-    // 現在の値を記憶
-    float tmp_val = x_copy.storage()[idx];
-
-    // x + h における f の値を計算
-    x_copy.storage()[idx] = tmp_val + h;
-    Tensor fxh1 = func(x_copy);
-
-    // x - h における f の値を計算
-    x_copy.storage()[idx] = tmp_val - h;
-    Tensor fxh2 = func(x_copy);
-
-    // 値を元に戻す
-    x_copy.storage()[idx] = tmp_val;
-
-    // 中心差分による数値勾配を計算
-    // ※ここでは、func がスカラー値 (1要素のTensor) を返すと仮定しています。
-    grad.storage()[idx] = (fxh1.storage()[0] - fxh2.storage()[0]) / (2 * h);
-  }
-  std::cout << std::endl;
-
-  return grad;
-}
-
-/**
- * @brief 2層ニューラルネットワーク
- */
-class TwoLayerNet
-{
-  public:
-    TwoLayerNet(
-      const std::size_t input_size,
-      const std::size_t hidden_size,
-      const std::size_t output_size,
-      const float weight_init_std = 0.01
-    )
-    {
-      this->params = std::vector<std::pair<std::string, Tensor> >();
-      this->layers = std::vector<std::pair<std::string, std::unique_ptr<Layer> > >();
-
-      // 重みの初期化
-      this->params.emplace_back("W1",
-                                Tensor::RandomNormal({input_size, hidden_size}) * weight_init_std);
-      this->params.emplace_back("b1", Tensor::RandomNormal({1, hidden_size}) * weight_init_std);
-      this->params.emplace_back("W2",
-                                Tensor::RandomNormal({hidden_size, output_size}) * weight_init_std);
-      this->params.emplace_back("b2", Tensor::RandomNormal({1, output_size}) * weight_init_std);
-
-      // レイヤーの生成
-      this->layers.emplace_back("Affine1",
-                                std::make_unique<Affine>(this->params[0].second,
-                                                         this->params[1].second));
-      this->layers.emplace_back("ReLU", std::make_unique<ReLU>());
-      this->layers.emplace_back("Affine2",
-                                std::make_unique<Affine>(this->params[2].second,
-                                                         this->params[3].second));
-    }
-
-    Tensor predict(const Tensor &x)
-    {
-      Tensor result = x; // ローカル変数にコピー
-      for (auto &layer : this->layers)
-      {
-        result = layer.second->forward(result);
-      }
-      return result;
-    }
-
-    Tensor loss(const Tensor &x, const Tensor &t)
-    {
-      Tensor y = this->predict(x);
-      return this->last_layer.forward(y, t);
-    }
-
-    float accuracy(const Tensor &x, const Tensor &t)
-    {
-      Tensor y = this->predict(x);
-      Tensor result = y.Argmax();
-      Tensor ans = t.Argmax();
-      Tensor equal = result == ans;
-      return Tensor::Sum(equal)(0) / x.shape()[0];
-    }
-
-    std::vector<std::pair<std::string, Tensor> > numerical_gradient(
-      const Tensor &x,
-      const Tensor &t)
-    {
-      auto loss_W = [this, x, t](const Tensor &W)
-      {
-        return this->loss(x, t);
-      };
-
-      std::vector<std::pair<std::string, Tensor> > grads;
-      for (auto &param : this->params)
-      {
-        grads.emplace_back(param.first, numerical_gradient_(loss_W, param.second));
-      }
-      return grads;
-    }
-
-    std::vector<std::pair<std::string, Tensor> > gradient(const Tensor &x, const Tensor &t)
-    {
-      // forward
-      this->loss(x, t);
-
-      // backward
-      constexpr float dout = 1;
-      Tensor dout_tensor = Tensor::FromArray({dout});
-      Tensor dx = this->last_layer.backward(dout_tensor);
-      // 逆順でレイヤーを処理する
-      for (int i = this->layers.size() - 1; i >= 0; --i)
-      {
-        dx = this->layers[i].second->backward(dx);
-      }
-
-      // 設定
-      std::vector<std::pair<std::string, Tensor> > grads;
-      grads.emplace_back("W1", this->layers[0].second->get_dW());
-      grads.emplace_back("b1", this->layers[0].second->get_db());
-      grads.emplace_back("W2", this->layers[2].second->get_dW());
-      grads.emplace_back("b2", this->layers[2].second->get_db());
-      return grads;
-    }
-
-  private:
-    std::vector<std::pair<std::string, Tensor> > params;
-    std::vector<std::pair<std::string, std::unique_ptr<Layer> > > layers;
-    SoftmaxWithLoss last_layer;
-};
-
-Tensor OneHot(const Tensor &x, const std::size_t &num_classes)
-{
-  Tensor one_hot = Tensor::Zeros({x.shape()[0], num_classes});
-  for (std::size_t i = 0; i < x.shape()[0]; ++i)
-  {
-    one_hot(i, x(i, 0)) = 1.0;
-  }
-  return one_hot;
-}
 
 int main()
 {
   // Mnist のデータセットをcsvから読み込む
   Tensor train_data = Tensor::FromCSV("../train_data.csv");
   Tensor train_label = Tensor::FromCSV("../train_label.csv");
+  Tensor test_data = Tensor::FromCSV("../test_data.csv");
+  Tensor test_label = Tensor::FromCSV("../test_label.csv");
   Tensor::PrintShape(train_data);
   Tensor::PrintShape(train_label);
+  Tensor::PrintShape(test_data);
+  Tensor::PrintShape(test_label);
 
   // 1次元だけ取り出す
-  Tensor x_train_1d = train_data.Slice(0);
   Tensor train_label_one_hot = OneHot(train_label, 10);
 
-  // shape を (28, 28) に変更する
-  x_train_1d = x_train_1d.Reshape({28, 28});
-
-  // 128 以上のデータは@, それ以外は. で表示する
-  for (std::size_t i = 0; i < 28; ++i)
-  {
-    for (std::size_t j = 0; j < 28; ++j)
-    {
-      if (x_train_1d(i, j) >= 128)
-      {
-        std::cout << "@ ";
-      }
-      else
-      {
-        std::cout << ". ";
-      }
-    }
-    std::cout << std::endl;
-  }
-  Tensor::Print(train_label_one_hot.Slice(0));
+  // データを一つ表示する
+  PrintMNIST(train_data.Slice(0), train_label.Slice(0));
 
   // ニューラルネットワークの生成
   TwoLayerNet net(784, 50, 10);
 
-  constexpr std::size_t iter_num = 10000;
+  constexpr std::size_t iter_num = 100000;
   constexpr std::size_t batch_size = 100;
   constexpr float learning_rate = 0.1;
 
   for (std::size_t i = 0; i < iter_num; ++i)
   {
+    // 学習に使用するデータのインデックスをランダムに生成
+    std::vector<std::size_t> indexes(batch_size);
+    std::iota(indexes.begin(), indexes.end(), 0);
+    std::shuffle(indexes.begin(), indexes.end(), std::mt19937(std::random_device()()));
+
+    // バッチデータを作成
+    std::vector<Tensor> x_batches;
+    std::vector<Tensor> t_batches;
+    for (std::size_t i = 0; i < batch_size; ++i)
+    {
+      std::size_t index = indexes[i];
+      Tensor x_batch = train_data.Slice(index);
+      Tensor t_batch = train_label_one_hot.Slice(index);
+
+      x_batches.emplace_back(x_batch);
+      t_batches.emplace_back(t_batch);
+    }
+
+    Tensor x_batch = Tensor::Concat(x_batches);
+    Tensor t_batch = Tensor::Concat(t_batches);
+
+    std::vector<std::pair<std::string, Tensor> > grads = net.gradient(x_batch, t_batch);
+
+    // パラメータの更新
+    for (std::size_t i = 0; i < grads.size(); ++i)
+    {
+      // パラメータの平均, 最大値, 最小値を表示
+      // const auto &p = net.params[i];
+      // std::cout << " ----- param: " << p.first << " -----" << std::endl;
+      // std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
+      // std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
+      // std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
+      //
+      // std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
+      // std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
+      // std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
+      // std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
+
+      *net.params[i].second = *net.params[i].second - grads[i].second * learning_rate;
+    }
+
+    if (i % 100 == 0)
+    {
+      std::cout << " --- iter: " << i << " ---" << std::endl;
+      std::cout << "loss: " << net.loss_batch(x_batch, t_batch) << std::endl;
+      std::cout << "accuracy: ";
+      net.accuracy(x_batch, t_batch);
+
+      // test_accuracy
+      if (i % 1000 == 0)
+      {
+        std::cout << "test_accuracy: ";
+        std::cout << net.accuracy(test_data, test_label) << std::endl;
+
+        // テストデータを一つ表示してみる
+        Tensor test_data_one = test_data.Slice(0).Reshape({1, 784});
+        Tensor test_label_one = test_label.Slice(0).Reshape({1, 1});
+        Tensor test_data_one_hot = OneHot(test_label_one, 10);
+        PrintMNIST(test_data_one, test_label_one);
+
+        // データを一つ使用して推論する
+        Tensor predict = net.predict(test_data_one);
+        Tensor predict_label = predict.Argmax();
+        std::cout << "predict : ";
+        Tensor::Print(predict);
+        std::cout << "predict_label : ";
+        Tensor::Print(predict_label);
+      }
+    }
+
+    if ((i + 1) % 10 == 0)
+    {
+      // break;
+    }
   }
 }

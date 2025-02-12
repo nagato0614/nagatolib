@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <iostream>
 
+#define NAGATO_OPENMP
+
 namespace nagato{
 
 /**
@@ -189,7 +191,7 @@ public:
   static Tensor Exp(const Tensor &a);
 
   /**
-   * @brief 対数関数を計算する
+   * @brief 対数関数を計算する. 0 に近い値は 1e-7 に修正して計算する
    * @param a テンソル
    * @return 対数関数
    */
@@ -322,11 +324,78 @@ public:
   static Tensor Abs(const Tensor &a);
 
   /**
+   * @brief 複数のテンソルを組み合わせて一つのテンソルにする (単一引数の場合はそのまま返す)
+   * @param first テンソル
+   * @return 組み合わせたテンソル
+   */
+  static Tensor Concat(const Tensor &first)
+  {
+    return first;
+  }
+
+  /**
    * @brief 複数のテンソルを組み合わせて一つのテンソルにする
-   * @param tensors テンソル
+   * @param first 最初のテンソル
+   * @param rest 残りのテンソル群
+   * @return 組み合わせたテンソル
+   */
+  template <typename... Tensors>
+  static Tensor Concat(const Tensor &first, const Tensors &...rest)
+  {
+    // すべてのテンソルの形状が同一であることをチェック
+    ((void)((rest.shape() == first.shape())
+            ? 0
+            : throw std::invalid_argument("all tensors must have the same shape")), ...);
+    
+    // 引数の数をテンソルの個数として登録し, その後に元の形状を登録する
+    shape_type new_shape = {1 + sizeof...(Tensors)};
+    new_shape.insert(new_shape.end(), first.shape().begin(), first.shape().end());
+
+    // 結果のテンソルを生成 (new_shape に基づいてストレージサイズも確保される)
+    Tensor result(new_shape);
+    std::size_t offset = 0;
+    
+    // 最初のテンソルのストレージをコピー
+    std::copy(first.storage().begin(), first.storage().end(),
+              result.storage().begin() + offset);
+    offset += first.storage().size();
+    
+    // 残りのテンソル群をコピー (fold expression により展開)
+    ((std::copy(rest.storage().begin(), rest.storage().end(),
+                result.storage().begin() + offset),
+      offset += rest.storage().size()), ...);
+    
+    return result;
+  }
+
+  /**
+   * @brief 複数のテンソルを組み合わせて一つのテンソルにする
+   * @param tensors テンソル群
    * @return 組み合わせたテンソル
    */
   static Tensor Concat(const std::vector<Tensor> &tensors);
+
+  /**
+   * @brief テンソルの最大値を求める
+   * @param a テンソル
+   * @return 最大値
+   */
+  static Tensor::value_type Max(const Tensor &a);
+
+  /**
+   * @brief テンソルの最小値を求める
+   * @param a テンソル
+   * @return 最小値
+   */
+  static Tensor::value_type Min(const Tensor &a);
+
+  /**
+   * @brief テンソルに nan が含まれているかどうかをチェックする
+   * @param a テンソル
+   * @return nan が含まれているかどうか
+   */
+  static bool IsNan(const Tensor &a);
+  
 private:
 
   /**

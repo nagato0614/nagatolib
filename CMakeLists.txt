@@ -57,6 +57,15 @@ if (APPLE)
             )
         endif ()
     endif ()
+
+    # OpenMP を探す
+    find_package(OpenMP REQUIRED)
+    if(OpenMP_CXX_FOUND)
+        message(STATUS "Found OpenMP")
+        # コンパイルオプションとリンクライブラリに追加
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    endif()
 endif ()
 
 # compile options
@@ -79,15 +88,23 @@ if (NAGATO_METAL)
 endif ()
 
 add_library(nagato ${NAGATO_HEADER} ${NAGATO_SOURCE})
+target_link_libraries(nagato PRIVATE ${OpenMP_CXX_LIBRARIES})
 
 function(add_example target_name)
     add_executable(${target_name}
             example/${target_name}.cpp)
-    target_link_libraries(${target_name}
-            nagato
-    )
-    target_compile_options(${target_name} PRIVATE -fobjc-arc -fblocks -Xpreprocessor -fopenmp
-            -lomp)
+
+    # OpenMP を使用する
+    if (OpenMP_CXX_FOUND)
+        target_link_libraries(${target_name}
+                nagato
+                OpenMP::OpenMP_CXX
+        )
+    else ()
+        target_link_libraries(${target_name} PRIVATE
+                nagato
+        )
+    endif ()
 endfunction()
 
 # Build Example
@@ -112,6 +129,7 @@ if (NAGATO_TEST)
     target_link_libraries(nagato_test
             nagato
             gtest
+            ${OpenMP_CXX_LIBRARIES}
     )
 
     # metal が有効な場合

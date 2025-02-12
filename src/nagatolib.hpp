@@ -12,6 +12,7 @@
 #include "matrix_n.hpp"
 #include "thread.hpp"
 #include "tensor.hpp"
+#include "network.hpp"
 #include "../Metal/timer.hpp"
 
 namespace nagato {
