@@ -649,7 +649,7 @@ TEST(TensorTest, concatVector)
   Tensor a = Tensor::FromArray({{{1, 2, 3}, {4, 5, 6}}, {{7, 8, 9}, {10, 11, 12}}});
   Tensor b = Tensor::FromArray({{{13, 14, 15}, {16, 17, 18}}, {{19, 20, 21}, {22, 23, 24}}});
   Tensor c = Tensor::FromArray({{{25, 26, 27}, {28, 29, 30}}, {{31, 32, 33}, {34, 35, 36}}});
-  Tensor d = Tensor::Concat(std::vector<Tensor>{a, b, c});
+  Tensor d = Tensor::Concat(std::vector{a, b, c});
 
   // 期待される形状は (2, 2, 3) であるかチェック
   EXPECT_EQ(d.shape(), (std::vector<std::size_t>{3, 2, 2, 3}));
@@ -1159,5 +1159,79 @@ TEST(TwoLayerNetTest, NumericalGradient) {
             EXPECT_NEAR(num_storage[j], ana_storage[j], tolerance)
                 << "パラメータ " << param_name << " の index " << j << " で不一致。";
         }
+    }
+}
+
+
+TEST(TrainingLoopTest, LossDecreases) {
+    // シンプルなデータセット: 1サンプルの入力（サイズ2）とone-hotターゲット（サイズ2）
+    Tensor x = Tensor::FromArray({1.0f, 2.0f}).Reshape({1, 2});
+    Tensor t = Tensor::FromArray({0.0f, 1.0f}).Reshape({1, 2});
+
+    // TwoLayerNet の構築: 入力サイズ2, 隠れ層サイズ3, 出力サイズ2, 重み初期化標準偏差0.1
+    TwoLayerNet net(2, 3, 2, 0.1f);
+
+    // 学習前の損失を計算（1要素のテンソルと仮定し先頭要素を参照）
+    float initial_loss = net.loss(x, t)(0);
+
+    const int iterations = 1000;
+    const float learning_rate = 0.01f;
+
+    // 学習ループ
+    for (int i = 0; i < iterations; ++i) {
+        // 逆伝播による解析的勾配を計算
+        auto grads = net.gradient(x, t);
+        // 各パラメータを勾配の方向に更新
+        for (auto &grad_pair : grads) {
+            for (auto &param_pair : net.params) {
+                if (param_pair.first == grad_pair.first) {
+                    // Tensor 同士の演算（スカラー倍・引き算）が定義されている前提
+                    *(param_pair.second) = *(param_pair.second) - grad_pair.second * learning_rate;
+                }
+            }
+        }
+    }
+
+    // 学習後の損失を計算
+    float final_loss = net.loss(x, t)(0);
+
+    // 損失が減少していることを確認
+    EXPECT_LT(final_loss, initial_loss)
+        << "学習前の損失 (" << initial_loss << ") と比較して、学習後の損失 (" << final_loss << ") が下がっていません。";
+}
+
+TEST(SoftmaxWithLoss, NumericalGradient) {
+    // バッチサイズ2、クラス数3のケースを想定
+    Tensor x = Tensor::FromArray({{1.0f, 2.0f, 3.0f},
+                                  {1.5f, 2.5f, 3.5f}});
+    // ターゲット t は one-hot 表現
+    Tensor t = Tensor::FromArray({{0.0f, 0.0f, 1.0f},
+                                  {0.0f, 1.0f, 0.0f}});
+    
+    // 数値微分用の lambda を定義（各評価で新たな SoftmaxWithLoss インスタンスを利用）
+    auto f = [&](const Tensor &x_var) -> float {
+        SoftmaxWithLoss loss_tmp;
+        Tensor loss_val = loss_tmp.forward(x_var, t);
+        // loss_val は1要素のテンソルと仮定
+        return loss_val(0);
+    };
+
+    // 数値微分による勾配を計算
+    Tensor num_grad = numerical_gradient(f, x);
+
+    // 解析的勾配の計算
+    SoftmaxWithLoss loss_layer;
+    Tensor loss_val = loss_layer.forward(x, t);
+    Tensor dout = Tensor::Ones(loss_val.shape());
+    Tensor ana_grad = loss_layer.backward(dout);
+
+    // 数値勾配と解析的勾配を比較（許容誤差は適宜調整）
+    const auto &num_storage = num_grad.storage();
+    const auto &ana_storage = ana_grad.storage();
+    ASSERT_EQ(num_storage.size(), ana_storage.size());
+    for (std::size_t i = 0; i < num_storage.size(); ++i) {
+        EXPECT_NEAR(num_storage[i], ana_storage[i], 1e-2)
+            << "index " << i << ": 数値勾配 " << num_storage[i]
+            << " vs 解析的勾配 " << ana_storage[i];
     }
 }

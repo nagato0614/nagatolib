@@ -95,8 +95,8 @@ int main()
   TwoLayerNet net(784, 50, 10);
 
   constexpr std::size_t iter_num = 100000;
-  constexpr std::size_t batch_size = 100;
-  constexpr float learning_rate = 0.1;
+  constexpr std::size_t batch_size = 10;
+  constexpr Tensor::value_type learning_rate = 0.1;
 
   for (std::size_t i = 0; i < iter_num; ++i)
   {
@@ -111,11 +111,13 @@ int main()
     for (std::size_t i = 0; i < batch_size; ++i)
     {
       std::size_t index = indexes[i];
-      Tensor x_batch = train_data.Slice(index);
-      Tensor t_batch = train_label_one_hot.Slice(index);
+      Tensor x_slice = train_data.Slice(index);
+      Tensor t_slice = train_label_one_hot.Slice(index);
 
-      x_batches.emplace_back(x_batch);
-      t_batches.emplace_back(t_batch);
+      PrintMNIST(x_slice, t_slice);
+
+      x_batches.emplace_back(x_slice);
+      t_batches.emplace_back(t_slice);
     }
 
     Tensor x_batch = Tensor::Concat(x_batches);
@@ -127,16 +129,19 @@ int main()
     for (std::size_t i = 0; i < grads.size(); ++i)
     {
       // パラメータの平均, 最大値, 最小値を表示
-      // const auto &p = net.params[i];
-      // std::cout << " ----- param: " << p.first << " -----" << std::endl;
-      // std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
-      // std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
-      // std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
-      //
-      // std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
-      // std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
-      // std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
-      // std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
+      const auto &p = net.params[i];
+      std::cout << " ----- param: " << p.first << " -----" << std::endl;
+      std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
+      std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
+      std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
+
+      std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
+      std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
+      std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
+      std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
+
+      // Tensor::Print(*p.second);
+      Tensor::Print(grads[i].second);
 
       *net.params[i].second = *net.params[i].second - grads[i].second * learning_rate;
     }

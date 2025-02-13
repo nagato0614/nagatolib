@@ -20,17 +20,24 @@ Tensor MeanSquaredError(const Tensor &y, const Tensor &t)
 
 Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
 {
-  constexpr float delta = 1e-7f;
-  const auto &y_shape = y.shape();
+  // 入力テンソル y が (N, 1, D) の形状である場合, 1次元の軸を削除する.
+  Tensor y_copy = y;
+  if (y.shape().size() == 3 && y.shape()[1] == 1)
+  {
+    y_copy = y_copy.Reshape({y_copy.shape()[0], y_copy.shape()[2]});
+  }
+  Tensor::IsSameShape(y_copy, t);
+  constexpr Tensor::value_type delta = 1e-7f;
+  const auto &y_shape = y_copy.shape();
   size_t dim = y_shape.size();
 
   // 1次元の場合はバッチサイズ1として処理する
   if (dim == 1)
   {
-    size_t num_classes = y.storage().size();
+    size_t num_classes = y_copy.storage().size();
     // 教師データが one-hot vector の場合、argmax で正解ラベルのインデックスを取得
     size_t label_index = 0;
-    float max_val = t(0);
+    Tensor::value_type max_val = t(0);
     for (size_t i = 1; i < num_classes; ++i)
     {
       if (t(i) > max_val)
@@ -39,7 +46,7 @@ Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
         label_index = i;
       }
     }
-    float loss = -std::log(y(label_index) + delta);
+    Tensor::value_type loss = -std::log(y_copy(label_index) + delta);
     return Tensor::FromArray({loss});
   }
   // 2次元の場合 (バッチサイズ, クラス数)
@@ -54,7 +61,7 @@ Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
       std::vector<size_t> label_indices(batch_size, 0);
       for (size_t i = 0; i < batch_size; ++i)
       {
-        float max_val = t(i, 0);
+        Tensor::value_type max_val = t(i, 0);
         size_t max_index = 0;
         // 各行（サンプル）ごとに正解ラベルのインデックスを判定
         for (size_t j = 1; j < num_classes; ++j)
@@ -68,25 +75,25 @@ Tensor CrossEntropyError(const Tensor &y, const Tensor &t)
         label_indices[i] = max_index;
       }
 
-      float total_loss = 0.0f;
+      Tensor::value_type total_loss = 0.0f;
       for (size_t i = 0; i < batch_size; ++i)
       {
-        total_loss += -std::log(y(i, label_indices[i]) + delta);
+        total_loss += -std::log(y_copy(i, label_indices[i]) + delta);
       }
-      total_loss /= static_cast<float>(batch_size); // バッチ平均
+      total_loss /= static_cast<Tensor::value_type>(batch_size); // バッチ平均
       return Tensor::FromArray({total_loss});
     }
     else
     {
       // もし教師データがすでに正解クラスの確率情報（one-hot でない場合）なら、要素ごとの積を計算
-      float total_loss = 0.0f;
-      const auto &y_storage = y.storage();
+      Tensor::value_type total_loss = 0.0f;
+      const auto &y_storage = y_copy.storage();
       const auto &t_storage = t.storage();
       for (size_t i = 0; i < y_storage.size(); ++i)
       {
         total_loss += -std::log(y_storage[i] + delta) * t_storage[i];
       }
-      total_loss /= static_cast<float>(batch_size);
+      total_loss /= static_cast<Tensor::value_type>(batch_size);
       return Tensor::FromArray({total_loss});
     }
   }
@@ -117,7 +124,7 @@ Tensor ReLU::forward(const Tensor &x)
   auto &x_storage = x.storage();
   auto &result_storage = result.storage();
   for (std::size_t i = 0; i < x_storage.size(); ++i) {
-    result_storage[i] = std::max(0.0f, x_storage[i]);
+    result_storage[i] = std::max(static_cast<Tensor::value_type>(0), x_storage[i]);
   }
   return result;
 }
@@ -161,22 +168,52 @@ Tensor Sigmoid::backward(const Tensor &dout)
 {
   return dout * (1.0 - out) * out;
 }
+
 Affine::Affine(const std::shared_ptr<Tensor> &W, const std::shared_ptr<Tensor> &b): W(W), b(b)
 {
 }
+
+
 Tensor Affine::forward(const Tensor &x)
 {
-  this->x = x;
-  return Tensor::Matmul(x, *W) + *b;
+  // N : バッチサイズ
+  // D : 入力次元数
+  // H : 隠れ層の次元数
+  // 入力 x は shape (N, D) で与えられるため (N, 1, D) に reshape する
+  // Wは (D, H) で与えられるため、(N, D, H) に reshape する
+  // すでに (N, 1, D) の形状なら reshape しなくてもよい
+  if (x.shape().size() == 3 && x.shape()[1] == 1)
+  {
+    this->x = x;
+  }
+  else
+  {
+    Tensor x_copy = x;
+    this->x = x_copy.Reshape({x_copy.shape()[0], 1, x_copy.shape()[1]});
+  }
+
+  Tensor broadcast_W = Tensor::Tile(*W, x.shape()[0]);
+  Tensor z = Tensor::Matmul(this->x, broadcast_W);
+  // バイアス b は shape (1, output) で与えられているので、バッチサイズに合わせて展開する
+  Tensor broadcast_b = Tensor::Tile(*b, x.shape()[0]);
+  return z + broadcast_b;
 }
+
 Tensor Affine::forward(const Tensor &x, const Tensor &y)
 {
   throw std::invalid_argument("Affine layer does not support two input tensors");
 }
+
 Tensor Affine::backward(const Tensor &dout)
 {
   Tensor W_T = Tensor::Transpose(*W);
   Tensor x_T = Tensor::Transpose(x);
+
+  // W_T は (D, H) なので、(N, D, H) に ブロードキャストする
+  if (dout.shape().size() == 3)
+  {
+    W_T = Tensor::Tile(W_T, dout.shape()[0]);
+  }
 
   Tensor dx = Tensor::Matmul(dout, W_T);
   this->dW = Tensor::Matmul(x_T, dout);
@@ -194,15 +231,19 @@ Tensor SoftmaxWithLoss::forward(const Tensor &x, const Tensor &t)
   this->loss = CrossEntropyError(y, t);
   return this->loss;
 }
+
 Tensor SoftmaxWithLoss::backward(const Tensor &dout)
 {
-  Tensor dx = (y - t) / this->t.shape()[0];
-  return dx;
+  Tensor dx = (y - t);
+  Tensor::value_type batch_size = static_cast<Tensor::value_type>(t.shape()[0]);
+  Tensor result = dx / batch_size;
+  return result;
 }
+
 TwoLayerNet::TwoLayerNet(const std::size_t input_size,
   const std::size_t hidden_size,
   const std::size_t output_size,
-  const float weight_init_std)
+  const Tensor::value_type weight_init_std)
 {
   this->params = std::vector<std::pair<std::string, std::shared_ptr<Tensor> > >();
   this->layers = std::vector<std::pair<std::string, std::unique_ptr<Layer> > >();
@@ -253,14 +294,14 @@ Tensor TwoLayerNet::loss(const Tensor &x, const Tensor &t)
   return this->last_layer.forward(y, t);
 }
 
-float TwoLayerNet::loss_batch(const Tensor &x, const Tensor &t)
+Tensor::value_type TwoLayerNet::loss_batch(const Tensor &x, const Tensor &t)
 {
   Tensor y = this->predict(x);
   auto fow = this->last_layer.forward(y, t);
   auto avg_loss = Tensor::Mean(fow);
   return avg_loss(0);
 }
-float TwoLayerNet::accuracy(const Tensor &x, const Tensor &t)
+Tensor::value_type TwoLayerNet::accuracy(const Tensor &x, const Tensor &t)
 {
   Tensor y = this->predict(x);
   Tensor result = y.Argmax();
@@ -270,22 +311,33 @@ float TwoLayerNet::accuracy(const Tensor &x, const Tensor &t)
     std::endl;
   return Tensor::Sum(equal)(0) / x.shape()[0];
 }
+
 std::vector<std::pair<std::string, Tensor>> TwoLayerNet::numerical_gradient(
   const Tensor &x,
   const Tensor &t)
 {
-  auto loss_W = [this, x, t](const Tensor &W)
-  {
-    return this->loss(x, t);
-  };
+  std::vector<std::pair<std::string, Tensor>> grads;
+  // 各パラメータごとに数値微分を行う
+  for (std::size_t i = 0; i < this->params.size(); i++) {
+    auto &param = this->params[i];
+    // 現在のパラメータのコピーを取得（元に戻すため）
+    Tensor original = *(param.second);
 
-  std::vector<std::pair<std::string, Tensor> > grads;
-  for (auto &param : this->params)
-  {
-    grads.emplace_back(param.first, numerical_gradient_(loss_W, *param.second));
+    auto f = [this, &x, &t, original, i](const Tensor &param_var) -> Tensor {
+      // 該当パラメータを候補値に置き換える
+      *(this->params[i].second) = param_var;
+      Tensor loss_tensor = this->loss(x, t);
+      // 値を元に戻す
+      *(this->params[i].second) = original;
+      // loss_tensor は1要素のテンソルであると仮定
+      return Tensor::FromArray({loss_tensor(0)});
+    };
+
+    grads.emplace_back(param.first, numerical_gradient_(f, *param.second));
   }
   return grads;
 }
+
 std::vector<std::pair<std::string, Tensor>> TwoLayerNet::gradient(const Tensor &x,
   const Tensor &t)
 {
@@ -293,9 +345,10 @@ std::vector<std::pair<std::string, Tensor>> TwoLayerNet::gradient(const Tensor &
   this->loss(x, t);
 
   // backward
-  constexpr float dout = 1;
+  constexpr Tensor::value_type dout = 1;
   Tensor dout_tensor = Tensor::FromArray({dout});
   Tensor dx = this->last_layer.backward(dout_tensor);
+
   // 逆順でレイヤーを処理する
   for (int i = this->layers.size() - 1; i >= 0; --i)
   {

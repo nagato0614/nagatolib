@@ -86,7 +86,8 @@ Tensor Tensor::Fill(const shape_type &shape, const value_type &value)
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < tensor.storage().size(); ++i) {
+  for (std::size_t i = 0; i < tensor.storage().size(); ++i)
+  {
     tensor.storage()[i] = value;
   }
   return tensor;
@@ -143,28 +144,30 @@ void Tensor::IsSameShape(const Tensor &a, const Tensor &b)
 
 Tensor operator+(const Tensor &a, const Tensor &b)
 {
-  return ApplyBroadcastBinaryOp(a, b, [](const float x, const float y) { return x + y; });
+  return ApplyBroadcastBinaryOp(a, b, [](const Tensor::value_type x, const Tensor::value_type y) { return x + y; });
 }
 
-Tensor operator+(const Tensor &a, const float &b)
+Tensor operator+(const Tensor &a, const Tensor::value_type &b)
 {
   Tensor result(a.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = a.storage()[i] + b;
   }
   return result;
 }
 
-Tensor operator+(const float &a, const Tensor &b)
+Tensor operator+(const Tensor::value_type &a, const Tensor &b)
 {
   Tensor result(b.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < b.storage().size(); ++i) {
+  for (std::size_t i = 0; i < b.storage().size(); ++i)
+  {
     result.storage()[i] = a + b.storage()[i];
   }
   return result;
@@ -172,28 +175,30 @@ Tensor operator+(const float &a, const Tensor &b)
 
 Tensor operator-(const Tensor &a, const Tensor &b)
 {
-  return ApplyBroadcastBinaryOp(a, b, [](const float x, const float y) { return x - y; });
+  return ApplyBroadcastBinaryOp(a, b, [](const Tensor::value_type x, const Tensor::value_type y) { return x - y; });
 }
 
-Tensor operator-(const Tensor &a, const float &b)
+Tensor operator-(const Tensor &a, const Tensor::value_type &b)
 {
   Tensor result(a.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = a.storage()[i] - b;
   }
   return result;
 }
 
-Tensor operator-(const float &a, const Tensor &b)
+Tensor operator-(const Tensor::value_type &a, const Tensor &b)
 {
   Tensor result(b.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < b.storage().size(); ++i) {
+  for (std::size_t i = 0; i < b.storage().size(); ++i)
+  {
     result.storage()[i] = a - b.storage()[i];
   }
   return result;
@@ -201,28 +206,30 @@ Tensor operator-(const float &a, const Tensor &b)
 
 Tensor operator*(const Tensor &a, const Tensor &b)
 {
-  return ApplyBroadcastBinaryOp(a, b, [](const float x, const float y) { return x * y; });
+  return ApplyBroadcastBinaryOp(a, b, [](const Tensor::value_type x, const Tensor::value_type y) { return x * y; });
 }
 
-Tensor operator*(const Tensor &a, const float &b)
+Tensor operator*(const Tensor &a, const Tensor::value_type &b)
 {
   Tensor result(a.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = a.storage()[i] * b;
   }
   return result;
 }
 
-Tensor operator*(const float &a, const Tensor &b)
+Tensor operator*(const Tensor::value_type &a, const Tensor &b)
 {
   Tensor result(b.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < b.storage().size(); ++i) {
+  for (std::size_t i = 0; i < b.storage().size(); ++i)
+  {
     result.storage()[i] = a * b.storage()[i];
   }
   return result;
@@ -230,34 +237,36 @@ Tensor operator*(const float &a, const Tensor &b)
 
 Tensor operator/(const Tensor &a, const Tensor &b)
 {
-  return ApplyBroadcastBinaryOp(a, b, [](const float x, const float y) { return x / (y + 1e-7); });
+  return ApplyBroadcastBinaryOp(a, b, [](const Tensor::value_type x, const Tensor::value_type y) { return x / (y + 1e-7); });
 }
 
-Tensor operator/(const Tensor &a, const float &b)
+Tensor operator/(const Tensor &a, const Tensor::value_type &b)
 {
   Tensor result(a.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = a.storage()[i] / (b + 1e-7);
   }
   return result;
 }
 
-Tensor operator/(const float &a, const Tensor &b)
+Tensor operator/(const Tensor::value_type &a, const Tensor &b)
 {
   Tensor result(b.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < b.storage().size(); ++i) {
+  for (std::size_t i = 0; i < b.storage().size(); ++i)
+  {
     result.storage()[i] = a / (b.storage()[i] + 1e-7);
   }
   return result;
 }
 
-Tensor Tensor::Reshape(const shape_type &new_shape)
+Tensor Tensor::Reshape(const shape_type &new_shape) const
 {
   // 新しく生成される、その要素数が現在の要素すると等しいかチェック
   std::size_t new_size = std::accumulate(new_shape.begin(),
@@ -540,7 +549,7 @@ Tensor Tensor::Sum(const Tensor &a, const std::size_t &axis)
   {
     for (std::size_t j = 0; j < post; ++j)
     {
-      float sum = 0;
+      Tensor::value_type sum = 0;
       for (std::size_t k = 0; k < d; ++k)
       {
         std::size_t index = i * (d * post) + k * post + j;
@@ -575,7 +584,7 @@ Tensor Tensor::ReLU(const Tensor &a)
 #endif
   for (std::size_t i = 0; i < a.shape()[0]; ++i)
   {
-    result(i) = std::max(0.0f, a(i));
+    result(i) = std::max(static_cast<value_type>(0.f), a(i));
   }
   return result;
 }
@@ -586,7 +595,8 @@ Tensor Tensor::Exp(const Tensor &a)
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = std::exp(a.storage()[i]);
   }
   return result;
@@ -598,7 +608,8 @@ Tensor Tensor::Log(const Tensor &a)
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = std::log(a.storage()[i] + 1e-7);
   }
   return result;
@@ -607,58 +618,76 @@ Tensor Tensor::Log(const Tensor &a)
 Tensor Tensor::Softmax(const Tensor &a)
 {
   const std::size_t shape_size = a.shape().size();
-  if (shape_size > 2) {
-    throw std::invalid_argument("tensor must be less than 3 dimensional");
+
+  // 入力が 3 次元かつ第2次元が1の場合に対応する
+  if (shape_size == 3) {
+    if (a.shape()[1] != 1) {
+      throw std::invalid_argument("3次元のテンソルは、第2次元が1である必要があります");
+    }
+    // (N, 1, D) -> (N, D) に変換してソフトマックス計算
+    shape_type new_shape = { a.shape()[0], a.shape()[2] };
+    Tensor a_reshaped = a.Reshape(new_shape);
+    Tensor softmax_2d = Softmax(a_reshaped);
+    // 結果を (N, 1, D) に戻す
+    shape_type final_shape = { a.shape()[0], 1, a.shape()[2] };
+    return softmax_2d.Reshape(final_shape);
   }
 
-  if (shape_size == 1) {
-    // 1次元の場合、入力全体の最大値を引いてからexpを計算
-    float max_val = *std::max_element(a.storage().begin(), a.storage().end());
+  if (shape_size == 1)
+  {
+    // 1次元の場合、入力全体の最大値を引いてから exp を計算
+    Tensor::value_type max_val = *std::max_element(a.storage().begin(), a.storage().end());
     Tensor shifted(a.shape());
-    for (std::size_t i = 0; i < a.storage().size(); ++i) {
+    for (std::size_t i = 0; i < a.storage().size(); ++i)
+    {
       shifted.storage()[i] = a.storage()[i] - max_val;
     }
     Tensor exp_a = Exp(shifted);
-    float sum = std::accumulate(exp_a.storage().begin(), exp_a.storage().end(), 0.0f);
+    Tensor::value_type sum = std::accumulate(exp_a.storage().begin(), exp_a.storage().end(), 0.0f);
     Tensor result(a.shape());
-    for (std::size_t i = 0; i < result.storage().size(); ++i) {
+    for (std::size_t i = 0; i < result.storage().size(); ++i)
+    {
       result.storage()[i] = exp_a.storage()[i] / sum;
     }
     return result;
   }
 
-  if (shape_size == 2) {
+  if (shape_size == 2)
+  {
     const auto &a_shape = a.shape();
     Tensor result(a_shape);
-    // 行単位に計算する
 #ifdef NAGATO_OPENMP
     #pragma omp parallel for
 #endif
-    for (std::size_t i = 0; i < a_shape[0]; ++i) {
+    for (std::size_t i = 0; i < a_shape[0]; ++i)
+    {
       // 各行の最大値を計算
-      float row_max = a(i, 0);
-      for (std::size_t j = 1; j < a_shape[1]; ++j) {
-        if (a(i, j) > row_max) {
+      Tensor::value_type row_max = a(i, 0);
+      for (std::size_t j = 1; j < a_shape[1]; ++j)
+      {
+        if (a(i, j) > row_max)
+        {
           row_max = a(i, j);
         }
       }
       // 最大値を引いて exp を計算
-      float row_sum = 0;
-      for (std::size_t j = 0; j < a_shape[1]; ++j) {
-        float shifted = a(i, j) - row_max;
-        float exp_val = std::exp(shifted);
-        result(i, j) = exp_val; // 一旦 exp の値を格納
+      Tensor::value_type row_sum = 0;
+      for (std::size_t j = 0; j < a_shape[1]; ++j)
+      {
+        Tensor::value_type shifted = a(i, j) - row_max;
+        Tensor::value_type exp_val = std::exp(shifted);
+        result(i, j) = exp_val;
         row_sum += exp_val;
       }
-      // 正規化
-      for (std::size_t j = 0; j < a_shape[1]; ++j) {
+      for (std::size_t j = 0; j < a_shape[1]; ++j)
+      {
         result(i, j) /= row_sum;
       }
     }
     return result;
   }
 
-  throw std::invalid_argument("tensor must be less than 3 dimensional");
+  throw std::invalid_argument("テンソルは 3 次元以上には対応していません");
 }
 
 void Tensor::Print(const Tensor &a)
@@ -747,7 +776,8 @@ Tensor Tensor::operator-() const
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < storage_.size(); ++i) {
+  for (std::size_t i = 0; i < storage_.size(); ++i)
+  {
     result.storage()[i] = -storage_[i];
   }
   return result;
@@ -829,7 +859,8 @@ Tensor Tensor::Transform(const Tensor &a, const std::function<value_type(value_t
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < a.storage().size(); ++i) {
+  for (std::size_t i = 0; i < a.storage().size(); ++i)
+  {
     result.storage()[i] = func(a.storage()[i]);
   }
   return result;
@@ -1017,10 +1048,10 @@ Tensor Tensor::FromCSV(const std::string &filename)
     throw std::runtime_error("ファイルを開くことができませんでした: " + filename);
   }
   std::string line;
-  std::vector<std::vector<float> > data;
+  std::vector<std::vector<Tensor::value_type> > data;
   while (std::getline(file, line))
   {
-    std::vector<float> row;
+    std::vector<Tensor::value_type> row;
     std::stringstream ss(line);
     std::string cell;
     while (std::getline(ss, cell, ','))
@@ -1072,7 +1103,7 @@ Tensor Tensor::Abs(const Tensor &a)
   std::transform(a.storage().begin(),
                  a.storage().end(),
                  result.storage().begin(),
-                 [](float x) { return std::abs(x); });
+                 [](Tensor::value_type x) { return std::abs(x); });
   return result;
 }
 
@@ -1237,20 +1268,37 @@ Tensor Tensor::Concat(const std::vector<Tensor> &tensors)
   shape_type new_shape = {tensors.size()};
   new_shape.insert(new_shape.end(), firstShape.begin(), firstShape.end());
 
-  // 結果テンソルを作成 (new_shapeに基づいてストレージサイズも自動的に確保される)
+  // 結果テンソルを作成 (new_shape に基づいてストレージサイズも自動的に確保される)
   Tensor result(new_shape);
 
-  // 各テンソルのストレージを連結してコピーする
-  std::size_t offset = 0;
 #ifdef NAGATO_OPENMP
-    #pragma omp parallel for
-#endif
+  // 各テンソルのコピー開始位置を事前に計算する
+  std::vector<std::size_t> offsets(tensors.size());
+  std::size_t current_offset = 0;
+  for (std::size_t i = 0; i < tensors.size(); ++i)
+  {
+    offsets[i] = current_offset;
+    current_offset += tensors[i].storage().size();
+  }
+
+  // 並列に各テンソルのストレージをコピーする
+  #pragma omp parallel for
+  for (std::size_t i = 0; i < tensors.size(); ++i)
+  {
+    const auto &storage = tensors[i].storage();
+    std::copy(storage.begin(), storage.end(), result.storage().begin() + offsets[i]);
+  }
+#else
+  // 並列化しない場合はシリアルにコピー
+  std::size_t offset = 0;
   for (const auto &tensor : tensors)
   {
     const auto &storage = tensor.storage();
     std::copy(storage.begin(), storage.end(), result.storage().begin() + offset);
     offset += storage.size();
   }
+#endif
+
   return result;
 }
 
@@ -1266,10 +1314,31 @@ Tensor::value_type Tensor::Min(const Tensor &a)
 
 bool Tensor::IsNan(const Tensor &a)
 {
-  return std::any_of(a.storage().begin(), a.storage().end(), [](const value_type &x) { return std::isnan(x); });
+  return std::any_of(a.storage().begin(),
+                     a.storage().end(),
+                     [](const value_type &x) { return std::isnan(x); });
 }
 
+Tensor Tensor::Tile(const Tensor &a, std::size_t batch_size)
+{
+  // a が2次元のテンソルであることを確認
+  if (a.shape().size() != 2)
+  {
+    throw std::invalid_argument("Tile: テンソルは2次元である必要があります");
+  }
 
+  // 元のテンソルの shape を (n, m) とした場合、出力の shape は {batch_size, n, m} となる
+  shape_type new_shape = {batch_size, a.shape()[0], a.shape()[1]};
+  Tensor result(new_shape);
+  std::size_t a_size = a.storage().size();
 
-
+#ifdef NAGATO_OPENMP
+  #pragma omp parallel for
+#endif
+  for (std::size_t i = 0; i < batch_size; ++i)
+  {
+    std::copy(a.storage().begin(), a.storage().end(), result.storage().begin() + i * a_size);
+  }
+  return result;
+}
 } // namespace nagato

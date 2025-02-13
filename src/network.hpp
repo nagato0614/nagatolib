@@ -169,7 +169,7 @@ class TwoLayerNet
       const std::size_t input_size,
       const std::size_t hidden_size,
       const std::size_t output_size,
-      const float weight_init_std = 0.01
+      const Tensor::value_type weight_init_std = 0.01
     );
 
     Tensor predict(const Tensor &x);
@@ -182,9 +182,9 @@ class TwoLayerNet
      * @param t 正解ラベル
      * @return 平均loss
      */
-    float loss_batch(const Tensor &x, const Tensor &t);
+    Tensor::value_type loss_batch(const Tensor &x, const Tensor &t);
 
-    float accuracy(const Tensor &x, const Tensor &t);
+    Tensor::value_type accuracy(const Tensor &x, const Tensor &t);
 
     std::vector<std::pair<std::string, Tensor> > numerical_gradient(
       const Tensor &x,

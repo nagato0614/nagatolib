@@ -21,7 +21,7 @@ namespace nagato{
  */
 class Tensor {
 public:
- using value_type = float;
+ using value_type = double;
  using shape_type = std::vector<std::size_t>;
  using strides_type = std::vector<std::size_t>;
  using storage_type = std::vector<value_type>;
@@ -84,7 +84,7 @@ public:
    * @param new_shape 新しい形状
    * @return 新しいテンソル
    */
-  Tensor Reshape(const shape_type &new_shape);
+  Tensor Reshape(const shape_type &new_shape) const;
 
   /**
    * @brief テンソルの指定した次元を取り出す.
@@ -396,6 +396,13 @@ public:
    */
   static bool IsNan(const Tensor &a);
   
+  /**
+   * @brief テンソルを繰り返し展開する
+   * @param a テンソル
+   * @param batch_size 繰り返し回数
+   * @return 展開したテンソル
+   */
+  static Tensor Tile(const Tensor &a, std::size_t batch_size);
 private:
 
   /**
@@ -466,14 +473,14 @@ Tensor operator+(const Tensor &a, const Tensor &b);
  * @param b スカラー
  * @return 加算結果
  */
-Tensor operator+(const Tensor &a, const float &b);
+Tensor operator+(const Tensor &a, const Tensor::value_type &b);
 /**
  * @brief テンソルの加算
  * @param a テンソル
  * @param b スカラー
  * @return 加算結果
  */
-Tensor operator+(const float &a, const Tensor &b);
+Tensor operator+(const Tensor::value_type &a, const Tensor &b);
 
 /**
  * @brief テンソルの減算
@@ -489,7 +496,7 @@ Tensor operator-(const Tensor &a, const Tensor &b);
  * @param b スカラー
  * @return 減算結果
  */
-Tensor operator-(const Tensor &a, const float &b);
+Tensor operator-(const Tensor &a, const Tensor::value_type &b);
 
 /**
  * @brief テンソルの減算
@@ -497,7 +504,7 @@ Tensor operator-(const Tensor &a, const float &b);
  * @param b スカラー
  * @return 減算結果
  */
-Tensor operator-(const float &a, const Tensor &b);
+Tensor operator-(const Tensor::value_type &a, const Tensor &b);
 /**
  * @brief テンソルの乗算
  * @param a テンソル
@@ -512,7 +519,7 @@ Tensor operator*(const Tensor &a, const Tensor &b);
  * @param b スカラー
  * @return 乗算結果
  */
-Tensor operator*(const Tensor &a, const float &b);
+Tensor operator*(const Tensor &a, const Tensor::value_type &b);
 
 /**
  * @brief テンソルの乗算
@@ -520,7 +527,7 @@ Tensor operator*(const Tensor &a, const float &b);
  * @param b スカラー
  * @return 乗算結果
  */
-Tensor operator*(const float &a, const Tensor &b);
+Tensor operator*(const Tensor::value_type &a, const Tensor &b);
 
 /**
  * @brief テンソルの除算
@@ -537,7 +544,7 @@ Tensor operator/(const Tensor &a, const Tensor &b);
  * @param b スカラー
  * @return 除算結果
  */
-Tensor operator/(const Tensor &a, const float &b);  
+Tensor operator/(const Tensor &a, const Tensor::value_type &b);  
 
 /**
  * @brief テンソルの除算
@@ -545,7 +552,7 @@ Tensor operator/(const Tensor &a, const float &b);
  * @param b スカラー
  * @return 除算結果
  */
-Tensor operator/(const float &a, const Tensor &b);
+Tensor operator/(const Tensor::value_type &a, const Tensor &b);
 
 
 /**
