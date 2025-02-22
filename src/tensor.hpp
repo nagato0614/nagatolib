@@ -272,6 +272,13 @@ public:
   static Tensor FromArray(const std::vector<std::vector<std::vector<value_type>>> &array);
 
   /**
+   * @brief 配列からテンソルを作成する. 4次元テンソルとして作成する
+   * @param array 配列
+   * @return テンソル
+   */
+  static Tensor FromArray(const std::vector<std::vector<std::vector<std::vector<value_type>>>> &array);
+
+  /**
    * @brief テンソルの要素ごとに関数を適用する
    * @param a テンソル
    * @param func 関数
@@ -405,6 +412,15 @@ public:
    * @return 展開したテンソル
    */
   static Tensor Tile(const Tensor &a, std::size_t batch_size);
+
+ /**
+  * @brief テンソルをパディングする
+  * @note パディングする際に埋める値は常に0とする
+  * @param a テンソル
+  * @param pad パディング
+  * @return パディングしたテンソル
+  */
+  static Tensor Pad(const Tensor &a, const std::vector<std::pair<std::size_t, std::size_t>> &pad);
 private:
 
   /**

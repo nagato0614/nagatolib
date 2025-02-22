@@ -1235,3 +1235,139 @@ TEST(SoftmaxWithLoss, NumericalGradient) {
             << " vs 解析的勾配 " << ana_storage[i];
     }
 }
+
+// Pad 関数のテスト (Rank 1)
+TEST(TensorPadTest, Rank1) {
+    // 1次元テンソル: [1, 2, 3]
+    Tensor a = Tensor::FromArray({1.0f, 2.0f, 3.0f});
+    // パディング: 前に1個、後ろに2個
+    std::vector<std::pair<std::size_t, std::size_t>> pad = { {1, 2} };
+    Tensor result = Tensor::Pad(a, pad);
+
+    // 期待される形状: {3 + 1 + 2} = {6}
+    std::vector<std::size_t> expected_shape = {6};
+    EXPECT_EQ(result.shape(), expected_shape);
+
+    // 期待値: [0, 1, 2, 3, 0, 0]
+    EXPECT_FLOAT_EQ(result(0), 0.0f);
+    EXPECT_FLOAT_EQ(result(1), 1.0f);
+    EXPECT_FLOAT_EQ(result(2), 2.0f);
+    EXPECT_FLOAT_EQ(result(3), 3.0f);
+    EXPECT_FLOAT_EQ(result(4), 0.0f);
+    EXPECT_FLOAT_EQ(result(5), 0.0f);
+}
+
+// Pad 関数のテスト (Rank 2)
+TEST(TensorPadTest, Rank2) {
+    // 2次元テンソル: [ [1, 2], [3, 4] ]
+    Tensor a = Tensor::FromArray({{1.0f, 2.0f}, {3.0f, 4.0f}});
+    // パディング: 0軸は {1,1}、1軸は {2,0}
+    std::vector<std::pair<std::size_t, std::size_t>> pad = { {1, 1}, {2, 0} };
+    Tensor result = Tensor::Pad(a, pad);
+
+    // 期待される形状: {2+1+1, 2+2+0} = {4, 4}
+    std::vector<std::size_t> expected_shape = {4, 4};
+    EXPECT_EQ(result.shape(), expected_shape);
+
+    // オフセット (1,2) に元のテンソルが配置されるはず
+    // すなわち、result(1,2)=1, result(1,3)=2, result(2,2)=3, result(2,3)=4
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (i >= 1 && i <= 2 && j >= 2 && j <= 3) {
+                int orig_i = i - 1;
+                int orig_j = j - 2;
+                float expected = 0.0f;
+                if (orig_i == 0 && orig_j == 0) expected = 1.0f;
+                else if (orig_i == 0 && orig_j == 1) expected = 2.0f;
+                else if (orig_i == 1 && orig_j == 0) expected = 3.0f;
+                else if (orig_i == 1 && orig_j == 1) expected = 4.0f;
+                EXPECT_FLOAT_EQ(result(i, j), expected);
+            } else {
+                EXPECT_FLOAT_EQ(result(i, j), 0.0f);
+            }
+        }
+    }
+}
+
+// Pad 関数のテスト (Rank 3)
+TEST(TensorPadTest, Rank3) {
+    // 形状 (2,2,2) のテンソル。値は 1～8
+    // a(0,0,0)=1, a(0,0,1)=2, a(0,1,0)=3, a(0,1,1)=4,
+    // a(1,0,0)=5, a(1,0,1)=6, a(1,1,0)=7, a(1,1,1)=8
+    Tensor a = Tensor::FromArray({{{1.0f, 2.0f}, {3.0f, 4.0f}},
+                                  {{5.0f, 6.0f}, {7.0f, 8.0f}}});
+    // パディング: 0軸は {1,0}、1軸は {0,1}、2軸は {1,1}
+    std::vector<std::pair<std::size_t, std::size_t>> pad = { {1, 0}, {0, 1}, {1, 1} };
+    Tensor result = Tensor::Pad(a, pad);
+
+    // 期待される形状: {2+1+0, 2+0+1, 2+1+1} = {3, 3, 4}
+    std::vector<std::size_t> expected_shape = {3, 3, 4};
+    EXPECT_EQ(result.shape(), expected_shape);
+
+    // 元のテンソルはオフセット (1,0,1) に配置される
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                float orig = a(i, j, k);
+                EXPECT_FLOAT_EQ(result(i + 1, j, k + 1), orig);
+            }
+        }
+    }
+    // 一部パディング領域は 0 であることをチェック
+    EXPECT_FLOAT_EQ(result(0, 0, 0), 0.0f);
+    EXPECT_FLOAT_EQ(result(2, 2, 3), 0.0f);
+}
+
+// Pad 関数のテスト (Rank 4)
+TEST(TensorPadTest, Rank4) {
+    // 形状 (2,2,2,2) のテンソル。値は 1～16
+    Tensor a = Tensor::FromArray({
+        {
+            {
+              {1.0f, 2.0f},
+              {3.0f, 4.0f}
+            },
+            {
+              {5.0f, 6.0f},
+              {7.0f, 8.0f}
+            },
+        },
+        {
+            {
+              {9.0f, 10.0f},
+              {11.0f, 12.0f},
+            },
+            {
+              {13.0f, 14.0f},
+              {15.0f, 16.0f},
+            }
+        }
+    });
+    // パディング: 0軸は {1,1}, 1軸は {0,1}, 2軸は {2,0}, 3軸は {1,2}
+    std::vector<std::pair<std::size_t, std::size_t>> pad = {
+        {1, 1},
+        {0, 1},
+        {2, 0},
+        {1, 2}
+    };
+    Tensor result = Tensor::Pad(a, pad);
+
+    // 期待される形状: {2+1+1, 2+0+1, 2+2+0, 2+1+2} = {4, 3, 4, 5}
+    std::vector<std::size_t> expected_shape = {4, 3, 4, 5};
+    EXPECT_EQ(result.shape(), expected_shape);
+
+    // 元のテンソルはオフセット (1,0,2,1) に配置される
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (int l = 0; l < 2; l++) {
+                    float orig = a(i, j, k, l);
+                    EXPECT_FLOAT_EQ(result(i + 1, j, k + 2, l + 1), orig);
+                }
+            }
+        }
+    }
+    // 一部パディング領域が 0 であることをチェック
+    EXPECT_FLOAT_EQ(result(0, 0, 0, 0), 0.0f);
+    EXPECT_FLOAT_EQ(result(3, 2, 3, 4), 0.0f);
+}

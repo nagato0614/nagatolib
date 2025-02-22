@@ -408,4 +408,34 @@ TwoLayerNet::gradient(const Tensor &x,
   grads.emplace_back("b2", this->layers[2].second->get_db());
   return grads;
 }
+
+Tensor im2col(
+  const Tensor &input,
+  const std::size_t &filter_h,
+  const std::size_t &filter_w,
+  const std::size_t &stride,
+  const std::size_t &pad)
+{
+  // 入力したテンソルが, 4次元テンソルであることを確認する
+  if (input.shape().size() != 4)
+  {
+    throw std::invalid_argument("input must be 4D tensor");
+  }
+  
+  // 入力サイズを取得する
+  const auto N = input.shape()[0];
+  const auto C = input.shape()[1];
+  const auto H = input.shape()[2];
+  const auto W = input.shape()[3];
+
+  // 出力サイズを計算する
+  const auto out_h = (H - filter_h + 2 * pad) / stride + 1;
+  const auto out_w = (W - filter_w + 2 * pad) / stride + 1;
+
+  // 出力テンソルを初期化する
+  Tensor out = Tensor::Zeros({N, C, filter_h, filter_w, out_h, out_w});
+  
+  
+}
+
 } // namespace nagato

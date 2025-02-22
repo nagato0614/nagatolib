@@ -5,6 +5,7 @@
 #ifndef NETWORK_HPP
 #define NETWORK_HPP
 #include "nagatolib.hpp"
+#include "tensor.hpp"
 
 namespace nagato
 {
@@ -329,6 +330,26 @@ class Momentum : public Optimizer
   Tensor::value_type momentum_;
   std::vector<std::pair<std::string, Tensor> > v;
 };
+
+/**
+ * @brief im2col を行う関数
+ * @param input 入力
+ * @param filter_h フィルタの高さ
+ * @param filter_w フィルタの幅
+ * @param stride ストライド
+ * @param pad パディング
+ * @return im2col したテンソル
+ */
+Tensor im2col(
+  const Tensor &input,
+  const std::size_t &filter_h,
+  const std::size_t &filter_w,
+  const std::size_t &stride,
+  const std::size_t &pad
+);
+
+
+
 } // namespace nagato
 
 #endif //NETWORK_HPP

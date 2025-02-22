@@ -844,6 +844,72 @@ Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type> >
   return result;
 }
 
+Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<std::vector<value_type>>>> &array)
+{
+    // 外側のサイズ（1次元目）
+    std::size_t dim0 = array.size();
+    if (dim0 == 0) {
+        throw std::invalid_argument("Empty array passed to FromArray");
+    }
+
+    // 2次元目のサイズ
+    std::size_t dim1 = array[0].size();
+    if (dim1 == 0) {
+        throw std::invalid_argument("Empty array[0] passed to FromArray");
+    }
+
+    // 3次元目のサイズ
+    std::size_t dim2 = array[0][0].size();
+    if (dim2 == 0) {
+        throw std::invalid_argument("Empty array[0][0] passed to FromArray");
+    }
+
+    // 4次元目のサイズ
+    std::size_t dim3 = array[0][0][0].size();
+    if (dim3 == 0) {
+        throw std::invalid_argument("Empty array[0][0][0] passed to FromArray");
+    }
+
+    // 各次元が全体として一様であることのチェック（任意）
+    for (std::size_t i = 0; i < dim0; ++i) {
+        if (array[i].size() != dim1) {
+            throw std::invalid_argument("不揃いな第2次元サイズが存在します");
+        }
+        for (std::size_t j = 0; j < dim1; ++j) {
+            if (array[i][j].size() != dim2) {
+                throw std::invalid_argument("不揃いな第3次元サイズが存在します");
+            }
+            for (std::size_t k = 0; k < dim2; ++k) {
+                if (array[i][j][k].size() != dim3) {
+                    throw std::invalid_argument("不揃いな第4次元サイズが存在します");
+                }
+            }
+        }
+    }
+
+    // テンソルの形状を決定
+    shape_type shape = {dim0, dim1, dim2, dim3};
+    Tensor result(shape);
+
+    // 格納先のストレージサイズを確保（念のため）
+    std::size_t total = dim0 * dim1 * dim2 * dim3;
+    result.storage().resize(total);
+
+    // 4重ループにより、各要素をフラット化してコピーする
+    std::size_t index = 0;
+    for (std::size_t i = 0; i < dim0; ++i) {
+        for (std::size_t j = 0; j < dim1; ++j) {
+            for (std::size_t k = 0; k < dim2; ++k) {
+                for (std::size_t l = 0; l < dim3; ++l) {
+                    result.storage()[index++] = array[i][j][k][l];
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 Tensor Tensor::Transform(const Tensor &a, const std::function<value_type(value_type)> &func)
 {
   Tensor result(a.shape());
@@ -1351,4 +1417,62 @@ Tensor Tensor::Tile(const Tensor &a, std::size_t batch_size)
   }
   return result;
 }
+
+Tensor Tensor::Pad(const Tensor &a, const std::vector<std::pair<std::size_t, std::size_t>> &pad)
+{
+  // Tensor の形状とパディングの形状をチェックする
+  if (a.shape().size() != pad.size())
+  {
+    throw std::invalid_argument("Tensor の形状とパディングの形状が一致しません");
+  }
+  
+  // パディング後の形状を計算する
+  shape_type new_shape = a.shape();
+  for (std::size_t i = 0; i < pad.size(); ++i)
+  {
+    new_shape[i] += pad[i].first + pad[i].second;
+  }
+  
+  // パディング後のデータを格納するテンソルを作成する
+  Tensor result(new_shape);
+  
+  // 以下の処理で、入力テンソルの全要素を対応する位置にコピーする
+  // ※各次元において、元のインデックスに pad.first の値を足した位置にコピーする
+  
+  // 入力テンソルの形状と次元数
+  const auto &a_shape = a.shape();
+  const std::size_t ndim = a_shape.size();
+  // 元のテンソルの全要素数
+  const std::size_t total = a.storage().size();
+  
+  // 元のテンソルと結果テンソル（パディング後）のストライドを計算する
+  // ※ストライド：各次元のインデックスが1増加する際の一次元配列上のオフセット
+  std::vector<std::size_t> a_strides(ndim);
+  std::vector<std::size_t> result_strides(ndim);
+  a_strides[ndim - 1] = 1;
+  result_strides[ndim - 1] = 1;
+  for (int i = ndim - 2; i >= 0; --i)
+  {
+    a_strides[i] = a_strides[i + 1] * a_shape[i + 1];
+    result_strides[i] = result_strides[i + 1] * new_shape[i + 1];
+  }
+  
+  // 各要素について、元テンソルの平坦なインデックスから多次元インデックスを求め、
+  // 各次元に pad[i].first を足した位置に値をコピーする
+  for (std::size_t idx = 0; idx < total; ++idx)
+  {
+    std::size_t tmp = idx;
+    std::size_t res_idx = 0;
+    for (std::size_t d = 0; d < ndim; ++d)
+    {
+      std::size_t pos = tmp / a_strides[d];
+      tmp %= a_strides[d];
+      res_idx += (pos + pad[d].first) * result_strides[d];
+    }
+    result.storage()[res_idx] = a.storage()[idx];
+  }
+  
+  return result;
+}
+
 } // namespace nagato
