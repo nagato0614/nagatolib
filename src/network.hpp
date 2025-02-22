@@ -255,6 +255,80 @@ inline void PrintMNIST(const Tensor &x, const Tensor &label)
   std::cout << "label : " << label_copy.Argmax()(0) << " -> ";
   Tensor::Print(label_copy);
 }
+
+/**
+ * @brief 最適化手法の基底クラス
+ */
+class Optimizer
+{
+  public:
+  virtual void update(std::vector<std::pair<std::string, std::shared_ptr<Tensor> > > &params,
+                      const std::vector<std::pair<std::string, Tensor> > &grads) = 0;
+  virtual ~Optimizer() = default;
+};
+
+/**
+ * @brief 確率的勾配降下法
+ */
+class SGD : public Optimizer
+{
+  public:
+  SGD(const Tensor::value_type learning_rate) : learning_rate_(learning_rate) {}
+
+  void update(std::vector<std::pair<std::string, std::shared_ptr<Tensor> > > &params,
+              const std::vector<std::pair<std::string, Tensor> > &grads)
+  {
+    for (std::size_t i = 0; i < params.size(); ++i)
+    {
+      // パラメータ名が同じであることを確認する
+      if (params[i].first != grads[i].first)
+      {
+        throw std::invalid_argument("parameter name is not same");
+      }
+
+      *params[i].second = *params[i].second - learning_rate_ * grads[i].second;
+    }
+  }
+  private:
+  Tensor::value_type learning_rate_;
+};
+
+/**
+ * @brief モメンタム
+ */
+class Momentum : public Optimizer
+{
+  public:
+  Momentum(const Tensor::value_type learning_rate, const Tensor::value_type momentum) : 
+  learning_rate_(learning_rate), momentum_(momentum), v({}) {}
+
+  void update(std::vector<std::pair<std::string, std::shared_ptr<Tensor> > > &params,
+              const std::vector<std::pair<std::string, Tensor> > &grads)
+  {
+    // 最初にv を初期化する
+    if (v.empty())
+    {
+      v = std::vector<std::pair<std::string, Tensor> >(params.size());
+    }
+
+    for (std::size_t i = 0; i < params.size(); ++i)
+    {
+      // パラメータ名が同じであることを確認する
+      if (params[i].first != grads[i].first)
+      {
+        throw std::invalid_argument("parameter name is not same");
+      }
+
+      v[i].second = momentum_ * v[i].second - learning_rate_ * grads[i].second;
+      *params[i].second = *params[i].second + v[i].second;
+    }
+  }
+
+  private:
+  Tensor::value_type learning_rate_;
+  Tensor::value_type momentum_;
+  std::vector<std::pair<std::string, Tensor> > v;
+};
 } // namespace nagato
 
 #endif //NETWORK_HPP

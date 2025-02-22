@@ -96,6 +96,7 @@ int main()
 
   // ニューラルネットワークの生成
   TwoLayerNet net(784, 50, 10);
+  SGD sgd(0.1);
 
   constexpr std::size_t iter_num = 100000;
   constexpr std::size_t batch_size = 100;
@@ -140,13 +141,7 @@ int main()
     std::vector<std::pair<std::string, Tensor> > grads = net.gradient(x_batch, t_batch);
 
     // パラメータの更新
-    for (std::size_t j = 0; j < grads.size(); ++j)
-    {
-      auto &param = net.params[j].second;
-      auto &grad = grads[j].second;
-
-      *param = *param - grad * learning_rate;
-    }
+    sgd.update(net.params, grads);
 
     if (i % 100 == 0)
     {

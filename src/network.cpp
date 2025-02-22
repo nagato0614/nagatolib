@@ -276,7 +276,7 @@ TwoLayerNet::TwoLayerNet(const std::size_t input_size,
   this->params = std::vector<std::pair<std::string, std::shared_ptr<Tensor> > >();
   this->layers = std::vector<std::pair<std::string, std::unique_ptr<Layer> > >();
 
-  // 重みの初期化
+  // 重みの初期化.
   this->params.emplace_back("W1",
                             std::make_shared<Tensor>(
                               Tensor::RandomNormal({
