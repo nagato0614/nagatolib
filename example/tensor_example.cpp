@@ -88,8 +88,8 @@ int main()
   train_data = train_data / 255.0;
   test_data = test_data / 255.0;
 
-  // 1次元だけ取り出す
   Tensor train_label_one_hot = OneHot(train_label, 10);
+  Tensor test_label_one_hot = OneHot(test_label, 10);
 
   // データを一つ表示する
   PrintMNIST(train_data.Slice(0), train_label.Slice(0));
@@ -101,19 +101,32 @@ int main()
   constexpr std::size_t batch_size = 100;
   constexpr Tensor::value_type learning_rate = 0.1;
 
+  // 学習データの総数を取得（例としてtrain_dataの最初の次元がサンプル数だとする）
+  std::size_t data_size = train_data.shape()[0];
+
+  // 全サンプルのインデックスベクトルを作成
+  std::vector<std::size_t> all_indexes(data_size);
+  std::iota(all_indexes.begin(), all_indexes.end(), 0);
+
+  // 学習開始前に全体をシャッフルしておく
+  std::mt19937 rng(std::random_device{}());
+  std::shuffle(all_indexes.begin(), all_indexes.end(), rng);
+
   for (std::size_t i = 0; i < iter_num; ++i)
   {
-    // 学習に使用するデータのインデックスをランダムに生成
-    std::vector<std::size_t> indexes(batch_size);
-    std::iota(indexes.begin(), indexes.end(), 0);
-    std::shuffle(indexes.begin(), indexes.end(), std::mt19937(std::random_device()()));
+    // 必要ならエポック毎に再度全体をシャッフルする
+    if (i % (data_size / batch_size) == 0) {
+        std::shuffle(all_indexes.begin(), all_indexes.end(), rng);
+    }
 
-    // バッチデータを作成
+    // ミニバッチの開始インデックスを計算（例: 連続してとる場合）
+    std::size_t start = (i * batch_size) % data_size;
     std::vector<Tensor> x_batches;
     std::vector<Tensor> t_batches;
+
     for (std::size_t j = 0; j < batch_size; ++j)
     {
-      std::size_t index = indexes[j];
+      std::size_t index = all_indexes[start + j];
       Tensor x_slice = train_data.Slice(index);
       Tensor t_slice = train_label_one_hot.Slice(index);
 
@@ -129,24 +142,6 @@ int main()
     // パラメータの更新
     for (std::size_t j = 0; j < grads.size(); ++j)
     {
-      // // パラメータの平均, 最大値, 最小値を表示
-      // const auto &p = net.params[i];
-      // std::cout << " ----- param: " << p.first << " -----" << std::endl;
-      // std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
-      // std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
-      // std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
-      //
-      // std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
-      // std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
-      // std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
-      // std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
-      //
-      // std::cout << "param: " << p.first << std::endl;
-      // Tensor::Print(*p.second);
-      //
-      // std::cout << "grad: " << grads[i].first << std::endl;
-      // Tensor::Print(grads[i].second);
-
       auto &param = net.params[j].second;
       auto &grad = grads[j].second;
 
@@ -164,22 +159,12 @@ int main()
       if (i % 1000 == 0)
       {
         std::cout << "test_accuracy: ";
-        const auto acc = net.accuracy(test_data, OneHot(test_label, 10));
+        const auto acc = net.accuracy(test_data, test_label_one_hot);
         std::cout << "test_accuracy: " << acc << std::endl;
 
-        // // テストデータを一つ表示してみる
-        // Tensor test_data_one = test_data.Slice(0).Reshape({1, 784});
-        // Tensor test_label_one = test_label.Slice(0).Reshape({1, 1});
-        // Tensor test_data_one_hot = OneHot(test_label_one, 10);
-        // PrintMNIST(test_data_one, test_label_one);
-        //
-        // // データを一つ使用して推論する
-        // Tensor predict = net.predict(test_data_one);
-        // Tensor predict_label = predict.Argmax();
-        // std::cout << "predict : ";
-        // Tensor::Print(predict);
-        // std::cout << "predict_label : ";
-        // Tensor::Print(predict_label);
+        // テストデータの loss を計算
+        const auto test_loss = net.loss_batch(test_data, test_label_one_hot);
+        std::cout << "test_loss: " << test_loss << std::endl;
       }
     }
 

@@ -235,9 +235,14 @@ inline void PrintMNIST(const Tensor &x, const Tensor &label)
   {
     for (std::size_t j = 0; j < 28; ++j)
     {
-      if (x_copy(i, j) >= 0.5)
+      const auto value = x_copy(i, j);
+      if (0.3 < value && value < 0.7)
       {
-        std::cout << "@ ";
+        std::cout << "□ ";
+      }
+      else if (0.7 <= value)
+      {
+        std::cout << "■ ";
       }
       else
       {
@@ -246,6 +251,8 @@ inline void PrintMNIST(const Tensor &x, const Tensor &label)
     }
     std::cout << std::endl;
   }
+  // label の数値を表示する. one-hot の場合は数値を表示する
+  std::cout << "label : " << label_copy.Argmax()(0) << " -> ";
   Tensor::Print(label_copy);
 }
 } // namespace nagato
