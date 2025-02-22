@@ -235,7 +235,7 @@ inline void PrintMNIST(const Tensor &x, const Tensor &label)
   {
     for (std::size_t j = 0; j < 28; ++j)
     {
-      if (x_copy(i, j) >= 128)
+      if (x_copy(i, j) >= 0.5)
       {
         std::cout << "@ ";
       }

@@ -12,7 +12,9 @@
 #include <algorithm>
 #include <iostream>
 
-#define NAGATO_OPENMP
+// #define NAGATO_OPENMP
+
+
 
 namespace nagato{
 

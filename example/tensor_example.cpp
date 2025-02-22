@@ -72,7 +72,6 @@ void two_layer_network()
   Tensor::Print(A3);
 }
 
-
 int main()
 {
   // Mnist のデータセットをcsvから読み込む
@@ -85,6 +84,10 @@ int main()
   Tensor::PrintShape(test_data);
   Tensor::PrintShape(test_label);
 
+  // 学習用データを 0 ~ 1.0 に正規化する
+  train_data = train_data / 255.0;
+  test_data = test_data / 255.0;
+
   // 1次元だけ取り出す
   Tensor train_label_one_hot = OneHot(train_label, 10);
 
@@ -95,7 +98,7 @@ int main()
   TwoLayerNet net(784, 50, 10);
 
   constexpr std::size_t iter_num = 100000;
-  constexpr std::size_t batch_size = 10;
+  constexpr std::size_t batch_size = 100;
   constexpr Tensor::value_type learning_rate = 0.1;
 
   for (std::size_t i = 0; i < iter_num; ++i)
@@ -108,13 +111,11 @@ int main()
     // バッチデータを作成
     std::vector<Tensor> x_batches;
     std::vector<Tensor> t_batches;
-    for (std::size_t i = 0; i < batch_size; ++i)
+    for (std::size_t j = 0; j < batch_size; ++j)
     {
-      std::size_t index = indexes[i];
+      std::size_t index = indexes[j];
       Tensor x_slice = train_data.Slice(index);
       Tensor t_slice = train_label_one_hot.Slice(index);
-
-      PrintMNIST(x_slice, t_slice);
 
       x_batches.emplace_back(x_slice);
       t_batches.emplace_back(t_slice);
@@ -126,52 +127,59 @@ int main()
     std::vector<std::pair<std::string, Tensor> > grads = net.gradient(x_batch, t_batch);
 
     // パラメータの更新
-    for (std::size_t i = 0; i < grads.size(); ++i)
+    for (std::size_t j = 0; j < grads.size(); ++j)
     {
-      // パラメータの平均, 最大値, 最小値を表示
-      const auto &p = net.params[i];
-      std::cout << " ----- param: " << p.first << " -----" << std::endl;
-      std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
-      std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
-      std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
-
-      std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
-      std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
-      std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
-      std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
-
+      // // パラメータの平均, 最大値, 最小値を表示
+      // const auto &p = net.params[i];
+      // std::cout << " ----- param: " << p.first << " -----" << std::endl;
+      // std::cout << "mean: " << Tensor::Mean(*p.second)(0) << std::endl;
+      // std::cout << "max: " << Tensor::Max(*p.second) << std::endl;
+      // std::cout << "min: " << Tensor::Min(*p.second) << std::endl;
+      //
+      // std::cout << " ----- grad: " << grads[i].first << " -----" << std::endl;
+      // std::cout << "mean: " << Tensor::Mean(grads[i].second)(0) << std::endl;
+      // std::cout << "max: " << Tensor::Max(grads[i].second) << std::endl;
+      // std::cout << "min: " << Tensor::Min(grads[i].second) << std::endl;
+      //
+      // std::cout << "param: " << p.first << std::endl;
       // Tensor::Print(*p.second);
-      Tensor::Print(grads[i].second);
+      //
+      // std::cout << "grad: " << grads[i].first << std::endl;
+      // Tensor::Print(grads[i].second);
 
-      *net.params[i].second = *net.params[i].second - grads[i].second * learning_rate;
+      auto &param = net.params[j].second;
+      auto &grad = grads[j].second;
+
+      *param = *param - grad * learning_rate;
     }
 
     if (i % 100 == 0)
     {
       std::cout << " --- iter: " << i << " ---" << std::endl;
       std::cout << "loss: " << net.loss_batch(x_batch, t_batch) << std::endl;
-      std::cout << "accuracy: ";
+      std::cout << "train accuracy: ";
       net.accuracy(x_batch, t_batch);
 
       // test_accuracy
       if (i % 1000 == 0)
       {
         std::cout << "test_accuracy: ";
-        std::cout << net.accuracy(test_data, test_label) << std::endl;
+        const auto acc = net.accuracy(test_data, OneHot(test_label, 10));
+        std::cout << "test_accuracy: " << acc << std::endl;
 
-        // テストデータを一つ表示してみる
-        Tensor test_data_one = test_data.Slice(0).Reshape({1, 784});
-        Tensor test_label_one = test_label.Slice(0).Reshape({1, 1});
-        Tensor test_data_one_hot = OneHot(test_label_one, 10);
-        PrintMNIST(test_data_one, test_label_one);
-
-        // データを一つ使用して推論する
-        Tensor predict = net.predict(test_data_one);
-        Tensor predict_label = predict.Argmax();
-        std::cout << "predict : ";
-        Tensor::Print(predict);
-        std::cout << "predict_label : ";
-        Tensor::Print(predict_label);
+        // // テストデータを一つ表示してみる
+        // Tensor test_data_one = test_data.Slice(0).Reshape({1, 784});
+        // Tensor test_label_one = test_label.Slice(0).Reshape({1, 1});
+        // Tensor test_data_one_hot = OneHot(test_label_one, 10);
+        // PrintMNIST(test_data_one, test_label_one);
+        //
+        // // データを一つ使用して推論する
+        // Tensor predict = net.predict(test_data_one);
+        // Tensor predict_label = predict.Argmax();
+        // std::cout << "predict : ";
+        // Tensor::Print(predict);
+        // std::cout << "predict_label : ";
+        // Tensor::Print(predict_label);
       }
     }
 

@@ -12,7 +12,7 @@ using namespace nagato;
  */
 Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tensor &x)
 {
-  constexpr float h = 1e-3;
+  constexpr Tensor::value_type h = 1e-3;
 
   // x と同じ形状を持つゼロ初期化のテンソルを作成する
   Tensor grad = Tensor::Zeros(x.shape());
@@ -23,7 +23,7 @@ Tensor numerical_gradient(std::function<Tensor(const Tensor &)> func, const Tens
   for (std::size_t idx = 0; idx < x_copy.storage().size(); ++idx)
   {
     // 現在の値を記憶
-    float tmp_val = x_copy.storage()[idx];
+    Tensor::value_type tmp_val = x_copy.storage()[idx];
 
     // x + h における f の値を計算
     x_copy.storage()[idx] = tmp_val + h;
@@ -66,8 +66,8 @@ TEST(TensorTest, operator)
   tensor(1, 0) = 3;
   tensor(1, 1) = 4;
 
-  const std::vector<float> expected = {1, 2, 3, 4};
-  const std::vector<float> actual = tensor.storage();
+  const std::vector<Tensor::value_type> expected = {1, 2, 3, 4};
+  auto actual = tensor.storage();
   EXPECT_EQ(actual, expected);
 }
 
@@ -93,8 +93,8 @@ TEST(TensorTest, operator3D)
     }
   }
 
-  const std::vector<float> expected = {0, 1, 2, 3, 4, 5, 6, 7};
-  const std::vector<float> actual = tensor.storage();
+  const std::vector<Tensor::value_type> expected = {0, 1, 2, 3, 4, 5, 6, 7};
+  auto actual = tensor.storage();
   EXPECT_EQ(actual, expected);
 }
 
@@ -102,14 +102,14 @@ TEST(TensorTest, operator3D)
 TEST(TensorTest, fill)
 {
   Tensor tensor = Tensor::Fill({2, 2}, 1);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{1, 1, 1, 1}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1}));
 }
 
 // Fill のテスト (3次元)
 TEST(TensorTest, fill3D)
 {
   Tensor tensor = Tensor::Fill({2, 2, 2}, 1);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{1, 1, 1, 1, 1, 1, 1, 1}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1, 1, 1, 1, 1}));
 }
 
 // zeros テスト
@@ -117,7 +117,7 @@ TEST(TensorTest, zeros)
 {
   Tensor tensor = Tensor::Zeros({2, 2});
   EXPECT_EQ(tensor.storage().size(), 4);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{0, 0, 0, 0}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{0, 0, 0, 0}));
 }
 
 // ones テスト
@@ -125,7 +125,7 @@ TEST(TensorTest, ones)
 {
   Tensor tensor = Tensor::Ones({2, 2});
   EXPECT_EQ(tensor.storage().size(), 4);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{1, 1, 1, 1}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1}));
 }
 
 // ones テスト (3次元)
@@ -133,7 +133,7 @@ TEST(TensorTest, ones3D)
 {
   Tensor tensor = Tensor::Ones({2, 2, 2});
   EXPECT_EQ(tensor.storage().size(), 8);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{1, 1, 1, 1, 1, 1, 1, 1}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1, 1, 1, 1, 1}));
 }
 
 // eye テスト
@@ -141,7 +141,7 @@ TEST(TensorTest, eye)
 {
   Tensor tensor = Tensor::Eye({2, 2});
   EXPECT_EQ(tensor.storage().size(), 4);
-  EXPECT_EQ(tensor.storage(), (std::vector<float>{1, 0, 0, 1}));
+  EXPECT_EQ(tensor.storage(), (std::vector<Tensor::value_type>{1, 0, 0, 1}));
 }
 
 // 加算テスト
@@ -150,7 +150,7 @@ TEST(TensorTest, add)
   Tensor a = Tensor::Ones({2, 2});
   Tensor b = Tensor::Ones({2, 2});
   Tensor c = a + b;
-  EXPECT_EQ(c.storage(), (std::vector<float>{2, 2, 2, 2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2, 2, 2, 2}));
 }
 
 // 減算テスト
@@ -159,7 +159,7 @@ TEST(TensorTest, sub)
   Tensor a = Tensor::Ones({2, 2});
   Tensor b = Tensor::Ones({2, 2});
   Tensor c = a - b;
-  EXPECT_EQ(c.storage(), (std::vector<float>{0, 0, 0, 0}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{0, 0, 0, 0}));
 }
 
 // 乗算テスト
@@ -168,7 +168,7 @@ TEST(TensorTest, mul)
   Tensor a = Tensor::Ones({2, 2});
   Tensor b = Tensor::Ones({2, 2});
   Tensor c = a * b;
-  EXPECT_EQ(c.storage(), (std::vector<float>{1, 1, 1, 1}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1}));
 }
 
 // 除算テスト
@@ -190,7 +190,7 @@ TEST(TensorTest, reshape)
 {
   Tensor a = Tensor::Ones({2, 2});
   Tensor b = a.Reshape({4});
-  EXPECT_EQ(b.storage(), (std::vector<float>{1, 1, 1, 1}));
+  EXPECT_EQ(b.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1}));
 
   // 新しい形状が期待したものと同じかチェック
   EXPECT_EQ(b.shape(), (std::vector<std::size_t>{4}));
@@ -201,7 +201,7 @@ TEST(TensorTest, reshape3D)
 {
   Tensor a = Tensor::Ones({2, 2, 2});
   Tensor b = a.Reshape({4, 2});
-  EXPECT_EQ(b.storage(), (std::vector<float>{1, 1, 1, 1, 1, 1, 1, 1}));
+  EXPECT_EQ(b.storage(), (std::vector<Tensor::value_type>{1, 1, 1, 1, 1, 1, 1, 1}));
 
   // 新しい形状が期待したものと同じかチェック
   EXPECT_EQ(b.shape(), (std::vector<std::size_t>{4, 2}));
@@ -214,7 +214,7 @@ TEST(TensorTest, dot1D)
   Tensor a = Tensor::Ones({2});
   Tensor b = Tensor::Ones({2});
   Tensor c = Tensor::Dot(a, b);
-  EXPECT_EQ(c.storage(), (std::vector<float>{2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2}));
 }
 
 // 2次元のテンソル同士
@@ -223,7 +223,7 @@ TEST(TensorTest, dot2D)
   Tensor a = Tensor::Ones({2, 2});
   Tensor b = Tensor::Ones({2, 2});
   Tensor c = Tensor::Dot(a, b);
-  EXPECT_EQ(c.storage(), (std::vector<float>{2, 2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2, 2}));
 }
 
 // 行列積 (Matmul) テスト
@@ -359,7 +359,7 @@ TEST(TensorTest, sum1D)
 {
   Tensor a = Tensor::Ones({2});
   Tensor c = Tensor::Sum(a);
-  EXPECT_EQ(c.storage(), (std::vector<float>{2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2}));
 }
 
 // sum テスト (2次元)
@@ -367,7 +367,7 @@ TEST(TensorTest, sum2D)
 {
   Tensor a = Tensor::Ones({2, 2});
   Tensor c = Tensor::Sum(a);
-  EXPECT_EQ(c.storage(), (std::vector<float>{2, 2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2, 2}));
 }
 
 // sum テスト (3次元)
@@ -375,7 +375,7 @@ TEST(TensorTest, sum3D)
 {
   Tensor a = Tensor::Ones({2, 2, 2});
   Tensor c = Tensor::Sum(a);
-  EXPECT_EQ(c.storage(), (std::vector<float>{2, 2, 2, 2}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{2, 2, 2, 2}));
 }
 
 // Softmax テスト (1次元)
@@ -464,7 +464,7 @@ TEST(TensorTest, slice)
 {
   Tensor a = Tensor::FromArray({{1, 2, 3}, {4, 5, 6}});
   Tensor c = a.Slice(0);
-  EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{1, 2, 3}));
 
   // shape が (1, 3) であるかチェック
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{3}));
@@ -490,7 +490,7 @@ TEST(TensorTest, slice3D)
   // shapeが(2, 3)であるかチェック
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
 
-  EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{1, 2, 3, 4, 5, 6}));
 }
 
 // 指定範囲を一括して取得する Slice テスト
@@ -508,7 +508,7 @@ TEST(TensorTest, sliceRange)
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{3, 3}));
 
   // 期待される値をチェック
-  EXPECT_EQ(c.storage(), (std::vector<float>{4, 5, 6, 7, 8, 9, 10, 11, 12}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{4, 5, 6, 7, 8, 9, 10, 11, 12}));
 }
 
 // 指定範囲を一括して取得する Slice テスト (3次元)
@@ -541,7 +541,7 @@ TEST(TensorTest, sliceRange3D)
   // shape が (2, 3) であるかチェック
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3, 3}));
 
-  std::vector<float> expected;
+  std::vector<Tensor::value_type> expected;
   for (int i = 10; i < 28; i++)
   {
     expected.push_back(i);
@@ -624,7 +624,7 @@ TEST(TensorTest, concat)
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
 
   // 期待される値をチェック
-  EXPECT_EQ(c.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
+  EXPECT_EQ(c.storage(), (std::vector<Tensor::value_type>{1, 2, 3, 4, 5, 6}));
 }
 
 // Concat テスト (3次元)
@@ -640,7 +640,7 @@ TEST(TensorTest, concat3D)
   EXPECT_EQ(d.shape(), (std::vector<std::size_t>{3, 2, 2, 3}));
 
   // 期待される値をチェック
-  EXPECT_EQ(d.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
+  EXPECT_EQ(d.storage(), (std::vector<Tensor::value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
 }
 
 // Concat の vector 版テスト (3次元)
@@ -655,7 +655,7 @@ TEST(TensorTest, concatVector)
   EXPECT_EQ(d.shape(), (std::vector<std::size_t>{3, 2, 2, 3}));
 
   // 期待される値をチェック
-  EXPECT_EQ(d.storage(), (std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
+  EXPECT_EQ(d.storage(), (std::vector<Tensor::value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
 }
 
 TEST(SoftmaxWithLossTest, Forward)
@@ -676,7 +676,7 @@ TEST(SoftmaxWithLossTest, Forward)
   // サンプル1: softmax(x) ≒ [0.0182, 0.2453, 0.7365] → -log(0.7365) ≒ 0.306
   // サンプル2: softmax(x) ≒ [0.2546, 0.2814, 0.4639] → -log(0.2546) ≒ 1.366
   // 平均 loss = (0.306 + 1.366) / 2 ≒ 0.836
-  float loss_value = loss(0);
+  Tensor::value_type loss_value = loss(0);
   EXPECT_NEAR(loss_value, 0.836f, 0.05f);
 }
 
@@ -902,7 +902,7 @@ TEST(TensorTest, ReshapePreservesData) {
   Tensor a = Tensor::FromArray({{1.0f, 2.0f}, {3.0f, 4.0f}});
   Tensor flat = a.Reshape({4});
   EXPECT_EQ(flat.shape(), (std::vector<std::size_t>{4}));
-  EXPECT_EQ(flat.storage(), (std::vector<float>{1.0f, 2.0f, 3.0f, 4.0f}));
+  EXPECT_EQ(flat.storage(), (std::vector<Tensor::value_type>{1.0f, 2.0f, 3.0f, 4.0f}));
 
   // flat テンソルを元の 2x2 に再度 reshape し、ストレージが変わらないことを確認
   Tensor a2 = flat.Reshape({2, 2});
@@ -952,7 +952,7 @@ TEST(TensorTest, BroadcastAdd) {
   Tensor b = Tensor::FromArray({10.0f, 20.0f, 30.0f}).Reshape({1, 3});
   Tensor c = a + b;
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
-  std::vector<float> expected = {11.0f, 22.0f, 33.0f, 14.0f, 25.0f, 36.0f};
+  std::vector<Tensor::value_type> expected = {11.0f, 22.0f, 33.0f, 14.0f, 25.0f, 36.0f};
   EXPECT_EQ(c.storage(), expected);
 }
 
@@ -964,24 +964,24 @@ TEST(TensorTest, BroadcastMultiply) {
   Tensor b = Tensor::FromArray({2.0f, 3.0f}).Reshape({2, 1});
   Tensor c = a * b;
   EXPECT_EQ(c.shape(), (std::vector<std::size_t>{2, 3}));
-  std::vector<float> expected = {2.0f, 4.0f, 6.0f, 12.0f, 15.0f, 18.0f};
+  std::vector<Tensor::value_type> expected = {2.0f, 4.0f, 6.0f, 12.0f, 15.0f, 18.0f};
   EXPECT_EQ(c.storage(), expected);
 }
 
 // 数値微分を実装するヘルパー関数
-Tensor numerical_gradient(std::function<float(const Tensor&)> f, const Tensor& x) {
+Tensor numerical_gradient(std::function<Tensor::value_type(const Tensor&)> f, const Tensor& x) {
     // x と同じ shape のゼロテンソルを生成
     Tensor grad = Tensor::Zeros(x.shape());
-    constexpr float h = 1e-4;
+    constexpr Tensor::value_type h = 1e-4;
     Tensor x_copy = x;  // x のコピー（深いコピーが行われる前提）
     auto &x_storage = x_copy.storage();
     auto &grad_storage = grad.storage();
     for (size_t i = 0; i < x_storage.size(); ++i) {
-        float temp = x_storage[i];
+        Tensor::value_type temp = x_storage[i];
         x_storage[i] = temp + h;
-        float fxh1 = f(x_copy);
+        Tensor::value_type fxh1 = f(x_copy);
         x_storage[i] = temp - h;
-        float fxh2 = f(x_copy);
+        Tensor::value_type fxh2 = f(x_copy);
         grad_storage[i] = (fxh1 - fxh2) / (2.0f * h);
         x_storage[i] = temp;  // 値を元に戻す
     }
@@ -999,11 +999,11 @@ TEST(ReLULayer, NumericalGradient) {
     ReLU relu;
     
     // loss = sum(ReLU(x)) と定義
-    auto f = [&](const Tensor& x_var) -> float {
+    auto f = [&](const Tensor& x_var) -> Tensor::value_type {
         // テストごとに新たなインスタンスを作成することで、内部状態の影響を排除
         ReLU relu_temp;
         Tensor y = relu_temp.forward(x_var);
-        float loss = 0.0f;
+        Tensor::value_type loss = 0.0f;
         for (auto v : y.storage())
             loss += v;
         return loss;
@@ -1046,11 +1046,11 @@ TEST(AffineLayer, NumericalGradientInput) {
     Affine affine_layer(W_ptr, b_ptr);
     
     // loss = sum(affine_layer.forward(x)) と定義（パラメータは固定）
-    auto f = [&](const Tensor &x_var) -> float {
+    auto f = [&](const Tensor &x_var) -> Tensor::value_type {
         // 新たな Affine インスタンスを用いて計算（内部状態の干渉を避ける）
         Affine affine_tmp(W_ptr, b_ptr);
         Tensor out = affine_tmp.forward(x_var);
-        float loss = 0.0f;
+        Tensor::value_type loss = 0.0f;
         for (auto v : out.storage())
             loss += v;
         return loss;
@@ -1091,12 +1091,12 @@ TEST(AffineLayer, NumericalGradientWeight) {
     Affine affine_layer(std::make_shared<Tensor>(W), std::make_shared<Tensor>(b));
     
     // loss = sum(affine_layer.forward(x)) と定義（ここでパラメータ W を変化させる）
-    auto f = [&](const Tensor &W_var) -> float {
+    auto f = [&](const Tensor &W_var) -> Tensor::value_type {
         // W_var を新たなレイヤーに渡して forward を実行
         auto W_ptr_var = std::make_shared<Tensor>(W_var);
         Affine affine_tmp(W_ptr_var, std::make_shared<Tensor>(b));
         Tensor out = affine_tmp.forward(x);
-        float loss = 0.0f;
+        Tensor::value_type loss = 0.0f;
         for (auto v : out.storage())
             loss += v;
         return loss;
@@ -1132,7 +1132,7 @@ TEST(TwoLayerNetTest, NumericalGradient) {
     Tensor t = Tensor::FromArray({0.0f, 1.0f}).Reshape({1, 2});
     
     // 重み初期化の標準偏差
-    float weight_init_std = 0.1f;
+    Tensor::value_type weight_init_std = 0.1f;
     // ネットワークの構築: 入力サイズ 2, 隠れ層サイズ 3, 出力サイズ 2
     TwoLayerNet net(2, 3, 2, weight_init_std);
     
@@ -1143,7 +1143,7 @@ TEST(TwoLayerNetTest, NumericalGradient) {
     auto analytical_grads = net.gradient(x, t);
     
     // 数値勾配と解析的勾配の各パラメータについて、各要素が近似しているかを確認する
-    const float tolerance = 1e-4f;
+    const Tensor::value_type tolerance = 1e-4f;
     ASSERT_EQ(numerical_grads.size(), analytical_grads.size())
         << "勾配パラメータの数が一致していません。";
     
@@ -1172,10 +1172,10 @@ TEST(TrainingLoopTest, LossDecreases) {
     TwoLayerNet net(2, 3, 2, 0.1f);
 
     // 学習前の損失を計算（1要素のテンソルと仮定し先頭要素を参照）
-    float initial_loss = net.loss(x, t)(0);
+    Tensor::value_type initial_loss = net.loss(x, t)(0);
 
     const int iterations = 1000;
-    const float learning_rate = 0.01f;
+    const Tensor::value_type learning_rate = 0.01f;
 
     // 学習ループ
     for (int i = 0; i < iterations; ++i) {
@@ -1193,7 +1193,7 @@ TEST(TrainingLoopTest, LossDecreases) {
     }
 
     // 学習後の損失を計算
-    float final_loss = net.loss(x, t)(0);
+    Tensor::value_type final_loss = net.loss(x, t)(0);
 
     // 損失が減少していることを確認
     EXPECT_LT(final_loss, initial_loss)
@@ -1209,7 +1209,7 @@ TEST(SoftmaxWithLoss, NumericalGradient) {
                                   {0.0f, 1.0f, 0.0f}});
     
     // 数値微分用の lambda を定義（各評価で新たな SoftmaxWithLoss インスタンスを利用）
-    auto f = [&](const Tensor &x_var) -> float {
+    auto f = [&](const Tensor &x_var) -> Tensor::value_type {
         SoftmaxWithLoss loss_tmp;
         Tensor loss_val = loss_tmp.forward(x_var, t);
         // loss_val は1要素のテンソルと仮定

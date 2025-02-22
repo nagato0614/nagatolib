@@ -448,9 +448,6 @@ Tensor Tensor::Sum(const Tensor &a)
 
   if (shape_size == 1)
   {
-#ifdef NAGATO_OPENMP
-    #pragma omp parallel for
-#endif
     for (std::size_t i = 0; i < a.shape()[0]; ++i)
     {
       result(0) += a(i);
@@ -458,9 +455,6 @@ Tensor Tensor::Sum(const Tensor &a)
   }
   else if (shape_size == 2)
   {
-#ifdef NAGATO_OPENMP
-    #pragma omp parallel for
-#endif
     for (std::size_t i = 0; i < a.shape()[0]; ++i)
     {
       for (std::size_t j = 0; j < a.shape()[1]; ++j)
@@ -471,9 +465,6 @@ Tensor Tensor::Sum(const Tensor &a)
   }
   else if (shape_size == 3)
   {
-#ifdef NAGATO_OPENMP
-    #pragma omp parallel for
-#endif
     for (std::size_t i = 0; i < a.shape()[0]; ++i)
     {
       for (std::size_t j = 0; j < a.shape()[1]; ++j)
@@ -1029,13 +1020,22 @@ bool Tensor::Equal(const Tensor &a, const Tensor &b)
 
 Tensor operator==(const Tensor &a, const Tensor &b)
 {
-  Tensor result(a.shape());
+  // 入力形状が同じであることを確認する
+  if (a.shape() != b.shape())
+  {
+    throw std::invalid_argument("tensor shapes must be the same");
+  }
+
+  Tensor result = Tensor::Zeros(a.shape());
 #ifdef NAGATO_OPENMP
   #pragma omp parallel for
 #endif
   for (std::size_t i = 0; i < a.storage().size(); ++i)
   {
-    result.storage()[i] = a.storage()[i] == b.storage()[i] ? 1.0 : 0.0;
+    if (a(i) == b(i))
+    {
+      result.storage()[i] = 1.0;
+    }
   }
   return result;
 }
@@ -1093,8 +1093,18 @@ Tensor Tensor::Mean(const Tensor &a)
     }
     return result;
   }
+  
+  // 3次元の場合: すべての要素の平均（グローバル平均）を求める
+  if (a.shape().size() == 3)
+  {
+    Tensor result({1});
+    // テンソル全体のストレージを使って全要素の和を求める
+    Tensor::value_type total = std::accumulate(a.storage().begin(), a.storage().end(), 0.0f);
+    result(0) = total / a.storage().size();
+    return result;
+  }
 
-  throw std::invalid_argument("tensor must be 1 or 2 dimensional");
+  throw std::invalid_argument("tensor must be 1, 2 or 3 dimensional");
 }
 
 Tensor Tensor::Abs(const Tensor &a)
