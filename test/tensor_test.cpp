@@ -1371,3 +1371,234 @@ TEST(TensorPadTest, Rank4) {
     EXPECT_FLOAT_EQ(result(0, 0, 0, 0), 0.0f);
     EXPECT_FLOAT_EQ(result(3, 2, 3, 4), 0.0f);
 }
+
+// Rank 1 のテスト
+TEST(TensorTransposeTest, Rank1) {
+    // 1次元テンソル: [1, 2, 3]
+    Tensor a = Tensor::FromArray({1.0f, 2.0f, 3.0f});
+    // 転置 (axes = {0}) → 実質同じ
+    Tensor transposed = Tensor::Transpose(a, {0});
+    
+    std::vector<std::size_t> expected_shape = {3};
+    EXPECT_EQ(transposed.shape(), expected_shape);
+    
+    std::vector<Tensor::value_type> expected_storage = {1.0f, 2.0f, 3.0f};
+    EXPECT_EQ(transposed.storage(), expected_storage);
+}
+
+// Rank 2 のテスト
+TEST(TensorTransposeTest, Rank2) {
+    // 2次元テンソル: [ [1, 2, 3],
+    //                [4, 5, 6] ]
+    Tensor a = Tensor::FromArray({{1.0f, 2.0f, 3.0f},
+                                  {4.0f, 5.0f, 6.0f}});
+    // 転置: axes = {1, 0}  → 行列の転置
+    Tensor transposed = Tensor::Transpose(a, {1, 0});
+    
+    // 期待される形状: {3, 2}
+    std::vector<std::size_t> expected_shape = {3, 2};
+    EXPECT_EQ(transposed.shape(), expected_shape);
+    
+    // 変換後の各要素: 
+    // new(0,0) = a(0,0)=1, new(0,1)=a(1,0)=4,
+    // new(1,0)=a(0,1)=2, new(1,1)=a(1,1)=5,
+    // new(2,0)=a(0,2)=3, new(2,1)=a(1,2)=6
+    std::vector<Tensor::value_type> expected_storage = {1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f};
+    EXPECT_EQ(transposed.storage(), expected_storage);
+}
+
+// Rank 3 のテスト
+TEST(TensorTransposeTest, Rank3) {
+    // 3次元テンソル: shape = {2, 2, 2}、値は 1 ～ 8（row-major）
+    // a(0,0,0)=1, a(0,0,1)=2, a(0,1,0)=3, a(0,1,1)=4,
+    // a(1,0,0)=5, a(1,0,1)=6, a(1,1,0)=7, a(1,1,1)=8
+    Tensor a = Tensor::FromArray({{{1.0f, 2.0f}, {3.0f, 4.0f}},
+                                  {{5.0f, 6.0f}, {7.0f, 8.0f}}});
+    // 転置: axes = {1, 0, 2} → new(i,j,k) = a(j, i, k)
+    Tensor transposed = Tensor::Transpose(a, {1, 0, 2});
+    
+    // 期待される形状: {2, 2, 2}（変化なし）
+    std::vector<std::size_t> expected_shape = {2, 2, 2};
+    EXPECT_EQ(transposed.shape(), expected_shape);
+    
+    // 各要素は以下のように入れ替えられる:
+    // new(0,0,*) = a(0,0,*) = {1, 2}
+    // new(0,1,*) = a(1,0,*) = {5, 6}
+    // new(1,0,*) = a(0,1,*) = {3, 4}
+    // new(1,1,*) = a(1,1,*) = {7, 8}
+    // よって flattened storage は {1, 2, 5, 6, 3, 4, 7, 8}
+    std::vector<Tensor::value_type> expected_storage = {1.0f, 2.0f, 5.0f, 6.0f, 3.0f, 4.0f, 7.0f, 8.0f};
+    EXPECT_EQ(transposed.storage(), expected_storage);
+}
+
+// Rank 4 のテスト
+TEST(TensorTransposeTest, Rank4) {
+    // 4次元テンソル: shape = {2, 2, 2, 2}、値は 1 ～ 16（row-major）
+    Tensor a = Tensor::FromArray({
+        {
+            {
+                {1.0f, 2.0f},
+                {3.0f, 4.0f}
+            },
+            {
+                {5.0f, 6.0f},
+                {7.0f, 8.0f}
+            }
+        },
+        {
+            {
+                {9.0f, 10.0f},
+                {11.0f, 12.0f}
+            },
+            {
+                {13.0f, 14.0f},
+                {15.0f, 16.0f}
+            }
+        }
+    });
+    // 転置: axes = {0, 2, 3, 1}
+    // new(i,j,k,l) = a(i, l, j, k) に対応する
+    Tensor transposed = Tensor::Transpose(a, {0, 2, 3, 1});
+    
+    // 期待される形状:
+    // new_shape[0] = a.shape()[0] = 2,
+    // new_shape[1] = a.shape()[2] = 2,
+    // new_shape[2] = a.shape()[3] = 2,
+    // new_shape[3] = a.shape()[1] = 2
+    std::vector<std::size_t> expected_shape = {2, 2, 2, 2};
+    EXPECT_EQ(transposed.shape(), expected_shape);
+    
+    // new(i,j,k,l) = a(i, l, j, k) となるので、flattened storage は以下の順となる:
+    // new(0,0,0,0)= a(0, 0, 0, 0)=1
+    // new(0,0,0,1)= a(0, 1, 0, 0)=5
+    // new(0,0,1,0)= a(0, 0, 0, 1)=2
+    // new(0,0,1,1)= a(0, 1, 0, 1)=6
+    // new(0,1,0,0)= a(0, 0, 1, 0)=3
+    // new(0,1,0,1)= a(0, 1, 1, 0)=7
+    // new(0,1,1,0)= a(0, 0, 1, 1)=4
+    // new(0,1,1,1)= a(0, 1, 1, 1)=8
+    // new(1,0,0,0)= a(1, 0, 0, 0)=9
+    // new(1,0,0,1)= a(1, 1, 0, 0)=13
+    // new(1,0,1,0)= a(1, 0, 0, 1)=10
+    // new(1,0,1,1)= a(1, 1, 0, 1)=14
+    // new(1,1,0,0)= a(1, 0, 1, 0)=11
+    // new(1,1,0,1)= a(1, 1, 1, 0)=15
+    // new(1,1,1,0)= a(1, 0, 1, 1)=12
+    // new(1,1,1,1)= a(1, 1, 1, 1)=16
+    std::vector<Tensor::value_type> expected_storage = {
+        1.0f, 5.0f, 2.0f, 6.0f,
+        3.0f, 7.0f, 4.0f, 8.0f,
+        9.0f, 13.0f, 10.0f, 14.0f,
+        11.0f, 15.0f, 12.0f, 16.0f
+    };
+    EXPECT_EQ(transposed.storage(), expected_storage);
+}
+
+#include "network.hpp"  // im2col 関数が宣言されているヘッダ
+#include "tensor.hpp"
+
+// バッチサイズ 1 の場合のテスト
+TEST(NetworkIm2ColTest, BatchSize1) {
+    // バッチサイズ1、チャンネル1、画像サイズ4x4、フィルター2x2, ストライド2, パディング0
+    // 画像: 
+    // [ [ 1,  2,  3,  4],
+    //   [ 5,  6,  7,  8],
+    //   [ 9, 10, 11, 12],
+    //   [13, 14, 15, 16] ]
+    Tensor input = Tensor::FromArray({
+        { // バッチ要素1 (チャンネル1)
+            {
+                {1.0, 2.0, 3.0, 4.0},
+                {5.0, 6.0, 7.0, 8.0},
+                {9.0, 10.0, 11.0, 12.0},
+                {13.0, 14.0, 15.0, 16.0}
+            },
+        }
+    });
+    const std::size_t filter_h = 2, filter_w = 2, stride = 2, pad = 0;
+    
+    // im2col の実行
+    Tensor col = im2col(input, filter_h, filter_w, stride, pad);
+    
+    // 出力 shape は [N * out_h * out_w, C * filter_h * filter_w]
+    // ここでは out_h = out_w = ((4 - 2 + 0)/2 + 1) = 2, かつ
+    // shape = [1*2*2, 1*2*2] = [4, 4]
+    std::vector<std::size_t> expected_shape = {4, 4};
+    EXPECT_EQ(col.shape(), expected_shape);
+    
+    // 各パッチの内容は以下の通り
+    // パッチ1 (左上): [1, 2, 5, 6]
+    // パッチ2 (右上): [3, 4, 7, 8]
+    // パッチ3 (左下): [9, 10, 13, 14]
+    // パッチ4 (右下): [11, 12, 15, 16]
+    std::vector<Tensor::value_type> expected_storage = {
+         1.0f,  2.0f,  5.0f,  6.0f,
+         3.0f,  4.0f,  7.0f,  8.0f,
+         9.0f, 10.0f, 13.0f, 14.0f,
+        11.0f, 12.0f, 15.0f, 16.0f
+    };
+    EXPECT_EQ(col.storage(), expected_storage);
+}
+
+// バッチサイズ 2 以上の場合のテスト
+TEST(NetworkIm2ColTest, BatchSize2) {
+    // バッチサイズ2、チャンネル1、画像サイズ4x4、フィルター2x2, ストライド2, パディング0
+    // 1枚目の画像: 
+    // [ [ 1,  2,  3,  4],
+    //   [ 5,  6,  7,  8],
+    //   [ 9, 10, 11, 12],
+    //   [13, 14, 15, 16] ]
+    // 2枚目の画像: 
+    // [ [17, 18, 19, 20],
+    //   [21, 22, 23, 24],
+    //   [25, 26, 27, 28],
+    //   [29, 30, 31, 32] ]
+    Tensor input = Tensor::FromArray({
+        { // バッチ要素1 (チャンネル1)
+            {
+                {1.0, 2.0, 3.0, 4.0},
+                {5.0, 6.0, 7.0, 8.0},
+                {9.0, 10.0, 11.0, 12.0},
+                {13.0, 14.0, 15.0, 16.0}
+            }
+        },
+        { // バッチ要素2 (チャンネル1)
+            {
+                {17.0, 18.0, 19.0, 20.0},
+                {21.0, 22.0, 23.0, 24.0},
+                {25.0, 26.0, 27.0, 28.0},
+                {29.0, 30.0, 31.0, 32.0}
+            }
+        }
+    });
+    const std::size_t filter_h = 2, filter_w = 2, stride = 2, pad = 0;
+    
+    Tensor col = im2col(input, filter_h, filter_w, stride, pad);
+    
+    // 出力 shape は [N * out_h * out_w, C * filter_h * filter_w]
+    // バッチ2の場合、out_h = out_w = 2 なので、shape = [2*2*2, 1*2*2] = [8, 4]
+    std::vector<std::size_t> expected_shape = {8, 4};
+    EXPECT_EQ(col.shape(), expected_shape);
+    
+    // 1枚目の画像の im2col 結果
+    // パッチ1: [1, 2, 5, 6]
+    // パッチ2: [3, 4, 7, 8]
+    // パッチ3: [9, 10, 13, 14]
+    // パッチ4: [11,12,15,16]
+    // 2枚目の画像の im2col 結果
+    // パッチ1: [17,18,21,22]
+    // パッチ2: [19,20,23,24]
+    // パッチ3: [25,26,29,30]
+    // パッチ4: [27,28,31,32]
+    std::vector<Tensor::value_type> expected_storage = {
+         1.0f,  2.0f,  5.0f,  6.0f,
+         3.0f,  4.0f,  7.0f,  8.0f,
+         9.0f, 10.0f, 13.0f, 14.0f,
+        11.0f, 12.0f, 15.0f, 16.0f,
+        17.0f, 18.0f, 21.0f, 22.0f,
+        19.0f, 20.0f, 23.0f, 24.0f,
+        25.0f, 26.0f, 29.0f, 30.0f,
+        27.0f, 28.0f, 31.0f, 32.0f
+    };
+    EXPECT_EQ(col.storage(), expected_storage);
+}

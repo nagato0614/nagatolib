@@ -255,28 +255,28 @@ public:
    * @param array 配列
    * @return テンソル
    */
-  static Tensor FromArray(const std::vector<value_type> &array);
+  static Tensor FromArray(const std::initializer_list<value_type> &array);
 
   /**
    * @brief 配列からテンソルを作成する. 2次元テンソルとして作成する
    * @param array 配列
    * @return テンソル
    */
-  static Tensor FromArray(const std::vector<std::vector<value_type>> &array);
+  static Tensor FromArray(const std::initializer_list<std::initializer_list<value_type>> &array);
 
   /**
    * @brief 配列からテンソルを作成する. 3次元テンソルとして作成する
    * @param array 配列
    * @return テンソル
    */
-  static Tensor FromArray(const std::vector<std::vector<std::vector<value_type>>> &array);
+  static Tensor FromArray(const std::initializer_list<std::initializer_list<std::initializer_list<value_type>>> &array);
 
   /**
    * @brief 配列からテンソルを作成する. 4次元テンソルとして作成する
    * @param array 配列
    * @return テンソル
    */
-  static Tensor FromArray(const std::vector<std::vector<std::vector<std::vector<value_type>>>> &array);
+  static Tensor FromArray(const std::initializer_list<std::initializer_list<std::initializer_list<std::initializer_list<value_type>>>> &array);
 
   /**
    * @brief テンソルの要素ごとに関数を適用する
@@ -297,6 +297,14 @@ public:
    * @return 転置したテンソル
    */
   static Tensor Transpose(const Tensor &a);
+
+  /**
+   * @brief テンソルの軸を入れ替える
+   * @param a テンソル
+   * @param axes 軸
+   * @return 軸を入れ替えたテンソル
+   */
+  static Tensor Transpose(const Tensor &a, const std::vector<std::size_t> &axes);
 
   /**
    * @brief 単項演算子のオーバーロード

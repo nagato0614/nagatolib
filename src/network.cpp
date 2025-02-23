@@ -416,26 +416,60 @@ Tensor im2col(
   const std::size_t &stride,
   const std::size_t &pad)
 {
-  // 入力したテンソルが, 4次元テンソルであることを確認する
+  // 入力したテンソルが4次元であることを確認する
   if (input.shape().size() != 4)
   {
     throw std::invalid_argument("input must be 4D tensor");
   }
   
-  // 入力サイズを取得する
-  const auto N = input.shape()[0];
-  const auto C = input.shape()[1];
-  const auto H = input.shape()[2];
-  const auto W = input.shape()[3];
+  // 入力サイズの取得
+  const auto N = input.shape()[0]; // バッチサイズ
+  const auto C = input.shape()[1]; // チャンネル数
+  const auto H = input.shape()[2]; // 高さ
+  const auto W = input.shape()[3]; // 幅
 
-  // 出力サイズを計算する
+  // 出力の高さ・幅を計算する
   const auto out_h = (H - filter_h + 2 * pad) / stride + 1;
   const auto out_w = (W - filter_w + 2 * pad) / stride + 1;
 
-  // 出力テンソルを初期化する
+  // パディングを行うための各次元のパディング量を設定
+  // N, C 軸はそのまま、H, W 軸にそれぞれ前後 pad 個ずつ追加する
+  std::vector<std::pair<std::size_t, std::size_t>> pad_dims = {
+    {0, 0}, {0, 0}, {pad, pad}, {pad, pad}
+  };
+  // Pad 関数を利用してパディングを実施する
+  Tensor img = Tensor::Pad(input, pad_dims);
+  
+  // 出力テンソルを初期化する (形状は [N, C, filter_h, filter_w, out_h, out_w] )
   Tensor out = Tensor::Zeros({N, C, filter_h, filter_w, out_h, out_w});
-  
-  
+
+  // 6重ループにより、パディング済みの img からスライスして out に値をコピーする
+  for (std::size_t n = 0; n < N; ++n)
+  {
+    for (std::size_t c = 0; c < C; ++c)
+    {
+      for (std::size_t y = 0; y < filter_h; ++y)
+      {
+        for (std::size_t x = 0; x < filter_w; ++x)
+        {
+          for (std::size_t i = 0; i < out_h; ++i)
+          {
+            for (std::size_t j = 0; j < out_w; ++j)
+            {
+              out(n, c, y, x, i, j) = img(n, c, y + i * stride, x + j * stride);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Python実装と同様に、6次元テンソル (N, C, filter_h, filter_w, out_h, out_w)
+  // を、転置して (N, out_h, out_w, C, filter_h, filter_w) に変換し、
+  // さらに reshape して 2次元テンソル [N*out_h*out_w, C*filter_h*filter_w] とする
+  Tensor col = Tensor::Transpose(out, {0, 4, 5, 1, 2, 3});
+  col = col.Reshape({N * out_h * out_w, C * filter_h * filter_w});
+  return col;
 }
 
 } // namespace nagato

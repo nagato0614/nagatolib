@@ -774,139 +774,155 @@ Tensor Tensor::operator-() const
   return result;
 }
 
-Tensor Tensor::FromArray(const std::vector<value_type> &array)
+Tensor Tensor::FromArray(const std::initializer_list<value_type> &array)
 {
   Tensor result({array.size()});
   std::copy(array.begin(), array.end(), result.storage().begin());
   return result;
 }
 
-Tensor Tensor::FromArray(const std::vector<std::vector<value_type> > &array)
+Tensor Tensor::FromArray(const std::initializer_list<std::initializer_list<value_type>> &array)
 {
-  Tensor result({array.size(), array[0].size()});
-
-  // すべての行が同じサイズであることをチェック
-  for (const auto &row : array)
-  {
-    if (row.size() != array[0].size())
-    {
-      throw std::invalid_argument("all rows must have the same size");
+    if (array.size() == 0) {
+        throw std::invalid_argument("array must not be empty");
     }
-  }
+    
+    // 最初の行から列数を取得
+    const std::size_t num_rows = array.size();
+    const std::size_t num_cols = array.begin()->size();
+    Tensor result({num_rows, num_cols});
 
-  for (std::size_t i = 0; i < array.size(); ++i)
-  {
-    std::copy(array[i].begin(), array[i].end(), result.storage().begin() + i * array[i].size());
-  }
-  return result;
+    // 各行のサイズが同じであることをチェックする
+    for (const auto &row : array) {
+        if (row.size() != num_cols) {
+            throw std::invalid_argument("all rows must have the same size");
+        }
+    }
+    
+    // 添字を用いる代わりに、反復処理で各行にアクセスしてコピーする
+    std::size_t i = 0;
+    for (const auto &row : array) {
+        std::copy(row.begin(), row.end(),
+                  result.storage().begin() + i * num_cols);
+        ++i;
+    }
+    return result;
 }
 
-Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<value_type> > > &array)
+Tensor Tensor::FromArray(const std::initializer_list<std::initializer_list<std::initializer_list<value_type>>> &array)
 {
-  // 3次元テンソルとして初期化
-  Tensor result({array.size(), array[0].size(), array[0][0].size()});
-
-  // すべての行が同じサイズであることをチェック
-  for (const auto &row : array)
-  {
-    if (row.size() != array[0].size())
-    {
-      throw std::invalid_argument("all rows must have the same size");
-    }
-    // すべての列が同じサイズであることをチェック
-    for (const auto &col : row)
-    {
-      if (col.size() != array[0][0].size())
-      {
-        throw std::invalid_argument("all columns must have the same size");
-      }
-    }
-  }
-
-  // 各次元のサイズ
-  std::size_t d1 = array[0].size();
-  std::size_t d2 = array[0][0].size();
-
-#ifdef NAGATO_OPENMP
-  #pragma omp parallel for
-#endif
-  for (std::size_t i = 0; i < array.size(); ++i)
-  {
-    for (std::size_t j = 0; j < d1; ++j)
-    {
-      // 正しいオフセット: 第1次元 i に対して d1*d2、さらに第2次元 j に対して d2
-      std::copy(
-        array[i][j].begin(),
-        array[i][j].end(),
-        result.storage().begin() + i * (d1 * d2) + j * d2);
-    }
-  }
-  return result;
-}
-
-Tensor Tensor::FromArray(const std::vector<std::vector<std::vector<std::vector<value_type>>>> &array)
-{
-    // 外側のサイズ（1次元目）
-    std::size_t dim0 = array.size();
-    if (dim0 == 0) {
+    // 3次元テンソルの場合、まず各次元のサイズを取得する
+    if (array.size() == 0) {
         throw std::invalid_argument("Empty array passed to FromArray");
     }
+    const std::size_t dim0 = array.size();
+    auto it0 = array.begin();
+    const std::size_t dim1 = it0->size();
+    if (dim1 == 0) {
+        throw std::invalid_argument("Empty subarray passed to FromArray");
+    }
+    auto it1 = it0->begin();
+    const std::size_t dim2 = it1->size();
+    if (dim2 == 0) {
+        throw std::invalid_argument("Empty subsubarray passed to FromArray");
+    }
 
-    // 2次元目のサイズ
-    std::size_t dim1 = array[0].size();
+    Tensor result({dim0, dim1, dim2});
+
+    // 各平面（plane）の行サイズ・各行の列数がすべて一様であることをチェック
+    for (const auto &plane : array)
+    {
+        if (plane.size() != dim1) {
+            throw std::invalid_argument("All rows in each plane must have the same size");
+        }
+        for (const auto &row : plane)
+        {
+            if (row.size() != dim2) {
+                throw std::invalid_argument("All columns in each row must have the same size");
+            }
+        }
+    }
+
+    // 3重ループにより各要素をフラットなストレージにコピーする
+    std::size_t i = 0;
+    for (const auto &plane : array)
+    {
+        std::size_t j = 0;
+        for (const auto &row : plane)
+        {
+            std::copy(row.begin(), row.end(),
+                      result.storage().begin() + (i * dim1 * dim2 + j * dim2));
+            ++j;
+        }
+        ++i;
+    }
+    return result;
+}
+
+Tensor Tensor::FromArray(const std::initializer_list<std::initializer_list<std::initializer_list<std::initializer_list<value_type>>>> &array)
+{
+    // 4次元テンソルの場合、各次元のサイズをイテレータから取得する
+    if (array.size() == 0) {
+        throw std::invalid_argument("Empty array passed to FromArray");
+    }
+    const std::size_t dim0 = array.size();
+    auto it0 = array.begin();
+    const std::size_t dim1 = it0->size();
     if (dim1 == 0) {
         throw std::invalid_argument("Empty array[0] passed to FromArray");
     }
-
-    // 3次元目のサイズ
-    std::size_t dim2 = array[0][0].size();
+    auto it1 = it0->begin();
+    const std::size_t dim2 = it1->size();
     if (dim2 == 0) {
         throw std::invalid_argument("Empty array[0][0] passed to FromArray");
     }
-
-    // 4次元目のサイズ
-    std::size_t dim3 = array[0][0][0].size();
+    auto it2 = it1->begin();
+    const std::size_t dim3 = it2->size();
     if (dim3 == 0) {
         throw std::invalid_argument("Empty array[0][0][0] passed to FromArray");
     }
 
-    // 各次元が全体として一様であることのチェック（任意）
-    for (std::size_t i = 0; i < dim0; ++i) {
-        if (array[i].size() != dim1) {
+    // 各次元が全体として一様であることをチェック
+    for (const auto &plane : array)
+    {
+        if (plane.size() != dim1) {
             throw std::invalid_argument("不揃いな第2次元サイズが存在します");
         }
-        for (std::size_t j = 0; j < dim1; ++j) {
-            if (array[i][j].size() != dim2) {
+        for (const auto &matrix : plane)
+        {
+            if (matrix.size() != dim2) {
                 throw std::invalid_argument("不揃いな第3次元サイズが存在します");
             }
-            for (std::size_t k = 0; k < dim2; ++k) {
-                if (array[i][j][k].size() != dim3) {
+            for (const auto &row : matrix)
+            {
+                if (row.size() != dim3) {
                     throw std::invalid_argument("不揃いな第4次元サイズが存在します");
                 }
             }
         }
     }
 
-    // テンソルの形状を決定
+    // テンソルの形状を決定し、ストレージを確保する
     shape_type shape = {dim0, dim1, dim2, dim3};
     Tensor result(shape);
-
-    // 格納先のストレージサイズを確保（念のため）
     std::size_t total = dim0 * dim1 * dim2 * dim3;
     result.storage().resize(total);
 
-    // 4重ループにより、各要素をフラット化してコピーする
+    // 4重ループにより、各要素をフラットにコピー
     std::size_t index = 0;
-    for (std::size_t i = 0; i < dim0; ++i) {
-        for (std::size_t j = 0; j < dim1; ++j) {
-            for (std::size_t k = 0; k < dim2; ++k) {
-                for (std::size_t l = 0; l < dim3; ++l) {
-                    result.storage()[index++] = array[i][j][k][l];
+    for (const auto &plane : array)
+    {
+        for (const auto &matrix : plane)
+        {
+            for (const auto &row : matrix)
+            {
+                for (const auto &val : row)
+                {
+                    result.storage()[index++] = val;
                 }
             }
         }
     }
-
     return result;
 }
 
@@ -1108,25 +1124,54 @@ Tensor operator==(const Tensor &a, const Tensor &b)
 
 Tensor Tensor::FromCSV(const std::string &filename)
 {
-  std::ifstream file(filename);
-  if (!file.is_open())
-  {
-    throw std::runtime_error("ファイルを開くことができませんでした: " + filename);
-  }
-  std::string line;
-  std::vector<std::vector<Tensor::value_type> > data;
-  while (std::getline(file, line))
-  {
-    std::vector<Tensor::value_type> row;
-    std::stringstream ss(line);
-    std::string cell;
-    while (std::getline(ss, cell, ','))
+    std::ifstream file(filename);
+    if (!file.is_open())
     {
-      row.push_back(std::stof(cell));
+        throw std::runtime_error("ファイルを開くことができませんでした: " + filename);
     }
-    data.push_back(row);
-  }
-  return FromArray(data);
+
+    std::string line;
+    std::vector<std::vector<value_type>> data;
+    while (std::getline(file, line))
+    {
+        std::vector<value_type> row;
+        std::stringstream ss(line);
+        std::string cell;
+        while (std::getline(ss, cell, ','))
+        {
+            row.push_back(std::stof(cell));
+        }
+        data.push_back(row);
+    }
+
+    if (data.empty())
+    {
+        throw std::invalid_argument("CSVファイルが空です");
+    }
+
+    // 行数と列数を取得
+    std::size_t rows = data.size();
+    std::size_t cols = data[0].size();
+    for (const auto &row : data)
+    {
+        if (row.size() != cols)
+        {
+            throw std::invalid_argument("CSV内の行で列数が一致しません");
+        }
+    }
+
+    // 2次元のテンソルとして初期化（形状: {rows, cols}）
+    Tensor result({rows, cols});
+
+    // 2重ループで vector 内の値をテンソルのストレージへコピーする
+    for (std::size_t i = 0; i < rows; ++i)
+    {
+        for (std::size_t j = 0; j < cols; ++j)
+        {
+            result(i, j) = data[i][j];
+        }
+    }
+    return result;
 }
 
 Tensor Tensor::Mean(const Tensor &a)
@@ -1473,6 +1518,70 @@ Tensor Tensor::Pad(const Tensor &a, const std::vector<std::pair<std::size_t, std
   }
   
   return result;
+}
+
+Tensor Tensor::Transpose(const Tensor &a, const std::vector<std::size_t> &axes)
+{
+    const std::size_t ndim = a.shape().size();
+    if (axes.size() != ndim) {
+        throw std::invalid_argument("axes size must be equal to tensor rank");
+    }
+    
+    // axesが0～ndim-1の各値を一度ずつ含むかチェックする
+    std::vector<bool> seen(ndim, false);
+    for (auto ax : axes) {
+        if (ax >= ndim) {
+            throw std::invalid_argument("axis index out of range");
+        }
+        if (seen[ax]) {
+            throw std::invalid_argument("axes contains duplicate values");
+        }
+        seen[ax] = true;
+    }
+    
+    // 新しい形状を決定する: new_shape[d] = a.shape()[axes[d]]
+    Tensor::shape_type new_shape;
+    for (std::size_t i = 0; i < ndim; i++) {
+        new_shape.push_back(a.shape()[axes[i]]);
+    }
+    
+    // 新たな形状でTensorを作成（連続領域が確保され、ストライドも計算される）
+    Tensor result(new_shape);
+    
+    // 全要素数
+    const std::size_t total = a.storage().size();
+    
+    // 元テンソルのストライドと結果用テンソルのストライドを取得
+    const auto &a_strides = a.strides();
+    const auto &r_strides = result.strides();
+    
+    // flatインデックスを用いて、元の多次元インデックスを求め、軸の並び替えをする
+    for (std::size_t i = 0; i < total; i++) {
+        // 元のテンソルの各軸のインデックスを計算
+        std::vector<std::size_t> orig_idx(ndim, 0);
+        std::size_t t = i;
+        for (std::size_t d = 0; d < ndim; d++) {
+            orig_idx[d] = t / a_strides[d];
+            t %= a_strides[d];
+        }
+        
+        // 転置後の多次元インデックス new_idx[d] = orig_idx[axes[d]]
+        std::vector<std::size_t> new_idx(ndim, 0);
+        for (std::size_t d = 0; d < ndim; d++) {
+            new_idx[d] = orig_idx[axes[d]];
+        }
+        
+        // 転置後のテンソルのflatインデックスを計算
+        std::size_t new_flat_index = 0;
+        for (std::size_t d = 0; d < ndim; d++) {
+            new_flat_index += new_idx[d] * r_strides[d];
+        }
+        
+        // 元のテンソルの値を転置先にコピー
+        result.storage()[new_flat_index] = a.storage()[i];
+    }
+    
+    return result;
 }
 
 } // namespace nagato
